@@ -37,15 +37,13 @@ public class BTree {
             } else {
                 leaf.put(key, value);
             }
-            insertInInnerNode(leaf, key, rightNode);
+            insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode);
         }
     }
 
     private void insertInInnerNode(BTreeNode left, long key, BTreeNode right) {
         if (left.isRoot()) {
             BTreeNode newRoot = new BTreeNode(null, order, false);
-            left.setParent(newRoot);
-            right.setParent(newRoot);
             root = newRoot;
             root.put(key, left, right);
         } else {
@@ -54,7 +52,7 @@ public class BTree {
             if (parent.getNumKeys() < order - 1) {
                 parent.put(key, right);
             } else {
-                Pair<BTreeNode, Long > pair = parent.insertAndSplit(key, right);
+                Pair<BTreeNode, Long > pair = parent.putAndSplit(key, right);
                 insertInInnerNode(parent, pair.getB(), pair.getA());
             }
         }

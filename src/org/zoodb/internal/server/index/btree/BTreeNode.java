@@ -1,5 +1,7 @@
 package org.zoodb.internal.server.index.btree;
 
+import java.util.Arrays;
+
 import org.zoodb.internal.util.Pair;
 
 public class BTreeNode {
@@ -71,24 +73,54 @@ public class BTreeNode {
     }
 
     /**
-     * Inner-node put.
+     * Inner-node put. Places key to the left of the next bigger key k'.
      *
-     * Requires that node is not full.
+     * Requires that 
+     * 		key <= keys(newNode)
+     * 		all elements of the left child of k' are  smaller than key 
+     * 		node is not full.
+     * Assumes that leftOf(key') <= keys(newNode) 
      * @param key
      * @param newNode
      */
     public void put(long key, BTreeNode newNode) {
         if (isLeaf()) {
             throw new UnsupportedOperationException("Should only be called on inner nodes.");
+        } else if(numKeys == 0) {
+            throw new UnsupportedOperationException("Should only be called when node is non-empty.");
         }
 
         int pos = findKeyPos(key);
-        System.arraycopy(children, pos, children, pos + 1, numKeys - pos + 1);
-        children[pos] = newNode;
+        System.arraycopy(children, pos + 1, children, pos + 2, numKeys - pos);
+        children[pos+1] = newNode;
+        newNode.setParent(this);
 
         System.arraycopy(keys, pos, keys, pos + 1, numKeys - pos);
         keys[pos] = key;
         numKeys++;
+    }
+    
+    
+    /**
+     * Root-node put.
+     *
+     * Used when a non-leaf root is empty.
+     * @param key
+     * @param newNode
+     */
+    public void put(long key, BTreeNode left, BTreeNode right) {
+        if (!isRoot()) {
+            throw new UnsupportedOperationException("Should only be called on the root node.");
+        }
+
+        keys[0] = key;
+        numKeys = 1;
+
+        children[0] = left;
+        children[1] = right;
+        
+        left.setParent(this);
+        right.setParent(this);
     }
 
     /**
@@ -122,7 +154,7 @@ public class BTreeNode {
      * @param newNode
      * @return
      */
-    public Pair<BTreeNode, Long> insertAndSplit(long key, BTreeNode newNode) {
+    public Pair<BTreeNode, Long> putAndSplit(long key, BTreeNode newNode) {
         if (isLeaf()) {
             throw new UnsupportedOperationException("Should only be called on inner nodes.");
         }
@@ -156,21 +188,7 @@ public class BTreeNode {
         return new Pair<>(right, keyToMoveUp);
     }
 
-    public void put(long key, BTreeNode left, BTreeNode right) {
-        if (!isRoot()) {
-            throw new UnsupportedOperationException("Should only be called on the root node.");
-        }
 
-        keys[0] = key;
-        numKeys = 1;
-
-        children[0] = left;
-        children[1] = right;
-    }
-
-    private int getNumElements() {
-        return numKeys;
-    }
 
     public boolean isLeaf() {
         return isLeaf;
@@ -190,6 +208,10 @@ public class BTreeNode {
 
     public long[] getKeys() {
         return keys;
+    }
+    
+    public long getSmallestKey() {
+    	return keys[0];
     }
 
     public long[] getValues() {
@@ -222,6 +244,18 @@ public class BTreeNode {
 
     public void setKeys(long[] keys) {
         this.keys = keys;
+    }
+    
+    public String toString() {
+    	String ret = (isLeaf() ? "leaf" : "inner ") + "-node: k:";
+    	ret += Arrays.toString(keys) + " ";
+    	if(isLeaf()) {
+    		ret+= "v:" + Arrays.toString(values);
+    	} else {
+    		ret+= "c:" + Arrays.toString(children);
+    	}
+    	
+    	return ret;
     }
 
 
