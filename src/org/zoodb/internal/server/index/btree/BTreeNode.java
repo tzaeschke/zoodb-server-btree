@@ -133,12 +133,13 @@ public class BTreeNode {
         }
 
         BTreeNode rightNode = new BTreeNode(parent, order, true);
-        int keysPerNode = (int) Math.floor(order / 2);
-        System.arraycopy(keys, keysPerNode, rightNode.getKeys(), 0, keysPerNode);
-        System.arraycopy(values, keysPerNode, rightNode.getValues(), 0, keysPerNode);
+        int keysInLeftNode = (int) Math.ceil((order-1) / 2.0);
+        int keysInRightNode = order-1-keysInLeftNode;
+        System.arraycopy(keys, keysInLeftNode, rightNode.getKeys(), 0, keysInRightNode);
+        System.arraycopy(values, keysInLeftNode, rightNode.getValues(), 0, keysInRightNode);
 
-        numKeys = keysPerNode;
-        rightNode.setNumKeys(keysPerNode);
+        numKeys = keysInLeftNode;
+        rightNode.setNumKeys(keysInRightNode);
         rightNode.setParent(parent);
 
         return rightNode;
@@ -163,27 +164,31 @@ public class BTreeNode {
         BTreeNode tempNode = new BTreeNode(null, order + 1, false);
         System.arraycopy(keys, 0, tempNode.getKeys(), 0, numKeys);
         System.arraycopy(children, 0, tempNode.getChildren(), 0, order);
+        tempNode.setNumKeys(numKeys);
         tempNode.put(key, newNode);
 
         //split
         BTreeNode right = new BTreeNode(parent, order, false);
-        int keysPerNode = (int) Math.floor((order - 1 )/ 2);
+        int keysInLeftNode = (int) Math.floor(order / 2.0);
         //populate left node
-        System.arraycopy(keys, 0, keys, 0, keysPerNode);
-        System.arraycopy(children, 0, children, 0, keysPerNode + 1);
-        numKeys = keysPerNode;
+        System.arraycopy(tempNode.getKeys(), 0, keys, 0, keysInLeftNode);
+        System.arraycopy(tempNode.getChildren(), 0, children, 0, keysInLeftNode + 1);
+        numKeys = keysInLeftNode;
 
         //populate right node
-        System.arraycopy(keys, keysPerNode + 1, right.getKeys(), 0, order - keysPerNode - 1);
-        System.arraycopy(children, keysPerNode + 1, right.getChildren(), 0, order - keysPerNode);
-        right.setNumKeys(order - keysPerNode - 1);
+        int keysInRightNode = order-keysInLeftNode-1;
+        System.arraycopy(tempNode.getKeys(), keysInLeftNode + 1, right.getKeys(), 0, keysInRightNode);
+        System.arraycopy(tempNode.getChildren(), keysInLeftNode + 1, right.getChildren(), 0, keysInRightNode+1);
+        right.setNumKeys(keysInRightNode);
+
+        long keyToMoveUp = tempNode.getKeys()[keysInLeftNode];
 
         //update children pointers
-        for (int i = keysPerNode + 1; i < order + 1; i++) {
+        newNode.setParent(key < keyToMoveUp ? this : right);
+        for (int i = keysInLeftNode + 1; i < order + 1; i++) {
             tempNode.getChildren()[i].setParent(right);
         }
         right.setParent(parent);
-        long keyToMoveUp = tempNode.getKeys()[keysPerNode];
 
         return new Pair<>(right, keyToMoveUp);
     }
