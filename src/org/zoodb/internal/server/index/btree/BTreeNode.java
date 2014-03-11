@@ -68,6 +68,42 @@ public class BTreeNode {
         return mid + 1;
     }
 
+    /**
+     * Find the value corresponding to a key in a leaf node.
+     *
+     * @param key   The key received as argument
+     * @return      The value corresponding to the key in the index.
+     *              If the key is not found in the index, -1 is returned.
+     */
+    public long findValue(long key) {
+        if (!this.isLeaf()) {
+            throw new UnsupportedOperationException("Should only be called on leaf nodes.");
+        }
+        if (numKeys == 0) {
+            return 0;
+        }
+        int low = 0;
+        int high = numKeys - 1;
+        int mid = 0;
+        boolean found = false;
+        while (!found && low <= high) {
+            mid = low + (high - low) / 2;
+            if (keys[mid] == key) {
+                found = true;
+            } else {
+                if (key < keys[mid]) {
+                    high = mid - 1;
+                } else {
+                    low = mid + 1;
+                }
+            }
+        }
+        if (!found) {
+            return -1;
+        }
+        return values[mid];
+    }
+
     public BTreeNode findChild(long key) {
         return children[findKeyPos(key)];
     }

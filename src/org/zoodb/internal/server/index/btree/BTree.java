@@ -17,8 +17,11 @@ public class BTree {
     }
 
     public long search(long key) {
-        //ToDo refactor
-        return key;
+        BTreeNode current = root;
+        while (!current.isLeaf()) {
+            current = current.findChild(key);
+        }
+        return current.findValue(key);
     }
 
     public void insert(long key, long value) {
