@@ -1,9 +1,14 @@
 package org.zoodb.internal.server.index.btree;
 
-import java.util.Arrays;
-
 import org.zoodb.internal.util.Pair;
 
+import java.util.Arrays;
+
+/**
+ * Represents the node of a B+ tree.
+ *
+ * Support for linked-lists of nodes on the leaf level is yet to be added.
+ */
 public class BTreeNode {
 
     private final boolean isLeaf;
@@ -160,14 +165,15 @@ public class BTreeNode {
         keys[pos] = key;
         numKeys++;
     }
-    
-    
+
+
     /**
      * Root-node put.
      *
-     * Used when a non-leaf root is empty.
-     * @param key
-     * @param newNode
+     * Used when a non-leaf root is empty and will be populated by a single key and two nodes.
+     * @param key       The new key on the root.
+     * @param left      The left node.
+     * @param right     The right node.
      */
     public void put(long key, BTreeNode left, BTreeNode right) {
         if (!isRoot()) {

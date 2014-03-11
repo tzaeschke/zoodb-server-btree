@@ -2,9 +2,16 @@ package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.util.Pair;
 
+/**
+ * B+ Tree data structure.
+ *
+ * The order parameter is considered according the Knuth, as the
+ * maximum number of children in any node.
+ *
+ * Proper support for handling duplicate keys needs to be added.
+ */
 public class BTree {
 
-    //order according to Knuth, max number of children
     private int order;
     private BTreeNode root;
 
@@ -16,6 +23,12 @@ public class BTree {
         this.root = root;
     }
 
+    /**
+     * Retrieve the value corresponding to the key from the B+ tree.
+     *
+     * @param key
+     * @return
+     */
     public long search(long key) {
         BTreeNode current = root;
         while (!current.isLeaf()) {
@@ -24,6 +37,18 @@ public class BTree {
         return current.findValue(key);
     }
 
+    /**
+     * Insert a new key value pair to the B+ tree.
+     *
+     * Algorithm performs as follows:
+     *  - a reference to the leaf node on which the value for the key received as argument is first retrieved
+     *  - if the leaf will not overflow after adding the new (key, value) pair, the pair is inserted in the leaf.
+     *  - if the leaf will overflow after the addition of the new (key, value) pair, the leaf is split into 2 leaves.
+     *    The keys/values in the original leaf are split as evenly as possible between the 2 leaves.
+     *    The references to the parent node are then fixed.
+     * @param key
+     * @param value
+     */
     public void insert(long key, long value) {
         if (root == null) {
             root = new BTreeNode(null, order, true);
@@ -44,6 +69,14 @@ public class BTree {
         }
     }
 
+    /**
+     * Inserts the nodes left and right into the parent node. The right node is a new node, created
+     * as a result of a split.
+     *
+     * @param left
+     * @param key
+     * @param right
+     */
     private void insertInInnerNode(BTreeNode left, long key, BTreeNode right) {
         if (left.isRoot()) {
             BTreeNode newRoot = new BTreeNode(null, order, false);
