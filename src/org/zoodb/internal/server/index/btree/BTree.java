@@ -34,7 +34,7 @@ public class BTree {
             leaf.put(key, value);
         } else {
             //split node
-            BTreeNode rightNode = leaf.split();
+            BTreeNode rightNode = leaf.split(key);
             if (key > leaf.largestKey()) {
                 rightNode.put(key, value);
             } else {
@@ -72,5 +72,18 @@ public class BTree {
 
     private BTreeNode searchNode(long key) {
         return searchNode(root, key);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof BTree)) return false;
+
+        BTree bTree = (BTree) o;
+
+        if (order != bTree.order) return false;
+        if (root != null ? !root.equals(bTree.root) : bTree.root != null) return false;
+
+        return true;
     }
 }

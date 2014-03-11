@@ -48,6 +48,7 @@ public class BTreeNode {
         int high = numKeys - 1;
         int mid = 0;
         boolean found = false;
+        //perform binary search
         while (!found && low <= high) {
             mid = low + (high - low) / 2;
             if (keys[mid] == key) {
@@ -60,9 +61,13 @@ public class BTreeNode {
                 }
             }
         }
+
+        //if the key is not here, find the child subtree that has it
         if (!found) {
             if (mid == 0 && key < keys[0]) {
                 return 0;
+            } else if (key < keys[mid]) {
+                return mid;
             }
         }
         return mid + 1;
@@ -190,7 +195,39 @@ public class BTreeNode {
 
         BTreeNode rightNode = new BTreeNode(parent, order, true);
         int keysInLeftNode = (int) Math.ceil((order-1) / 2.0);
-        int keysInRightNode = order-1-keysInLeftNode;
+        int keysInRightNode = order - 1 - keysInLeftNode;
+        System.arraycopy(keys, keysInLeftNode, rightNode.getKeys(), 0, keysInRightNode);
+        System.arraycopy(values, keysInLeftNode, rightNode.getValues(), 0, keysInRightNode);
+
+        numKeys = keysInLeftNode;
+        rightNode.setNumKeys(keysInRightNode);
+        rightNode.setParent(parent);
+
+        return rightNode;
+    }
+
+    /**
+     * Corrected version of the leaf split method. This method should take into account the
+     * key to be added when deciding the number of keys to split on.
+     * @param newKey
+     * @return
+     */
+    public BTreeNode split(long newKey) {
+        if (!isLeaf()) {
+            throw new UnsupportedOperationException("Should only be called on leaf nodes.");
+        }
+        BTreeNode rightNode = new BTreeNode(parent, order, true);
+        int keysInLeftNode = (int) Math.ceil((order-1) / 2.0);
+        int keysInRightNode = order - 1 - keysInLeftNode;
+
+        //check if the new key would be inserted in the left node after equal split
+        if (newKey < keys[keysInLeftNode - 1]) {
+            if (keysInLeftNode + 1 - keysInRightNode > 1) {
+                //correct sizes if needed
+                keysInLeftNode--;
+                keysInRightNode++;
+            }
+        }
         System.arraycopy(keys, keysInLeftNode, rightNode.getKeys(), 0, keysInRightNode);
         System.arraycopy(values, keysInLeftNode, rightNode.getValues(), 0, keysInRightNode);
 
@@ -306,7 +343,11 @@ public class BTreeNode {
     public void setKeys(long[] keys) {
         this.keys = keys;
     }
-    
+
+    public void setValues(long[] values) {
+        this.values = values;
+    }
+
     public String toString() {
     	String ret = (isLeaf() ? "leaf" : "inner ") + "-node: k:";
     	ret += Arrays.toString(keys) + " ";
@@ -319,5 +360,59 @@ public class BTreeNode {
     	return ret;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof BTreeNode)) return false;
 
+        BTreeNode bTreeNode = (BTreeNode) o;
+
+        if (isLeaf != bTreeNode.isLeaf) return false;
+        if (numKeys != bTreeNode.numKeys) return false;
+        if (order != bTreeNode.order) return false;
+        if (!arrayEquals(children, bTreeNode.children, numKeys)) return false;
+        if (!arrayEquals(keys, bTreeNode.keys, numKeys)) return false;
+        //if (parent != null ? !parent.equals(bTreeNode.parent) : bTreeNode.parent != null) return false;
+        if (!arrayEquals(values, bTreeNode.values, numKeys + 1)) return false;
+
+        return true;
+    }
+
+    private <T> boolean arrayEquals(T[] first, T[] second, int size) {
+        if (first == second) {
+            return true;
+        }
+        if (first == null || second == null) {
+            return false;
+        }
+        if (first.length < size || second.length < size) {
+            return false;
+        }
+
+        for (int i = 0; i < size; i++) {
+            if ( (first[i] != second[i] ) && (first[i] != null ) && (!first[i].equals(second[i]))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean arrayEquals(long[] first, long[] second, int size) {
+        if (first == second) {
+            return true;
+        }
+        if (first == null || second == null) {
+            return false;
+        }
+        if (first.length < size || second.length < size) {
+            return false;
+        }
+
+        for (int i = 0; i < size; i++) {
+            if (!(first[i] == second[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
