@@ -40,12 +40,32 @@ public class BTreeNode {
      * @return
      */
     public int findKeyPos(long key) {
-        //ToDo change to binary search
-        int i = 0;
-        while (i < numKeys && key > keys[i]) {
-            i++;
+        //Todo make method package and add test to the same package
+        if (numKeys == 0) {
+            return 0;
         }
-        return i;
+        int low = 0;
+        int high = numKeys - 1;
+        int mid = 0;
+        boolean found = false;
+        while (!found && low <= high) {
+            mid = low + (high - low) / 2;
+            if (keys[mid] == key) {
+                found = true;
+            } else {
+                if (key < keys[mid]) {
+                    high = mid - 1;
+                } else {
+                    low = mid + 1;
+                }
+            }
+        }
+        if (!found) {
+            if (mid == 0 && key < keys[0]) {
+                return 0;
+            }
+        }
+        return mid + 1;
     }
 
     public BTreeNode findChild(long key) {
