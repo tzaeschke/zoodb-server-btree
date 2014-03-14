@@ -93,6 +93,11 @@ public class BTree {
             }
         }
     }
+    
+	public void delete(long key) {
+		// TODO Auto-generated method stub
+		
+	}
 
     private BTreeNode searchNode(BTreeNode node, long key) {
         if (node.isLeaf())  {
@@ -105,6 +110,14 @@ public class BTree {
 
     private BTreeNode searchNode(long key) {
         return searchNode(root, key);
+    }
+    
+    public boolean isEmpty() {
+    	return root==null;
+    }
+    
+    public int getOrder() {
+    	return this.order;
     }
     
     public String toString() {
@@ -127,4 +140,6 @@ public class BTree {
 
         return true;
     }
+
+
 }

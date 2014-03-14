@@ -3,7 +3,9 @@ package org.zoodb.test.index2.btree;
 import org.junit.Test;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.util.Pair;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -119,7 +121,7 @@ public class TestBTree {
 	}
 
 	/*
-	 * Insert Test according to Silberschatz, Database System Concepts, Fourth edition
+	 * Insert Test according to Silberschatz, Database System Concepts, Sixth edition
 	 */
 	@Test
 	public void insertTwoLevelWithSplit() {
@@ -300,6 +302,7 @@ public class TestBTree {
 		tree.setRoot(root);
 		return tree;
 	}
+	
 	/*
 	 * Insert Test according to Ramakrishnan, Gehrke, Database Management Systems, Third edition
 	 */
@@ -355,70 +358,171 @@ public class TestBTree {
 		tree.setRoot(root);
 		return tree;
 	}
+	
 	private BTree treeExpectedOneLevelWithSplit() {
 		int order = 5;
-		BTree tree = new BTree(order);
-		BTreeNode root = new BTreeNode(null, order, false);
-		BTreeNode[] levelOneChildren = new BTreeNode[] {
-				new BTreeNode(root, order, false),
-				new BTreeNode(root, order, false) };
+		BTreeFactory factory = new BTreeFactory(order);
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L,13L),
+											Arrays.asList(24L,30L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L,3L),
+											Arrays.asList(5L,7L,8L),
+											Arrays.asList(14L,16L),
+											Arrays.asList(19L,20L,22L),
+											Arrays.asList(24L,27L,29L),
+											Arrays.asList(33L,34L,38L,39L)));
 
-		root.setNumKeys(1);
-		root.setKeys(padLongArray(new long[] { 17 }, order));
-		root.setChildren(padChildrenArray(levelOneChildren, order));
+		return factory.getTree();
 
-		levelOneChildren[0].setNumKeys(2);
-		levelOneChildren[0].setKeys(padLongArray(new long[] { 5,13 }, order));
-
-		levelOneChildren[1].setNumKeys(2);
-		levelOneChildren[1].setKeys(padLongArray(new long[] { 24,30 }, order));
-
-		BTreeNode[] leaves = new BTreeNode[] {
-				new BTreeNode(levelOneChildren[0], order, true),
-				new BTreeNode(levelOneChildren[0], order, true),
-				new BTreeNode(levelOneChildren[0], order, true),
-				new BTreeNode(levelOneChildren[1], order, true),
-				new BTreeNode(levelOneChildren[1], order, true),
-				new BTreeNode(levelOneChildren[1], order, true) };
-
-		levelOneChildren[0].setChildren(padChildrenArray(new BTreeNode[] {
-				leaves[0], leaves[1], leaves[2] }, order));
-		levelOneChildren[1].setChildren(padChildrenArray(new BTreeNode[] {
-				leaves[3], leaves[4], leaves[5] }, order));
-
-		leaves[0].setNumKeys(2);
-		long[] leafOneRecords = new long[] { 2, 3 };
-		leaves[0].setKeys(padLongArray(leafOneRecords, order));
-		leaves[0].setValues(padLongArray(leafOneRecords, order));
-
-		leaves[1].setNumKeys(3);
-		long[] leafTwoRecords = new long[] { 5,7,8 };
-		leaves[1].setKeys(padLongArray(leafTwoRecords, order));
-		leaves[1].setValues(padLongArray(leafTwoRecords, order));
+	}
+	
+	/*
+	 * Delete Test according to Ramakrishnan, Gehrke, Database Management Systems, Third edition
+	 */
+	@Test
+	public void deleteSimpleTest() {
+		int order = 5;
+		BTreeFactory factory = new BTreeFactory(order);
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L,13L),
+											Arrays.asList(24L,30L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L,3L),
+											Arrays.asList(5L,7L,8L),
+											Arrays.asList(14L,16L),
+											Arrays.asList(19L,20L,22L),
+											Arrays.asList(24L,27L,29L),
+											Arrays.asList(33L,34L,38L,39L)));
+		BTree tree = factory.getTree();
 		
-		leaves[2].setNumKeys(2);
-		long[] leafThreeRecords = new long[] { 14,16 };
-		leaves[2].setKeys(padLongArray(leafThreeRecords, order));
-		leaves[2].setValues(padLongArray(leafThreeRecords, order));
+		factory.clear();
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L,13L),
+											Arrays.asList(24L,30L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L,3L),
+											Arrays.asList(5L,7L,8L),
+											Arrays.asList(14L,16L),
+											Arrays.asList(20L,22L),
+											Arrays.asList(24L,27L,29L),
+											Arrays.asList(33L,34L,38L,39L)));
+		BTree expectedTree = factory.getTree();
 		
-		leaves[3].setNumKeys(3);
-		long[] leafFourRecords = new long[] { 19,20,22 };
-		leaves[3].setKeys(padLongArray(leafFourRecords, order));
-		leaves[3].setValues(padLongArray(leafFourRecords, order));
+		tree.delete(19);
+		assertEquals(expectedTree, tree);
+	}
+	
+	@Test
+	public void deleteRedistributeTest() {
+		int order = 5;
+		BTreeFactory factory = new BTreeFactory(order);
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L,13L),
+											Arrays.asList(24L,30L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L,3L),
+											Arrays.asList(5L,7L,8L),
+											Arrays.asList(14L,16L),
+											Arrays.asList(20L,22L),
+											Arrays.asList(24L,27L,29L),
+											Arrays.asList(33L,34L,38L,39L)));
+		BTree tree = factory.getTree();
 		
-		leaves[4].setNumKeys(3);
-		long[] leafFiveRecords = new long[] { 24,27,29 };
-		leaves[4].setKeys(padLongArray(leafFiveRecords, order));
-		leaves[4].setValues(padLongArray(leafFiveRecords, order));
+		factory.clear();
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L,13L),
+											Arrays.asList(27L,30L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L,3L),
+											Arrays.asList(5L,7L,8L),
+											Arrays.asList(14L,16L),
+											Arrays.asList(22L,24L),
+											Arrays.asList(27L,29L),
+											Arrays.asList(33L,34L,38L,39L)));
+		BTree expectedTree = factory.getTree();
 		
-		leaves[5].setNumKeys(4);
-		long[] leafSixRecords = new long[] { 33,34,38,39 };
-		leaves[5].setKeys(padLongArray(leafSixRecords, order));
-		leaves[5].setValues(padLongArray(leafSixRecords, order));
-
-		tree.setRoot(root);
-		return tree;
-
+		tree.delete(20);
+		assertEquals(expectedTree, tree);
+	}
+	
+	@Test
+	public void deleteMergeTest() {
+		int order = 5;
+		BTreeFactory factory = new BTreeFactory(order);
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L,13L),
+											Arrays.asList(27L,30L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L,3L),
+											Arrays.asList(5L,7L,8L),
+											Arrays.asList(14L,16L),
+											Arrays.asList(22L,24L),
+											Arrays.asList(27L,29L),
+											Arrays.asList(33L,34L,38L,39L)));
+		BTree tree = factory.getTree();
+		
+		factory.clear();
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L,13L,17L,30L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L,3L),
+											Arrays.asList(5L,7L,8L),
+											Arrays.asList(14L,16L),
+											Arrays.asList(22L,27L,29L),
+											Arrays.asList(33L,34L,38L,39L)));
+		BTree expectedTree = factory.getTree();
+		
+		tree.delete(24);
+		assertEquals(expectedTree, tree);
+	}
+	
+	/*
+	 * Delete Test according to Silberschatz, Database System Concepts, Sixth edition
+	 */
+	@Test
+	public void deleteMergeTest2() {
+		int order = 4;
+		BTreeFactory factory = new BTreeFactory(order);
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(3L,5L,7L),
+											Arrays.asList(12L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L,2L),
+											Arrays.asList(3L,4L),
+											Arrays.asList(5L,6L),
+											Arrays.asList(7L,8L,9L),
+											Arrays.asList(10L,11L),
+											Arrays.asList(12L,13L)));
+		BTree tree1 = factory.getTree();
+		
+		factory.clear();
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(7L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(3L,5L),
+											Arrays.asList(10L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L,2L),
+											Arrays.asList(3L,4L),
+											Arrays.asList(5L,6L),
+											Arrays.asList(7L,8L,9L),
+											Arrays.asList(10L,11L,13L)));
+		BTree tree2 = factory.getTree();
+		tree1.delete(12L);
+		assertEquals(tree2, tree1);
+		
+		factory.clear();
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(7L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(3L,5L),
+											Arrays.asList(9L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L,2L),
+											Arrays.asList(3L,4L),
+											Arrays.asList(5L,6L),
+											Arrays.asList(7L,8L),
+											Arrays.asList(9L,10L)));
+		BTree tree3 = factory.getTree();
+		tree2.delete(11L);
+		tree2.delete(13L);
+		assertEquals(tree3, tree2);
+		
+		factory.clear();
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(3L,5L,8L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L,2L),
+											Arrays.asList(3L,4L),
+											Arrays.asList(5L,6L),
+											Arrays.asList(8L,9L,10L)));
+		BTree tree4 = factory.getTree();
+		tree3.delete(7L);
+		assertEquals(tree4, tree3);
 	}
 
 	private long[] padLongArray(long[] keys, int order) {
@@ -441,6 +545,10 @@ public class TestBTree {
 			paddedNodeArray[i] = null;
 		}
 		return paddedNodeArray;
+	}
+	
+	public static Pair<Long,Long> pair(long x, long y) {
+		return new Pair<Long,Long>(x,y);
 	}
 
 }

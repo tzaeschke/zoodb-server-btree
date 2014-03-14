@@ -2,8 +2,6 @@ package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.util.Pair;
 
-import java.util.Arrays;
-
 /**
  * Represents the node of a B+ tree.
  *
