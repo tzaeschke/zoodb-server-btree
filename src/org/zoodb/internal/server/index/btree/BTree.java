@@ -106,6 +106,14 @@ public class BTree {
     private BTreeNode searchNode(long key) {
         return searchNode(root, key);
     }
+    
+    public String toString() {
+    	if(this.root != null) {
+	    	return this.root.toString();
+    	} else {
+    		return "Empty tree";
+    	}
+    }
 
     @Override
     public boolean equals(Object o) {

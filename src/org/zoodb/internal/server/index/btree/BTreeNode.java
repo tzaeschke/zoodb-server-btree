@@ -355,14 +355,32 @@ public class BTreeNode {
     }
 
     public String toString() {
-    	String ret = (isLeaf() ? "leaf" : "inner ") + "-node: k:";
-    	ret += Arrays.toString(keys) + " ";
-    	if(isLeaf()) {
-    		ret+= "v:" + Arrays.toString(values);
-    	} else {
-    		ret+= "c:" + Arrays.toString(children);
+    	String ret = (isLeaf() ? "leaf" : "inner") + "-node: k:";
+    	ret += "[";
+    	for (int i=0; i < this.getNumKeys(); i++) {
+    		ret += Long.toString(keys[i]);
+    		if(i!=this.getNumKeys()-1)
+    			ret+= " ";
     	}
-    	
+    	ret+= "]";
+    	if(isLeaf()) {
+    		ret += ",   \tv:"; 
+	    	ret += "[";
+	    	for (int i=0; i < this.getNumKeys(); i++) {
+	    		ret += Long.toString(values[i]);
+	    		if(i!=this.getNumKeys()-1)
+	    			ret+= " ";
+	    	}
+	    	ret += "]";
+    	} else {
+    		ret+= "\n\tc:"; 
+	    	for (int i=0; i < this.getNumKeys()+1; i++) {
+				String[] lines = children[i].toString().split("\r\n|\r|\n");
+			for(String l : lines) {
+					ret+="\n\t" + l;
+				}
+    		}
+    	}
     	return ret;
     }
 
@@ -372,14 +390,15 @@ public class BTreeNode {
         if (!(o instanceof BTreeNode)) return false;
 
         BTreeNode bTreeNode = (BTreeNode) o;
-
+        
         if (isLeaf != bTreeNode.isLeaf) return false;
         if (numKeys != bTreeNode.numKeys) return false;
         if (order != bTreeNode.order) return false;
-        if (!arrayEquals(children, bTreeNode.children, numKeys)) return false;
+        if (!arrayEquals(children, bTreeNode.children, numKeys + 1)) return false;
         if (!arrayEquals(keys, bTreeNode.keys, numKeys)) return false;
-        //if (parent != null ? !parent.equals(bTreeNode.parent) : bTreeNode.parent != null) return false;
-        if (!arrayEquals(values, bTreeNode.values, numKeys + 1)) return false;
+        // checking for parent equality would result in infinite loop
+        // if (parent != null ? !parent.equals(bTreeNode.parent) : bTreeNode.parent != null) return false;
+        if (!arrayEquals(values, bTreeNode.values, numKeys)) return false;
 
         return true;
     }
