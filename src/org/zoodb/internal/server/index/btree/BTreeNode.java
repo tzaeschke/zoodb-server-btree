@@ -290,8 +290,132 @@ public class BTreeNode {
         return new Pair<>(right, keyToMoveUp);
     }
 
+    /**
+     * Delete the key from the node.
+     * @param key
+     */
+    public void delete(long key) {
+        if (!isLeaf()) {
+            throw new IllegalStateException("Should be a leaf node");
+        }
+        final int keyPos = findKeyPos(key);
+        int recordsToMove = numKeys - keyPos;
+        System.arraycopy(keys, keyPos, keys, keyPos - 1, recordsToMove);
+        System.arraycopy(values, keyPos, values, keyPos - 1, recordsToMove);
+        numKeys--;
+    }
 
+    public void setKey(int index, long key) {
+        getKeys()[index] = key;
+    }
 
+    private void shiftRecords(int startIndex, int endIndex, int amount) {
+        System.arraycopy(keys, startIndex, keys, endIndex, amount);
+        if (isLeaf()) {
+            System.arraycopy(getValues(), startIndex, getValues(), endIndex, amount);
+        } else {
+            System.arraycopy(getChildren(), startIndex, getChildren(), endIndex, amount+1);
+        }
+    }
+
+    public void shiftRecordsRight(int amount) {
+        System.arraycopy(keys, 0, keys, amount, numKeys);
+        if (isLeaf()) {
+            System.arraycopy(getValues(), 0, getValues(), amount, numKeys);
+        } else {
+            System.arraycopy(getChildren(), 0, getChildren(), amount, numKeys+1);
+        }
+    }
+
+    public void shiftRecordsLeftWithIndex(int startIndex, int amount) {
+        System.arraycopy(keys, startIndex + amount, keys, startIndex, numKeys - amount);
+        if (isLeaf()) {
+            System.arraycopy(getValues(), startIndex + amount, getValues(), startIndex, numKeys - amount);
+        } else {
+            System.arraycopy(getChildren(), startIndex + amount, getChildren(), startIndex, numKeys + 1 - amount);
+        }
+    }
+
+    public void shiftRecordsLeft(int amount) {
+        shiftRecordsLeftWithIndex(0, amount);
+    }
+
+    public int keyIndexOf(BTreeNode left, BTreeNode right) {
+        for (int i = 0; i < numKeys; i++) {
+            if (child(i) == left && child(i+1) == right) {
+                return  i;
+            }
+        }
+        return -1;
+    }
+
+    public boolean isUnderfull() {
+        if (isRoot()) {
+            return numKeys == 0;
+        }
+        return numKeys < minKeysAmount();
+    }
+
+    public boolean hasExtraKeys() {
+        if (isRoot()) {
+            return true;
+        }
+        return numKeys > minKeysAmount();
+    }
+
+    public boolean isOverflowing() {
+        return numKeys >= order;
+    }
+
+    public BTreeNode leftSibling() {
+        return parent.leafSiblingOf(this);
+    }
+
+    public BTreeNode rightSibling() {
+        return parent.rightSiblingOf(this);
+    }
+
+    private BTreeNode leafSiblingOf(BTreeNode node) {
+        int index = 0;
+        for (BTreeNode child : getChildren()) {
+            if (child == node) {
+                if (index == 0) {
+                    return null;
+                } else {
+                    return getChildren()[index - 1];
+                }
+            }
+            index++;
+        }
+        return null;
+    }
+
+    private BTreeNode rightSiblingOf(BTreeNode node) {
+        int index = 0;
+        for (BTreeNode child : getChildren()) {
+            if (child == node) {
+                if (index == numKeys) {
+                    return null;
+                } else {
+                    return getChildren()[index + 1];
+                }
+            }
+            index++;
+        }
+        return null;
+    }
+
+    public long getKey(int index) {
+        return getKeys()[index];
+    }
+
+    public BTreeNode child(int index) {
+        return getChildren()[index];
+    }
+
+    public int minKeysAmount() {
+        return (order - 1) / 2;
+    }
     public boolean isLeaf() {
         return isLeaf;
     }
@@ -316,6 +440,10 @@ public class BTreeNode {
     	return keys[0];
     }
 
+    public long getLargestKey() {
+        return keys[numKeys - 1];
+    }
+
     public long[] getValues() {
         return values;
     }
@@ -330,6 +458,32 @@ public class BTreeNode {
 
     public long largestKey() {
         return keys[numKeys - 1];
+    }
+
+    public boolean incrementNumKyes() {
+        return increaseNumKeys(1);
+    }
+
+    public boolean decrementNumKeys() {
+        return decreaseNumKeys(1);
+    }
+
+    public boolean increaseNumKeys(int amount) {
+        int newNumKeys = numKeys + amount;
+        if (newNumKeys > getKeys().length) {
+            return false;
+        }
+        numKeys = newNumKeys;
+        return true;
+    }
+
+    public boolean decreaseNumKeys(int amount) {
+        int newNumKeys = numKeys - amount;
+        if (newNumKeys < 0) {
+            return false;
+        }
+        numKeys = newNumKeys;
+        return true;
     }
 
     public void setParent(BTreeNode parent) {
