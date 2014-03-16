@@ -1,14 +1,13 @@
 package org.zoodb.test.index2.btree;
 
-import org.junit.Test;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeNode;
-import org.zoodb.internal.util.Pair;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.util.Pair;
 
 public class TestBTree {
 
@@ -178,10 +177,10 @@ public class TestBTree {
 
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
-		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L,13L),
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(7L,13L),
 											Arrays.asList(24L,30L)));
-		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L,3L),
-											Arrays.asList(5L,7L,8L),
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L,3L,5L),
+											Arrays.asList(7L,8L),
 											Arrays.asList(14L,16L),
 											Arrays.asList(19L,20L,22L),
 											Arrays.asList(24L,27L,29L),
@@ -189,6 +188,8 @@ public class TestBTree {
 		BTree expected = factory.getTree();
 
 		tree.insert(8, 8);
+		System.out.println(tree);
+		System.out.println(expected);
 		assertEquals("Tree did not split properly after insert.",
 				expected, tree);
 	}
