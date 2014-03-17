@@ -101,27 +101,70 @@ public class TestNode {
 		BTreeNode unevenKeysLeaf = new BTreeNode(null, 4, true);
 		unevenKeysLeaf.put(1, 1);
 		unevenKeysLeaf.put(2, 2);
-		unevenKeysLeaf.put(3, 3);
-
-		BTreeNode right = unevenKeysLeaf.split();
+		unevenKeysLeaf.put(4, 4);
+		BTreeNode right = unevenKeysLeaf.putAndSplit(3, 3);
 		assertArrayEquals(new long[] { 1, 2 }, getValues(unevenKeysLeaf));
 		assertArrayEquals(new long[] { 1, 2 }, getKeys(unevenKeysLeaf));
-		assertArrayEquals(new long[] { 3 }, getValues(right));
-		assertArrayEquals(new long[] { 3 }, getKeys(right));
+		assertArrayEquals(new long[] { 3, 4 }, getValues(right));
+		assertArrayEquals(new long[] { 3, 4 }, getKeys(right));
+
+		unevenKeysLeaf = new BTreeNode(null, 4, true);
+		unevenKeysLeaf.put(1, 1);
+		unevenKeysLeaf.put(3, 3);
+		unevenKeysLeaf.put(4, 4);
+		right = unevenKeysLeaf.putAndSplit(2, 2);
+		assertArrayEquals(new long[] { 1, 2 }, getValues(unevenKeysLeaf));
+		assertArrayEquals(new long[] { 1, 2 }, getKeys(unevenKeysLeaf));
+		assertArrayEquals(new long[] { 3, 4 }, getValues(right));
+		assertArrayEquals(new long[] { 3, 4 }, getKeys(right));
 
 		BTreeNode evenKeysLeaf = new BTreeNode(null, 5, true);
 		evenKeysLeaf.put(1, 1);
 		evenKeysLeaf.put(2, 2);
 		evenKeysLeaf.put(3, 3);
 		evenKeysLeaf.put(4, 4);
+		BTreeNode right2 = evenKeysLeaf.putAndSplit(5, 5);
+		assertArrayEquals(new long[] { 1, 2, 3 }, getValues(evenKeysLeaf));
+		assertArrayEquals(new long[] { 1, 2, 3 }, getKeys(evenKeysLeaf));
+		assertArrayEquals(new long[] { 4, 5 }, getValues(right2));
+		assertArrayEquals(new long[] { 4, 5 }, getKeys(right2));
 
-		BTreeNode right2 = evenKeysLeaf.split();
-		assertArrayEquals(new long[] { 1, 2 }, getValues(evenKeysLeaf));
-		assertArrayEquals(new long[] { 1, 2 }, getKeys(evenKeysLeaf));
-		assertArrayEquals(new long[] { 3, 4 }, getValues(right2));
-		assertArrayEquals(new long[] { 3, 4 }, getKeys(right2));
+		evenKeysLeaf = new BTreeNode(null, 5, true);
+		evenKeysLeaf.put(1, 1);
+		evenKeysLeaf.put(2, 2);
+		evenKeysLeaf.put(4, 4);
+		evenKeysLeaf.put(5, 5);
+		right2 = evenKeysLeaf.putAndSplit(3, 3);
+		assertArrayEquals(new long[] { 1, 2, 3 }, getValues(evenKeysLeaf));
+		assertArrayEquals(new long[] { 1, 2, 3 }, getKeys(evenKeysLeaf));
+		assertArrayEquals(new long[] { 4, 5 }, getValues(right2));
+		assertArrayEquals(new long[] { 4, 5 }, getKeys(right2));
+
+		evenKeysLeaf = new BTreeNode(null, 5, true);
+		evenKeysLeaf.put(2, 2);
+		evenKeysLeaf.put(3, 3);
+		evenKeysLeaf.put(5, 5);
+		evenKeysLeaf.put(7, 7);
+		right2 = evenKeysLeaf.putAndSplit(8, 8);
+		assertArrayEquals(new long[] { 2, 3, 5 }, getValues(evenKeysLeaf));
+		assertArrayEquals(new long[] { 2, 3, 5 }, getKeys(evenKeysLeaf));
+		assertArrayEquals(new long[] { 7, 8 }, getValues(right2));
+		assertArrayEquals(new long[] { 7, 8 }, getKeys(right2));
+
+		evenKeysLeaf = new BTreeNode(null, 5, true);
+		evenKeysLeaf.put(2, 2);
+		evenKeysLeaf.put(3, 3);
+		evenKeysLeaf.put(5, 5);
+		evenKeysLeaf.put(7, 7);
+		right2 = evenKeysLeaf.putAndSplit(1, 1);
+		assertArrayEquals(new long[] { 1, 2, 3 }, getValues(evenKeysLeaf));
+		assertArrayEquals(new long[] { 1, 2, 3 }, getKeys(evenKeysLeaf));
+		assertArrayEquals(new long[] { 5, 7 }, getValues(right2));
+		assertArrayEquals(new long[] { 5, 7 }, getKeys(right2));
 	}
-	
+
+
+
 	@Test
 	public void innerNodeSplit() {
 		// uneven order
@@ -131,45 +174,76 @@ public class TestNode {
 		BTreeNode child2 = new BTreeNode(null, order, true);
 		BTreeNode child3 = new BTreeNode(null, order, true);
 		BTreeNode child4 = new BTreeNode(null, order, true);
+		BTreeNode[] childArray = new BTreeNode[] {child1, child2, child3, child4};
 
 		node.put(3, child1, child3);
 		node.put(4, child4);
-		
 		Pair<BTreeNode, Long> p = node.putAndSplit(2, child2);
-		long keyToMoveUp = p.getB();
-		BTreeNode right = p.getA();
-		assertEquals(3, keyToMoveUp);
-		assertArrayEquals(new long[]{2}, getKeys(node));
-		assertArrayEquals(new BTreeNode[]{child1, child2}, getChildren(node));
-		assertTrue(child1.getParent() == node 
-						&& child2.getParent() == node);
-		assertArrayEquals(new long[]{4}, getKeys(right));
-		assertArrayEquals(new BTreeNode[]{child3, child4}, getChildren(right));
-        assertTrue(child3.getParent() == right 
-						&& child4.getParent() == right);
-		
+		checkEvenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+
+		node = new BTreeNode(null, order, false);
+		node.put(2, child1, child2);
+		node.put(3, child3);
+		p = node.putAndSplit(4, child4);
+		checkEvenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+
+		node = new BTreeNode(null, order, false);
+		node.put(3, child1, child3);
+		node.put(4, child4);
+		p = node.putAndSplit(2, child2);
+		checkEvenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+
 		// even order
 		order = 4;
 		node = new BTreeNode(null, order, false);
 		BTreeNode child5 = new BTreeNode(null, order, true);
+        childArray = new BTreeNode[] {child1, child2, child3, child4, child5};
 
 		node.put(3, child1, child4);
 		node.put(1, child2);
 		node.put(4, child5);
-		
 		p = node.putAndSplit(2, child3);
-		keyToMoveUp = p.getB();
-		right = p.getA();
-		assertEquals(3, keyToMoveUp);
-		assertArrayEquals(new long[]{1,2}, getKeys(node));
-		assertArrayEquals(new BTreeNode[]{child1, child2, child3}, getChildren(node));
-		assertTrue(child1.getParent() == node 
-						&& child2.getParent() == node
-						&& child3.getParent() == node);
-		assertArrayEquals(new long[]{4}, getKeys(right));
-		assertArrayEquals(new BTreeNode[]{child4, child5}, getChildren(right));
-        assertTrue(child4.getParent() == right 
-						&& child5.getParent() == right);
+        checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+        
+		node = new BTreeNode(null, order, false);
+		node.put(3, child1, child4);
+		node.put(1, child2);
+		node.put(2, child3);
+		p = node.putAndSplit(4, child5);
+        checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+        
+        node = new BTreeNode(null, order, false);
+		node.put(3, child1, child4);
+		node.put(2, child3);
+		node.put(4, child5);
+		p = node.putAndSplit(1, child2);
+        checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
 	}
+
+	private void checkEvenInnerNodeSplit(BTreeNode node, BTreeNode right, long keyToMoveUp,
+			BTreeNode[] childArray) {
+		assertEquals(3, keyToMoveUp);
+		assertArrayEquals(new long[] { 2 }, getKeys(node));
+		assertArrayEquals(new BTreeNode[] { childArray[0], childArray[1] }, getChildren(node));
+		assertTrue(childArray[0].getParent() == node && childArray[1].getParent() == node);
+		assertArrayEquals(new long[] { 4 }, getKeys(right));
+		assertArrayEquals(new BTreeNode[] { childArray[2], childArray[3] },
+				getChildren(right));
+		assertTrue(childArray[2].getParent() == right && childArray[3].getParent() == right);
+	}
+	
+    private void checkUnevenInnerNodeSplit(BTreeNode node, BTreeNode right, long keyToMoveUp,
+			BTreeNode[] childArray) {
+		assertEquals(3, keyToMoveUp);
+		assertArrayEquals(new long[] { 1, 2 }, getKeys(node));
+		assertArrayEquals(new BTreeNode[] { childArray[0], childArray[1], childArray[2] },
+				getChildren(node));
+		assertTrue(childArray[0].getParent() == node && childArray[1].getParent() == node
+				&& childArray[2].getParent() == node);
+		assertArrayEquals(new long[] { 4 }, getKeys(right));
+		assertArrayEquals(new BTreeNode[] { childArray[3], childArray[4] },
+				getChildren(right));
+		assertTrue(childArray[3].getParent() == right && childArray[4].getParent() == right);
+    }
 
 }

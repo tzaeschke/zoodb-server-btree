@@ -189,64 +189,41 @@ public class BTreeNode {
     }
 
     /**
-     * Current only works for leaves.
-     * @return
-     */
-    public BTreeNode split() {
-        if (!isLeaf()) {
-            throw new UnsupportedOperationException("Should only be called on leaf nodes.");
-        }
-
-        BTreeNode rightNode = new BTreeNode(parent, order, true);
-        int keysInLeftNode = (int) Math.ceil((order-1) / 2.0);
-        int keysInRightNode = order - 1 - keysInLeftNode;
-        System.arraycopy(keys, keysInLeftNode, rightNode.getKeys(), 0, keysInRightNode);
-        System.arraycopy(values, keysInLeftNode, rightNode.getValues(), 0, keysInRightNode);
-
-        numKeys = keysInLeftNode;
-        rightNode.setNumKeys(keysInRightNode);
-        rightNode.setParent(parent);
-
-        return rightNode;
-    }
-
-    /**
-     * Corrected version of the leaf split method. This method should take into account the
-     * key to be added when deciding the number of keys to split on.
+     * Puts a new key into the node and splits accordingly. Returns the newly created leaf, which is to the right.
+     * 
      * @param newKey
      * @return
      */
-    public BTreeNode split(long newKey) {
+    public BTreeNode putAndSplit(long newKey, long value) {
         if (!isLeaf()) {
             throw new UnsupportedOperationException("Should only be called on leaf nodes.");
         }
-        BTreeNode rightNode = new BTreeNode(parent, order, true);
-        int keysInLeftNode = (int) Math.ceil((order-1) / 2.0);
-        int keysInRightNode = order - 1 - keysInLeftNode;
+        BTreeNode tempNode = new BTreeNode(null, order + 1, true);
+        System.arraycopy(keys, 0, tempNode.getKeys(), 0, numKeys);
+        System.arraycopy(values, 0, tempNode.getValues(), 0, numKeys);
+        tempNode.setNumKeys(numKeys);
+        tempNode.put(newKey, value);
 
-        //check if the new key would be inserted in the left node after equal split
-        if (newKey < keys[keysInLeftNode - 1]) {
-            if (keysInLeftNode + 1 - keysInRightNode > 1) {
-                //correct sizes if needed
-                keysInLeftNode--;
-                keysInRightNode++;
-            }
-        }
-        System.arraycopy(keys, keysInLeftNode, rightNode.getKeys(), 0, keysInRightNode);
-        System.arraycopy(values, keysInLeftNode, rightNode.getValues(), 0, keysInRightNode);
-
+        int keysInLeftNode = (int) Math.ceil((order) / 2.0);
+        int keysInRightNode = order  - keysInLeftNode;
+        
+        //populate left node
+        System.arraycopy(tempNode.getKeys(), 0, keys, 0, keysInLeftNode);
+        System.arraycopy(tempNode.getValues(), 0, values, 0, keysInLeftNode);
         numKeys = keysInLeftNode;
-        rightNode.setNumKeys(keysInRightNode);
-        rightNode.setParent(parent);
 
+        //populate right node
+        BTreeNode rightNode = new BTreeNode(parent, order, true);
+        rightNode.setParent(parent);
+        System.arraycopy(tempNode.getKeys(), keysInLeftNode, rightNode.getKeys(), 0, keysInRightNode);
+        System.arraycopy(tempNode.getValues(), keysInLeftNode, rightNode.getValues(), 0, keysInRightNode);
+        rightNode.setNumKeys(keysInRightNode);
+        
         return rightNode;
     }
 
     /**
-     * Inserts a key and a new node to the inner structure of the tree.
-     *
-     * This methods is different from the split() method because when keys are insert on inner node,
-     * the children pointers should also be shifted accordingly.
+     * Puts a key and a new node to the inner structure of the tree.
      *
      * @param key
      * @param newNode

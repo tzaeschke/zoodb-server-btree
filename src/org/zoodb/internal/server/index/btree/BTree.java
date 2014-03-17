@@ -59,12 +59,7 @@ public class BTree {
             leaf.put(key, value);
         } else {
             //split node
-            BTreeNode rightNode = leaf.split(key);
-            if (key > leaf.largestKey()) {
-                rightNode.put(key, value);
-            } else {
-                leaf.put(key, value);
-            }
+            BTreeNode rightNode = leaf.putAndSplit(key, value);
             insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode);
         }
     }
@@ -89,7 +84,9 @@ public class BTree {
                 parent.put(key, right);
             } else {
                 Pair<BTreeNode, Long > pair = parent.putAndSplit(key, right);
-                insertInInnerNode(parent, pair.getB(), pair.getA());
+                BTreeNode newNode = pair.getA();
+                long keyToMoveUp = pair.getB();
+                insertInInnerNode(parent, keyToMoveUp, newNode);
             }
         }
     }
