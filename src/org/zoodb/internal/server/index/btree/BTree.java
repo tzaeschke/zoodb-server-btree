@@ -98,129 +98,34 @@ public class BTree {
 	public void delete(long key) {
 		BTreeNode leaf = searchNode(key);
         deleteFromLeaf(leaf, key);
+
         if (leaf.isRoot()) {
             return;
         }
+        long replacementKey = leaf.smallestKey();
         BTreeNode current = leaf;
         while (current != null && current.isUnderfull()) {
             //check if can borrow 1 value from the left or right siblings
             if (current.leftSibling() != null && current.leftSibling().hasExtraKeys()) {
-                redistributeKeysFromLeft(current, current.leftSibling());
+                BTreeUtils.redistributeKeysFromLeft(current, current.leftSibling());
             } else if (current.rightSibling() != null && current.rightSibling().hasExtraKeys()) {
-                redistributeKeysFromRight(current, current.rightSibling());
+                BTreeUtils.redistributeKeysFromRight(current, current.rightSibling());
             } else {
                 //at this point, both left and right sibling have the minimum number of keys
-                if (current.leftSibling() != null) {
-                    mergeWithLeft(current, current.leftSibling());
+                if (current.leftSibling() != null && current.getParent() == current.leftSibling().getParent()) {
                     //merge with left sibling
+                    BTreeUtils.mergeWithLeft(this, current, current.leftSibling());
                 } else {
                     //merge with right sibling
-                    mergeWithRight(current, current.rightSibling());
+                    BTreeUtils.mergeWithRight(this, current, current.rightSibling());
                 }
+            }
+            if (current.containsKey(key)) {
+                current.replaceKey(key, replacementKey);
             }
             current = current.getParent();
         }
 	}
-
-    private void mergeWithRight(BTreeNode current, BTreeNode right) {
-        BTreeNode parent = right.getParent();
-        int keyIndex = parent.keyIndexOf(current, right);
-        if (parent.isRoot() && parent.getNumKeys() == 1) {
-            right.shiftRecordsRight(parent.getNumKeys());
-            copyFromNodeToNode(parent, 0, right, 0, parent.getNumKeys(), 0);
-            right.increaseNumKeys(parent.getNumKeys());
-
-            right.shiftRecordsRight(current.getNumKeys());
-            copyFromNodeToNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys() + 1);
-            right.increaseNumKeys(current.getNumKeys());
-            setRoot(right);
-            right.setParent(null);
-        } else {
-            parent.shiftRecordsLeftWithIndex(keyIndex, 1);
-            parent.decreaseNumKeys(1);
-            right.shiftRecordsRight(current.getNumKeys());
-            copyFromNodeToNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys() + 1);
-            right.increaseNumKeys(current.getNumKeys());
-        }
-    }
-
-    private void mergeWithLeft(BTreeNode current, BTreeNode left) {
-        BTreeNode parent = current.getParent();
-        int keyIndex = parent.keyIndexOf(left, current);
-
-        if (parent.isRoot() && parent.getNumKeys() == 1) {
-            current.shiftRecordsRight(parent.getNumKeys());
-            copyFromNodeToNode(parent, 0, current, 0, parent.getNumKeys(), 0);
-            current.increaseNumKeys(parent.getNumKeys());
-
-            current.shiftRecordsRight(left.getNumKeys());
-            copyFromNodeToNode(left, 0, current, 0, left.getNumKeys(), left.getNumKeys() + 1);
-            current.increaseNumKeys(left.getNumKeys());
-            setRoot(current);
-            current.setParent(null);
-        } else {
-            parent.shiftRecordsLeftWithIndex(keyIndex, 1);
-            parent.decreaseNumKeys(1);
-
-            current.shiftRecordsRight(left.getNumKeys());
-            copyFromNodeToNode(left, 0, current, 0, left.getNumKeys(), left.getNumKeys() + 1);
-            current.increaseNumKeys(left.getNumKeys());
-        }
-    }
-
-    private void redistributeKeysFromRight(BTreeNode current, BTreeNode right) {
-        int totalKeys = right.getNumKeys() + current.getNumKeys();
-        int keysToMove = right.getNumKeys() - (totalKeys / 2);
-
-        int startIndexRight = 0;
-        int startIndexLeft = current.getNumKeys();
-        //copy from left to current
-        copyFromNodeToNode(right, startIndexRight, current, startIndexLeft, keysToMove, keysToMove + 1);
-
-        //shift nodes in current node right
-        right.shiftRecordsLeft(keysToMove);
-        //fix number of keys
-        right.decreaseNumKeys(keysToMove);
-        current.increaseNumKeys(keysToMove);
-
-        //move key from parent to current node
-        BTreeNode parent = current.getParent();
-        int parentKeyIndex = parent.keyIndexOf(current, right);
-        if (current.isLeaf()) {
-            parent.setKey(parentKeyIndex, right.getSmallestKey());
-        } else {
-            long aux = current.getLargestKey();
-            current.setKey(keysToMove, parent.getKey(parentKeyIndex));
-            parent.setKey(parentKeyIndex, aux);
-        }
-    }
-
-    private void redistributeKeysFromLeft(BTreeNode current, BTreeNode left) {
-        int totalKeys = left.getNumKeys() + current.getNumKeys();
-        int keysToMove = left.getNumKeys() - (totalKeys / 2) - 1;
-        //shift nodes in current node right
-        current.shiftRecordsRight(keysToMove + 1);
-
-        int startIndexLeft = totalKeys / 2 + 1;
-        int startIndexRight = 0;
-        //copy from left to current
-        copyFromNodeToNode(left, startIndexLeft, current, startIndexRight, keysToMove, keysToMove + 1);
-
-        //fix number of keys
-        left.decreaseNumKeys(keysToMove + 1);
-        current.increaseNumKeys(keysToMove + 1);
-
-        //move key from parent to current node
-        BTreeNode parent = current.getParent();
-        int parentKeyIndex = parent.keyIndexOf(left, current);
-        if (current.isLeaf()) {
-            parent.setKey(parentKeyIndex, current.getSmallestKey());
-        } else {
-            long aux = current.getSmallestKey();
-            current.setKey(keysToMove, parent.getKey(parentKeyIndex));
-            parent.setKey(parentKeyIndex, aux);
-        }
-    }
 
     private void deleteFromLeaf(BTreeNode leaf, long key) {
         leaf.delete(key);
@@ -233,15 +138,6 @@ public class BTree {
 
         BTreeNode child = node.findChild(key);
         return searchNode(child, key);
-    }
-
-    private void copyFromNodeToNode(BTreeNode source, int sourceStartIndex, BTreeNode destination, int destinationStartIndex, int keys, int children) {
-        System.arraycopy(source.getKeys(), sourceStartIndex, destination.getKeys(), destinationStartIndex, keys);
-        if (destination.isLeaf()) {
-            System.arraycopy(source.getValues(), sourceStartIndex, destination.getValues(), destinationStartIndex, keys);
-        } else {
-            System.arraycopy(source.getChildren(), sourceStartIndex, destination.getChildren(), destinationStartIndex, children);
-        }
     }
 
     private BTreeNode searchNode(long key) {
