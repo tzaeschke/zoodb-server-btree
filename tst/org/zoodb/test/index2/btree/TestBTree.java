@@ -1,13 +1,13 @@
 package org.zoodb.test.index2.btree;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.util.Pair;
 
 import java.util.Arrays;
 import java.util.Map;
 
-import org.junit.Test;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.util.Pair;
+import static org.junit.Assert.assertEquals;
 
 public class TestBTree {
 
@@ -289,6 +289,8 @@ public class TestBTree {
 	
 	/*
 	 * Delete Test according to Silberschatz, Database System Concepts, Sixth edition
+	 *
+	 * //ToDo disscuss this test, doesn't seem to be correct
 	 */
 	@Test
 	public void deleteMergeTest2() {
@@ -342,6 +344,111 @@ public class TestBTree {
 		tree3.delete(7L);
 		assertEquals(tree4, tree3);
 	}
+
+    @Test
+    public void deleteMergeRight() {
+        int order = 5;
+        BTreeFactory factory = new BTreeFactory(order);
+        factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 10L)));
+        factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L,3L),
+                                                    Arrays.asList(5L,9L),
+                                                    Arrays.asList(10L,11L)));
+        BTree tree1 = factory.getTree();
+        factory.clear();
+        factory.addInnerLayer(Arrays.asList(Arrays.asList(5L)));
+        factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L,3L),
+                                                    Arrays.asList(5L,9L,11L)));
+        BTree tree2 = factory.getTree();
+        tree1.delete(10L);
+        assertEquals(tree2, tree1);
+    }
+
+    @Test
+    public void deleteMergeLeft() {
+        int order = 5;
+        BTreeFactory factory = new BTreeFactory(order);
+        factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 10L)));
+        factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L),
+                                                    Arrays.asList(5L,9L),
+                                                    Arrays.asList(10L,11L)));
+        BTree tree1 = factory.getTree();
+        factory.clear();
+        factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
+        factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L,9L),
+                                                    Arrays.asList(10L,11L)));
+        BTree tree2 = factory.getTree();
+        tree1.delete(5L);
+        assertEquals(tree2, tree1);
+    }
+
+
+    @Test
+    public void deleteRedistributeRightOdd() {
+        int order = 5;
+        BTreeFactory factory = new BTreeFactory(order);
+        factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
+        factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L),
+                                                    Arrays.asList(10L,11L,12L,13L)));
+        BTree tree1 = factory.getTree();
+        factory.clear();
+        factory.addInnerLayer(Arrays.asList(Arrays.asList(12L)));
+        factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,10L,11L),
+                                                    Arrays.asList(12L,13L)));
+        BTree tree2 = factory.getTree();
+        tree1.delete(2L);
+        assertEquals(tree2, tree1);
+    }
+
+    @Test
+    public void deleteRedistributeRightEven() {
+        int order = 5;
+        BTreeFactory factory = new BTreeFactory(order);
+        factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
+        factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L,2L),
+                                                Arrays.asList(10L,11L,12L)));
+        BTree tree1 = factory.getTree();
+        factory.clear();
+        factory.addInnerLayer(Arrays.asList(Arrays.asList(11L)));
+        factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L,10L),
+                                                Arrays.asList(11L,12L)));
+        BTree tree2 = factory.getTree();
+        tree1.delete(2L);
+        assertEquals(tree2, tree1);
+    }
+
+    @Test
+    public void deleteRedistributeLeftOdd() {
+        int order = 5;
+        BTreeFactory factory = new BTreeFactory(order);
+        factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
+        factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L,3L,4L),
+                                                    Arrays.asList(10L,11L)));
+        BTree tree1 = factory.getTree();
+        factory.clear();
+        factory.addInnerLayer(Arrays.asList(Arrays.asList(3L)));
+        factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L,2L),
+                                                    Arrays.asList(3L,4L,11L)));
+        BTree tree2 = factory.getTree();
+        tree1.delete(10L);
+        assertEquals(tree2, tree1);
+    }
+
+    @Test
+    public void deleteRedistributeLeftEven() {
+        int order = 5;
+        BTreeFactory factory = new BTreeFactory(order);
+        factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
+        factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L,3L),
+                Arrays.asList(10L,11L)));
+        BTree tree1 = factory.getTree();
+        factory.clear();
+        factory.addInnerLayer(Arrays.asList(Arrays.asList(3L)));
+        factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L),
+                Arrays.asList(3L,11L)));
+        BTree tree2 = factory.getTree();
+        tree1.delete(10L);
+        assertEquals(tree2, tree1);
+    }
 
 	public static Pair<Long,Long> pair(long x, long y) {
 		return new Pair<Long,Long>(x,y);
