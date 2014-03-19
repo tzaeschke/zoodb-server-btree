@@ -24,17 +24,15 @@ public class BTreeNode {
     private BTreeNode right;
 
     public BTreeNode(BTreeNode parent, int order, boolean isLeaf) {
-        this.parent = parent;
+        setParent(parent);
         this.order = order;
         this.isLeaf = isLeaf;
 
-        keys = new long[order - 1];
-        numKeys = 0;
-
+        initKeys(order);
         if (isLeaf) {
-            values = new long[order - 1];
+            initValues(order);
         } else {
-            children = new BTreeNode[order];
+            initChildren(order);
         }
     }
 
@@ -47,20 +45,20 @@ public class BTreeNode {
      */
     public int findKeyPos(long key) {
         //Todo make method package and add test to the same package
-        if (numKeys == 0) {
+        if (getNumKeys() == 0) {
             return 0;
         }
         int low = 0;
-        int high = numKeys - 1;
+        int high = getNumKeys() - 1;
         int mid = 0;
         boolean found = false;
         //perform binary search
         while (!found && low <= high) {
             mid = low + (high - low) / 2;
-            if (keys[mid] == key) {
+            if (getKey(mid) == key) {
                 found = true;
             } else {
-                if (key < keys[mid]) {
+                if (key < getKey(mid)) {
                     high = mid - 1;
                 } else {
                     low = mid + 1;
@@ -70,9 +68,9 @@ public class BTreeNode {
 
         //if the key is not here, find the child subtree that has it
         if (!found) {
-            if (mid == 0 && key < keys[0]) {
+            if (mid == 0 && key < getKey(0)) {
                 return 0;
-            } else if (key < keys[mid]) {
+            } else if (key < getKey(mid)) {
                 return mid;
             }
         }
@@ -90,19 +88,19 @@ public class BTreeNode {
         if (!this.isLeaf()) {
             throw new UnsupportedOperationException("Should only be called on leaf nodes.");
         }
-        if (numKeys == 0) {
+        if (getNumKeys() == 0) {
             return 0;
         }
         int low = 0;
-        int high = numKeys - 1;
+        int high = getNumKeys() - 1;
         int mid = 0;
         boolean found = false;
         while (!found && low <= high) {
             mid = low + (high - low) / 2;
-            if (keys[mid] == key) {
+            if (getKey(mid) == key) {
                 found = true;
             } else {
-                if (key < keys[mid]) {
+                if (key < getKey(mid)) {
                     high = mid - 1;
                 } else {
                     low = mid + 1;
@@ -112,23 +110,23 @@ public class BTreeNode {
         if (!found) {
             return -1;
         }
-        return values[mid];
+        return getValue(mid);
     }
 
     public boolean containsKey(long key) {
-        if (numKeys == 0) {
+        if (getNumKeys() == 0) {
             return false;
         }
         int low = 0;
-        int high = numKeys - 1;
+        int high = getNumKeys() - 1;
         int mid = 0;
         boolean found = false;
         while (!found && low <= high) {
             mid = low + (high - low) / 2;
-            if (keys[mid] == key) {
+            if (getKey(mid) == key) {
                 found = true;
             } else {
-                if (key < keys[mid]) {
+                if (key < getKey(mid)) {
                     high = mid - 1;
                 } else {
                     low = mid + 1;
@@ -139,7 +137,7 @@ public class BTreeNode {
     }
 
     public BTreeNode findChild(long key) {
-        return children[findKeyPos(key)];
+        return getChild(findKeyPos(key));
     }
 
     /**
@@ -155,11 +153,10 @@ public class BTreeNode {
         }
 
         int pos = findKeyPos(key);
-        System.arraycopy(keys, pos, keys, pos + 1, numKeys - pos);
-        System.arraycopy(values, pos, values, pos + 1, numKeys - pos);
-        keys[pos] = key;
-        values[pos] = value;
-        numKeys++;
+        shiftRecords(pos, pos+1, getNumKeys() - pos);
+        setKey(pos, key);
+        setValue(pos, value);
+        incrementNumKyes();
     }
 
     /**
@@ -176,18 +173,19 @@ public class BTreeNode {
     public void put(long key, BTreeNode newNode) {
         if (isLeaf()) {
             throw new UnsupportedOperationException("Should only be called on inner nodes.");
-        } else if(numKeys == 0) {
+        } else if(getNumKeys() == 0) {
             throw new UnsupportedOperationException("Should only be called when node is non-empty.");
         }
 
         int pos = findKeyPos(key);
-        System.arraycopy(children, pos + 1, children, pos + 2, numKeys - pos);
-        children[pos+1] = newNode;
+        int recordsToMove = getNumKeys() - pos;
+        shiftChildren(pos + 1, pos + 2, recordsToMove);
+        setChild(pos + 1, newNode);
         newNode.setParent(this);
 
-        System.arraycopy(keys, pos, keys, pos + 1, numKeys - pos);
-        keys[pos] = key;
-        numKeys++;
+        shiftKeys(pos, pos + 1, recordsToMove);
+        setKey(pos, key);
+        incrementNumKyes();
     }
 
 
@@ -203,12 +201,11 @@ public class BTreeNode {
         if (!isRoot()) {
             throw new UnsupportedOperationException("Should only be called on the root node.");
         }
+        setKey(0, key);
+        setNumKeys(1);
 
-        keys[0] = key;
-        numKeys = 1;
-
-        children[0] = left;
-        children[1] = right;
+        setChild(0, left);
+        setChild(1, right);;
         
         left.setParent(this);
         right.setParent(this);
@@ -225,22 +222,22 @@ public class BTreeNode {
             throw new UnsupportedOperationException("Should only be called on leaf nodes.");
         }
         BTreeNode tempNode = new BTreeNode(null, order + 1, true);
-        System.arraycopy(keys, 0, tempNode.getKeys(), 0, numKeys);
-        System.arraycopy(values, 0, tempNode.getValues(), 0, numKeys);
-        tempNode.setNumKeys(numKeys);
+        System.arraycopy(getKeys(), 0, tempNode.getKeys(), 0, getNumKeys());
+        System.arraycopy(getValues(), 0, tempNode.getValues(), 0, getNumKeys());
+        tempNode.setNumKeys(getNumKeys());
         tempNode.put(newKey, value);
 
         int keysInLeftNode = (int) Math.ceil((order) / 2.0);
         int keysInRightNode = order  - keysInLeftNode;
         
         //populate left node
-        System.arraycopy(tempNode.getKeys(), 0, keys, 0, keysInLeftNode);
-        System.arraycopy(tempNode.getValues(), 0, values, 0, keysInLeftNode);
-        numKeys = keysInLeftNode;
+        System.arraycopy(tempNode.getKeys(), 0, getKeys(), 0, keysInLeftNode);
+        System.arraycopy(tempNode.getValues(), 0, getValues(), 0, keysInLeftNode);
+        setNumKeys(keysInLeftNode);
 
         //populate right node
-        BTreeNode rightNode = new BTreeNode(parent, order, true);
-        rightNode.setParent(parent);
+        BTreeNode rightNode = new BTreeNode(getParent(), order, true);
+        rightNode.setParent(getParent());
         System.arraycopy(tempNode.getKeys(), keysInLeftNode, rightNode.getKeys(), 0, keysInRightNode);
         System.arraycopy(tempNode.getValues(), keysInLeftNode, rightNode.getValues(), 0, keysInRightNode);
         rightNode.setNumKeys(keysInRightNode);
@@ -269,18 +266,18 @@ public class BTreeNode {
 
         //create a temporary node to allow the insertion
         BTreeNode tempNode = new BTreeNode(null, order + 1, false);
-        System.arraycopy(keys, 0, tempNode.getKeys(), 0, numKeys);
-        System.arraycopy(children, 0, tempNode.getChildren(), 0, order);
-        tempNode.setNumKeys(numKeys);
+        System.arraycopy(getKeys(), 0, tempNode.getKeys(), 0, getNumKeys());
+        System.arraycopy(getChildren(), 0, tempNode.getChildren(), 0, order);
+        tempNode.setNumKeys(getNumKeys());
         tempNode.put(key, newNode);
 
         //split
-        BTreeNode right = new BTreeNode(parent, order, false);
+        BTreeNode right = new BTreeNode(getParent(), order, false);
         int keysInLeftNode = (int) Math.floor(order / 2.0);
         //populate left node
-        System.arraycopy(tempNode.getKeys(), 0, keys, 0, keysInLeftNode);
-        System.arraycopy(tempNode.getChildren(), 0, children, 0, keysInLeftNode + 1);
-        numKeys = keysInLeftNode;
+        System.arraycopy(tempNode.getKeys(), 0, getKeys(), 0, keysInLeftNode);
+        System.arraycopy(tempNode.getChildren(), 0, getChildren(), 0, keysInLeftNode + 1);
+        setNumKeys(keysInLeftNode);
 
         //populate right node
         int keysInRightNode = order-keysInLeftNode-1;
@@ -295,7 +292,7 @@ public class BTreeNode {
         for (int i = keysInLeftNode + 1; i < order + 1; i++) {
             tempNode.getChildren()[i].setParent(right);
         }
-        right.setParent(parent);
+        right.setParent(getParent());
 
         return new Pair<>(right, keyToMoveUp);
     }
@@ -309,10 +306,9 @@ public class BTreeNode {
             throw new IllegalStateException("Should be a leaf node");
         }
         final int keyPos = findKeyPos(key);
-        int recordsToMove = numKeys - keyPos;
-        System.arraycopy(keys, keyPos, keys, keyPos - 1, recordsToMove);
-        System.arraycopy(values, keyPos, values, keyPos - 1, recordsToMove);
-        numKeys--;
+        int recordsToMove = getNumKeys() - keyPos;
+        shiftRecords(keyPos, keyPos - 1, recordsToMove);
+        decrementNumKeys();
 
     }
 
@@ -320,30 +316,35 @@ public class BTreeNode {
         getKeys()[index] = key;
     }
 
+    public void setValue(int index, long value) {
+        getValues()[index] = value;
+    }
+
     private void shiftRecords(int startIndex, int endIndex, int amount) {
-        System.arraycopy(keys, startIndex, keys, endIndex, amount);
+        shiftKeys(startIndex, endIndex, amount);
         if (isLeaf()) {
-            System.arraycopy(getValues(), startIndex, getValues(), endIndex, amount);
+            shiftValues(startIndex, endIndex, amount);
         } else {
-            System.arraycopy(getChildren(), startIndex, getChildren(), endIndex, amount+1);
+            shiftChildren(startIndex, endIndex, amount + 1);
         }
     }
 
     public void shiftRecordsRight(int amount) {
-        System.arraycopy(keys, 0, keys, amount, numKeys);
+        shiftKeys(0, amount, getNumKeys());
         if (isLeaf()) {
-            System.arraycopy(getValues(), 0, getValues(), amount, numKeys);
+            shiftValues(0, amount, getNumKeys());
         } else {
-            System.arraycopy(getChildren(), 0, getChildren(), amount, numKeys+1);
+            shiftChildren(0, amount, getNumKeys() + 1);
         }
     }
 
     public void shiftRecordsLeftWithIndex(int startIndex, int amount) {
-        System.arraycopy(keys, startIndex + amount, keys, startIndex, numKeys - amount);
+        int keysToMove = getNumKeys() - amount;
+        shiftKeys(startIndex + amount, startIndex, keysToMove);
         if (isLeaf()) {
-            System.arraycopy(getValues(), startIndex + amount, getValues(), startIndex, numKeys - amount);
+            shiftValues(startIndex + amount, startIndex, keysToMove);
         } else {
-            System.arraycopy(getChildren(), startIndex + amount, getChildren(), startIndex, numKeys + 1 - amount);
+            shiftChildren(startIndex + amount, startIndex, getNumKeys() + 1);
         }
     }
 
@@ -351,9 +352,21 @@ public class BTreeNode {
         shiftRecordsLeftWithIndex(0, amount);
     }
 
+    private void shiftKeys(int startIndex, int endIndex, int amount) {
+        System.arraycopy(getKeys(), startIndex, getKeys(), endIndex, amount);
+    }
+
+    private void shiftValues(int startIndex, int endIndex, int amount) {
+        System.arraycopy(getValues(), startIndex, getValues(), endIndex, amount);
+    }
+
+    private void shiftChildren(int startIndex, int endIndex, int amount) {
+        System.arraycopy(getChildren(), startIndex, getChildren(), endIndex, amount);
+    }
+
     public int keyIndexOf(BTreeNode left, BTreeNode right) {
-        for (int i = 0; i < numKeys; i++) {
-            if (child(i) == left && child(i+1) == right) {
+        for (int i = 0; i < getNumKeys(); i++) {
+            if (getChild(i) == left && getChild(i + 1) == right) {
                 return  i;
             }
         }
@@ -362,31 +375,31 @@ public class BTreeNode {
 
     public boolean isUnderfull() {
         if (isRoot()) {
-            return numKeys == 0;
+            return getNumKeys() == 0;
         }
         if (isLeaf()) {
-            return numKeys < minKeysAmount();
+            return getNumKeys() < minKeysAmount();
         }
-        return numKeys + 1 < order / 2.0;
+        return getNumKeys() + 1 < order / 2.0;
     }
 
     public boolean hasExtraKeys() {
         if (isRoot()) {
             return true;
         }
-        return numKeys - 1 >= minKeysAmount();
+        return getNumKeys() - 1 >= minKeysAmount();
     }
 
     public boolean isOverflowing() {
-        return numKeys >= order;
+        return getNumKeys() >= order;
     }
 
     public BTreeNode leftSibling() {
-        return parent.leafSiblingOf(this);
+        return getParent().leafSiblingOf(this);
     }
 
     public BTreeNode rightSibling() {
-        return parent.rightSiblingOf(this);
+        return getParent().rightSiblingOf(this);
     }
 
     private BTreeNode leafSiblingOf(BTreeNode node) {
@@ -408,7 +421,7 @@ public class BTreeNode {
         int index = 0;
         for (BTreeNode child : getChildren()) {
             if (child == node) {
-                if (index == numKeys) {
+                if (index == getNumKeys()) {
                     return null;
                 } else {
                     return getChildren()[index + 1];
@@ -419,60 +432,14 @@ public class BTreeNode {
         return null;
     }
 
-    public long getKey(int index) {
-        return getKeys()[index];
-    }
-
-    public BTreeNode child(int index) {
-        return getChildren()[index];
-    }
-
-    public double minKeysAmount() {
-        return (order - 1) / 2.0D;
-    }
-
-    public boolean isLeaf() {
-        return isLeaf;
-    }
-
-    public boolean isRoot() {
-        return parent == null;
-    }
-
-    public int getNumKeys() {
-        return numKeys;
-    }
-
-    public BTreeNode getParent() {
-        return parent;
-    }
-
-    public long[] getKeys() {
-        return keys;
-    }
-    
-    public long getSmallestKey() {
-    	return keys[0];
-    }
-
-    public long getLargestKey() {
-        return keys[numKeys - 1];
-    }
-
-    public long[] getValues() {
-        return values;
-    }
-
-    public void setNumKeys(int numKeys) {
-        this.numKeys = numKeys;
-    }
-
-    public long smallestKey() {
-        return keys[0];
-    }
-
-    public long largestKey() {
-        return keys[numKeys - 1];
+    public void replaceKey(long key, long replacementKey) {
+        if (replacementKey < key) {
+            throw new RuntimeException("Replacing " + key + " with " + replacementKey + " might be illegal.");
+        }
+        int pos = findKeyPos(key);
+        if (pos > -1) {
+            setKey(pos - 1, replacementKey);
+        }
     }
 
     public boolean incrementNumKyes() {
@@ -484,41 +451,80 @@ public class BTreeNode {
     }
 
     public boolean increaseNumKeys(int amount) {
-        int newNumKeys = numKeys + amount;
+        int newNumKeys = getNumKeys() + amount;
         if (newNumKeys > getKeys().length) {
             return false;
         }
-        numKeys = newNumKeys;
+        setNumKeys(newNumKeys);
         return true;
     }
 
     public boolean decreaseNumKeys(int amount) {
-        int newNumKeys = numKeys - amount;
+        int newNumKeys = getNumKeys() - amount;
         if (newNumKeys < 0) {
             return false;
         }
-        numKeys = newNumKeys;
+        setNumKeys(newNumKeys);
         return true;
     }
 
-    public void setParent(BTreeNode parent) {
-        this.parent = parent;
+    private void initKeys(int order) {
+        setKeys(new long[order - 1]);
+        setNumKeys(0);
     }
 
-    public BTreeNode[] getChildren() {
-        return children;
+    private void initValues(int order) {
+        setValues( new long[order - 1]);
     }
 
-    public void setChildren(BTreeNode[] children) {
-        this.children = children;
+    private void initChildren(int order) {
+        setChildren(new BTreeNode[order]);
     }
 
-    public void setKeys(long[] keys) {
-        this.keys = keys;
+
+    public long getValue(int index) {
+        return getValues()[index];
     }
 
-    public void setValues(long[] values) {
-        this.values = values;
+    public long getKey(int index) {
+        return getKeys()[index];
+    }
+
+    public BTreeNode getChild(int index) {
+        return getChildren()[index];
+    }
+
+    public void setChild(int index, BTreeNode child) {
+        getChildren()[index] = child;
+    }
+
+    public double minKeysAmount() {
+        return (order - 1) / 2.0D;
+    }
+
+    public boolean isLeaf() {
+        return isLeaf;
+    }
+
+    public boolean isRoot() {
+        return getParent() == null;
+    }
+
+
+    public long getSmallestKey() {
+    	return keys[0];
+    }
+
+    public long getLargestKey() {
+        return keys[numKeys - 1];
+    }
+
+    public long smallestKey() {
+        return keys[0];
+    }
+
+    public long largestKey() {
+        return keys[numKeys - 1];
     }
 
     public String toString() {
@@ -551,22 +557,6 @@ public class BTreeNode {
     	return ret;
     }
 
-    public void setLeft(BTreeNode left) {
-        this.left = left;
-    }
-
-    public void setRight(BTreeNode right) {
-        this.right = right;
-    }
-
-    public BTreeNode getLeft() {
-        return left;
-    }
-
-    public BTreeNode getRight() {
-        return right;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -574,14 +564,14 @@ public class BTreeNode {
 
         BTreeNode bTreeNode = (BTreeNode) o;
         
-        if (isLeaf != bTreeNode.isLeaf) return false;
-        if (numKeys != bTreeNode.numKeys) return false;
+        if (isLeaf() != bTreeNode.isLeaf()) return false;
+        if (getNumKeys() != bTreeNode.getNumKeys()) return false;
         if (order != bTreeNode.order) return false;
-        if (!arrayEquals(children, bTreeNode.children, numKeys + 1)) return false;
-        if (!arrayEquals(keys, bTreeNode.keys, numKeys)) return false;
+        if (!arrayEquals(getChildren(), bTreeNode.getChildren(), getNumKeys() + 1)) return false;
+        if (!arrayEquals(getKeys(), bTreeNode.getKeys(), getNumKeys())) return false;
         // checking for parent equality would result in infinite loop
         // if (parent != null ? !parent.equals(bTreeNode.parent) : bTreeNode.parent != null) return false;
-        if (!arrayEquals(values, bTreeNode.values, numKeys)) return false;
+        if (!arrayEquals(getValues(), bTreeNode.getValues(), getNumKeys())) return false;
 
         return true;
     }
@@ -624,14 +614,63 @@ public class BTreeNode {
         return true;
     }
 
+    public int getNumKeys() {
+        return numKeys;
+    }
 
-    public void replaceKey(long key, long replacementKey) {
-        if (replacementKey < key) {
-            throw new RuntimeException("Replacing " + key + " with " + replacementKey + " might be illegal.");
-        }
-        int pos = findKeyPos(key);
-        if (pos > -1) {
-            setKey(pos - 1, replacementKey);
-        }
+    public BTreeNode getParent() {
+        return parent;
+    }
+
+    public long[] getKeys() {
+        return keys;
+    }
+
+    public long[] getValues() {
+        return values;
+    }
+
+    public void setNumKeys(int numKeys) {
+        this.numKeys = numKeys;
+    }
+
+    public void setParent(BTreeNode parent) {
+        this.parent = parent;
+    }
+
+    public BTreeNode[] getChildren() {
+        return children;
+    }
+
+    public void setChildren(BTreeNode[] children) {
+        this.children = children;
+    }
+
+    public void setKeys(long[] keys) {
+        this.keys = keys;
+    }
+
+    public void setValues(long[] values) {
+        this.values = values;
+    }
+
+    public int getOrder() {
+        return order;
+    }
+
+    public void setLeft(BTreeNode left) {
+        this.left = left;
+    }
+
+    public void setRight(BTreeNode right) {
+        this.right = right;
+    }
+
+    public BTreeNode getLeft() {
+        return left;
+    }
+
+    public BTreeNode getRight() {
+        return right;
     }
 }

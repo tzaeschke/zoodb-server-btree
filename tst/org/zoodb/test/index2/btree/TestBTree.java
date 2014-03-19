@@ -188,8 +188,6 @@ public class TestBTree {
 		BTree expected = factory.getTree();
 
 		tree.insert(8, 8);
-		System.out.println(tree);
-		System.out.println(expected);
 		assertEquals("Tree did not split properly after insert.",
 				expected, tree);
 	}
