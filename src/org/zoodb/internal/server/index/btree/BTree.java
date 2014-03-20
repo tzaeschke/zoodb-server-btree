@@ -152,6 +152,10 @@ public class BTree {
     	return this.order;
     }
     
+    public BTreeNode getRoot() {
+    	return this.root;
+    }
+    
     public String toString() {
     	if(this.root != null) {
 	    	return this.root.toString();

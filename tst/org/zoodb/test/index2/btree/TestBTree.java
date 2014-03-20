@@ -1,13 +1,17 @@
 package org.zoodb.test.index2.btree;
 
-import org.junit.Test;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.util.Pair;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.util.Pair;
 
 public class TestBTree {
 
@@ -17,7 +21,7 @@ public class TestBTree {
 		BTree tree = new BTree(order);
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
-				.randomUniformKeyValues(order / 2);
+				.increasingKeysRandomValues(order / 2);
 		for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
 			tree.insert(entry.getKey(), entry.getValue());
 		}
@@ -35,7 +39,7 @@ public class TestBTree {
 		BTree tree = new BTree(order);
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
-				.randomUniformKeyValues(order);
+				.increasingKeysRandomValues(order);
 		for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
 			tree.insert(entry.getKey(), entry.getValue());
 		}
@@ -53,7 +57,7 @@ public class TestBTree {
 		BTree tree = new BTree(order);
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
-				.randomUniformKeyValues(order / 2);
+				.increasingKeysRandomValues(order / 2);
 		for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
 			tree.insert(entry.getKey(), entry.getValue());
 		}
@@ -72,7 +76,7 @@ public class TestBTree {
 		BTree tree = new BTree(order);
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
-				.randomUniformKeyValues(order);
+				.increasingKeysRandomValues(order);
 		for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
 			tree.insert(entry.getKey(), entry.getValue());
 		}
@@ -446,6 +450,65 @@ public class TestBTree {
         BTree tree2 = factory.getTree();
         tree1.delete(10L);
         assertEquals(tree2, tree1);
+    }
+    
+    /*
+     * Tests whether the state of the tree is correct after doing a lot of inserts and deletes.
+     */
+    @Test
+    public void deleteMassively() {
+    	int order = 32;
+    	int numEntries = 100000;
+    	
+    	BTree tree = new BTree(order);
+    	List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries);
+    	
+    	for(LLEntry entry : entries) {
+    		tree.insert(entry.getKey(), entry.getValue());
+    	}
+    	
+    	// check whether all entries are inserted
+        for(LLEntry entry : entries) {
+    		assertEquals(entry.getValue(), tree.search(entry.getKey()));
+    	}
+        
+        // delete every entry and check that there is indeed no entry anymore
+        for(LLEntry entry : entries) {
+    		tree.delete(entry.getKey());
+    	}
+        for(LLEntry entry : entries) {
+    		assertEquals(-1, tree.search(entry.getKey()));
+    	}
+        // root is empty and has no children
+        assertEquals(0, tree.getRoot().getNumKeys());
+        BTreeNode[] emptyChildren = new BTreeNode[order-1];
+        Arrays.fill(emptyChildren, null);
+        assertArrayEquals(emptyChildren, tree.getRoot().getChildren());
+        
+        // add all entries, delete half of it, check that correct ones are deleted and still present respectively
+        int split = numEntries/2;
+        for(LLEntry entry : entries) {
+    		tree.insert(entry.getKey(), entry.getValue());
+    	}
+        int i=0;
+        for(LLEntry entry : entries) {
+        	if(i<split) {
+                tree.delete(entry.getKey());
+        	} else {
+        		break;
+        	}
+        	i++;
+        }
+        i=0;
+        for(LLEntry entry : entries) {
+        	if(i<split) {
+                assertEquals(-1, tree.search(entry.getKey()));
+        	} else {
+                assertEquals(entry.getValue(), tree.search(entry.getKey()));
+        	}
+        	i++;
+        }
+    	
     }
 
 	public static Pair<Long,Long> pair(long x, long y) {
