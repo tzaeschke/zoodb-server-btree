@@ -86,7 +86,7 @@ public class BTreeNode {
      */
     public long findValue(long key) {
         if (!this.isLeaf()) {
-            throw new UnsupportedOperationException("Should only be called on leaf nodes.");
+            throw new IllegalStateException("Should only be called on leaf nodes.");
         }
         if (getNumKeys() == 0) {
             return 0;
@@ -149,10 +149,13 @@ public class BTreeNode {
      */
     public void put(long key, long value) {
         if (!isLeaf()) {
-            throw new UnsupportedOperationException("Should only be called on leaf nodes.");
+            throw new IllegalStateException("Should only be called on leaf nodes.");
         }
 
         int pos = findKeyPos(key);
+        if(pos > numKeys && keys[pos] == key) {
+            throw new IllegalStateException("Tree is not allowed to have non-unique keys.");
+        }
         shiftRecords(pos, pos+1, getNumKeys() - pos);
         setKey(pos, key);
         setValue(pos, value);
@@ -172,12 +175,15 @@ public class BTreeNode {
      */
     public void put(long key, BTreeNode newNode) {
         if (isLeaf()) {
-            throw new UnsupportedOperationException("Should only be called on inner nodes.");
+            throw new IllegalStateException("Should only be called on inner nodes.");
         } else if(getNumKeys() == 0) {
-            throw new UnsupportedOperationException("Should only be called when node is non-empty.");
+            throw new IllegalStateException("Should only be called when node is non-empty.");
         }
 
         int pos = findKeyPos(key);
+        if(pos > numKeys && keys[pos] == key) {
+            throw new IllegalStateException("Tree is not allowed to have non-unique keys.");
+        }
         int recordsToMove = getNumKeys() - pos;
         shiftChildren(pos + 1, pos + 2, recordsToMove);
         setChild(pos + 1, newNode);
@@ -199,7 +205,7 @@ public class BTreeNode {
      */
     public void put(long key, BTreeNode left, BTreeNode right) {
         if (!isRoot()) {
-            throw new UnsupportedOperationException("Should only be called on the root node.");
+            throw new IllegalStateException("Should only be called on the root node.");
         }
         setKey(0, key);
         setNumKeys(1);
@@ -219,7 +225,7 @@ public class BTreeNode {
      */
     public BTreeNode putAndSplit(long newKey, long value) {
         if (!isLeaf()) {
-            throw new UnsupportedOperationException("Should only be called on leaf nodes.");
+            throw new IllegalStateException("Should only be called on leaf nodes.");
         }
         BTreeNode tempNode = new BTreeNode(null, order + 1, true);
         System.arraycopy(getKeys(), 0, tempNode.getKeys(), 0, getNumKeys());
@@ -261,7 +267,7 @@ public class BTreeNode {
      */
     public Pair<BTreeNode, Long> putAndSplit(long key, BTreeNode newNode) {
         if (isLeaf()) {
-            throw new UnsupportedOperationException("Should only be called on inner nodes.");
+            throw new IllegalStateException("Should only be called on inner nodes.");
         }
 
         //create a temporary node to allow the insertion
