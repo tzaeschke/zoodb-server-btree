@@ -3,18 +3,20 @@ package org.zoodb.internal.server.index;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
 import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
 
 
 public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 	
 	private BTree tree;
+    private BTreeNodeFactory bTreeNodeFactory;
 
 	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
 		
 		// TODO Auto-generated constructor stub
 		final int order = 4;
-		tree = new BTree(order);
+		tree = new BTree(order, bTreeNodeFactory);
 	}
 
 	@Override

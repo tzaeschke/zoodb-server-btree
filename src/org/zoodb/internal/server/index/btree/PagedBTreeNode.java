@@ -28,6 +28,9 @@ public class PagedBTreeNode extends BTreeNode {
 
 	@Override
 	public BTreeNode getParent() {
+        if (parentPageId == -1) {
+            return null;
+        }
 		return bufferManager.read(parentPageId);
 	}
 
@@ -110,7 +113,7 @@ public class PagedBTreeNode extends BTreeNode {
 		
 		for (int childPageId : childrenPageIds) {
 			if (childPageId == nodePageId) {
-				if (index == 0) {
+				if (index == childrenPageIds.length - 1) {
 					return null;
 				} else {
 					return getChild(index + 1);
@@ -133,8 +136,8 @@ public class PagedBTreeNode extends BTreeNode {
 
 	@Override
 	public boolean equalChildren(BTreeNode other) {
-		arrayEquals(childrenPageIds, ((PagedBTreeNode) other).getChildrenPageIds(), numKeys + 1);
-		return false;
+        return arrayEquals(getChildren(), other.getChildren(), getNumKeys() + 1);
+		//return arrayEquals(childrenPageIds, ((PagedBTreeNode) other).getChildrenPageIds(), numKeys + 1);
 	}
 
 	@Override

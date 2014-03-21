@@ -11,14 +11,13 @@ public class BTreeBufferManager {
 		this.map = new HashMap<Integer, PagedBTreeNode>();
 	}
 	
-	public PagedBTreeNode read(long pageId) {
+	public PagedBTreeNode read(int pageId) {
 		return map.get(pageId);
 	}
 	
 	public int write(PagedBTreeNode node) {
 		pageId++;
 		map.put(pageId, node);
-		map.toString();
 		return pageId;
 	}
 
