@@ -166,7 +166,7 @@ public class BTreeUtils {
         if (destination.isLeaf()) {
             System.arraycopy(source.getValues(), srcStartK, destination.getValues(), endStartK, keys);
         } else {
-            System.arraycopy(source.getChildren(), srcStartC, destination.getChildren(), endStartC, children);
+            source.copyChildren(source, srcStartC, destination, endStartC, children);
         }
     }
 

@@ -1,7 +1,7 @@
 package org.zoodb.test.index2.btree;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.List;
@@ -10,15 +10,21 @@ import java.util.Map;
 import org.junit.Test;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
+import org.zoodb.internal.server.index.btree.MemoryBTreeNodeFactory;
+import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 import org.zoodb.internal.util.Pair;
 
 public class TestBTree {
+	
+	private BTreeNodeFactory nodeFactory = new PagedBTreeNodeFactory(new BTreeBufferManager());
 
 	@Test
 	public void searchSingleNode() {
 		final int order = 10;
-		BTree tree = new BTree(order, new MemoryBTreeNodeFactory());
+		BTree tree = new BTree(order, nodeFactory);
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
 				.increasingKeysRandomValues(order / 2);
@@ -36,7 +42,7 @@ public class TestBTree {
 	@Test
 	public void searchAfterSplit() {
 		final int order = 10000;
-		BTree tree = new BTree(order, new MemoryBTreeNodeFactory());
+		BTree tree = new BTree(order, nodeFactory);
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
 				.increasingKeysRandomValues(order);
@@ -54,7 +60,7 @@ public class TestBTree {
 	@Test
 	public void searchMissingSingleNode() {
 		final int order = 10000;
-		BTree tree = new BTree(order, new MemoryBTreeNodeFactory());
+		BTree tree = new BTree(order, nodeFactory);
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
 				.increasingKeysRandomValues(order / 2);
@@ -73,7 +79,7 @@ public class TestBTree {
 	@Test
 	public void searchMissingAfterSplit() {
 		final int order = 10000;
-		BTree tree = new BTree(order, new MemoryBTreeNodeFactory());
+		BTree tree = new BTree(order, nodeFactory);
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
 				.increasingKeysRandomValues(order);
@@ -92,7 +98,7 @@ public class TestBTree {
 	@Test
 	public void insertWithSimpleSplit() {
 		int order = 5;
-		BTree tree = new BTree(order, new MemoryBTreeNodeFactory());
+		BTree tree = new BTree(order, nodeFactory);
 		tree.insert(3, 1);
 		tree.insert(2, 5);
 		tree.insert(0, 5);
@@ -100,7 +106,7 @@ public class TestBTree {
 		tree.insert(1, -100);
 
 		// build expected tree
-		BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+		BTreeFactory factory = new BTreeFactory(order, nodeFactory);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(3L)));
 		factory.addLeafLayer(Arrays.asList(Arrays.asList(pair(0L,5L),pair(1L,-100L),pair(2L,5L)),
 											Arrays.asList(pair(3L,1L),pair(4L,10L))));
@@ -117,7 +123,7 @@ public class TestBTree {
 	@Test
 	public void insertTwoLevelWithSplit() {
 		int order = 4;
-		BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+		BTreeFactory factory = new BTreeFactory(order, nodeFactory);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(90L)));
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(40L, 60L),
 								Arrays.asList(110L)));
@@ -170,7 +176,7 @@ public class TestBTree {
 	@Test
 	public void insertOneLevelWithSplit() {
 		int order = 5;
-        BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+        BTreeFactory factory = new BTreeFactory(order, nodeFactory);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(13L,17L,24L,30L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L,3L,5L,7L),
 											Arrays.asList(14L,16L),
@@ -202,7 +208,7 @@ public class TestBTree {
 	@Test
 	public void deleteSimpleTest() {
 		int order = 5;
-		BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+		BTreeFactory factory = new BTreeFactory(order, nodeFactory);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L,13L),
 											Arrays.asList(24L,30L)));
@@ -233,7 +239,7 @@ public class TestBTree {
 	@Test
 	public void deleteRedistributeTest() {
 		int order = 5;
-		BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+		BTreeFactory factory = new BTreeFactory(order, nodeFactory);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L,13L),
 											Arrays.asList(24L,30L)));
@@ -264,7 +270,7 @@ public class TestBTree {
 	@Test
 	public void deleteMergeTest() {
 		int order = 5;
-		BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+		BTreeFactory factory = new BTreeFactory(order, nodeFactory);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L,13L),
 											Arrays.asList(27L,30L)));
@@ -297,7 +303,7 @@ public class TestBTree {
 	@Test
 	public void deleteMergeTest2() {
 		int order = 4;
-		BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+		BTreeFactory factory = new BTreeFactory(order, nodeFactory);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(3L,5L,7L),
 											Arrays.asList(12L)));
@@ -350,7 +356,7 @@ public class TestBTree {
     @Test
     public void deleteMergeRight() {
         int order = 5;
-        BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+        BTreeFactory factory = new BTreeFactory(order, nodeFactory);
         factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 10L)));
         factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L,3L),
                                                     Arrays.asList(5L,9L),
@@ -368,7 +374,7 @@ public class TestBTree {
     @Test
     public void deleteMergeLeft() {
         int order = 5;
-        BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+        BTreeFactory factory = new BTreeFactory(order, nodeFactory);
         factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 10L)));
         factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L),
                                                     Arrays.asList(5L,9L),
@@ -387,7 +393,7 @@ public class TestBTree {
     @Test
     public void deleteRedistributeRightOdd() {
         int order = 5;
-        BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+        BTreeFactory factory = new BTreeFactory(order, nodeFactory);
         factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
         factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L),
                                                     Arrays.asList(10L,11L,12L,13L)));
@@ -404,7 +410,7 @@ public class TestBTree {
     @Test
     public void deleteRedistributeRightEven() {
         int order = 5;
-        BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+        BTreeFactory factory = new BTreeFactory(order, nodeFactory);
         factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
         factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L,2L),
                                                 Arrays.asList(10L,11L,12L)));
@@ -421,7 +427,7 @@ public class TestBTree {
     @Test
     public void deleteRedistributeLeftOdd() {
         int order = 5;
-        BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+        BTreeFactory factory = new BTreeFactory(order, nodeFactory);
         factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
         factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L,3L,4L),
                                                     Arrays.asList(10L,11L)));
@@ -438,7 +444,7 @@ public class TestBTree {
     @Test
     public void deleteRedistributeLeftEven() {
         int order = 5;
-        BTreeFactory factory = new BTreeFactory(order, new MemoryBTreeNodeFactory());
+        BTreeFactory factory = new BTreeFactory(order, nodeFactory);
         factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
         factory.addLeafLayerDefault(Arrays.asList(  Arrays.asList(1L,2L,3L),
                 Arrays.asList(10L,11L)));
@@ -460,7 +466,7 @@ public class TestBTree {
     	int order = 32;
     	int numEntries = 100000;
     	
-    	BTree tree = new BTree(order, new MemoryBTreeNodeFactory());
+    	BTree tree = new BTree(order, nodeFactory);
     	List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries);
     	
     	for(LLEntry entry : entries) {

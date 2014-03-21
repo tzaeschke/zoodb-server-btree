@@ -1,7 +1,6 @@
 package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.util.Pair;
-import org.zoodb.test.index2.btree.BTreeNodeFactory;
 
 /**
  * B+ Tree data structure.

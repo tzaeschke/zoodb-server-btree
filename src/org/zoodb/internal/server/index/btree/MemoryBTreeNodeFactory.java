@@ -1,12 +1,9 @@
-package org.zoodb.test.index2.btree;
+package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.server.index.btree.BTreeNode;
-import org.zoodb.internal.server.index.btree.MemoryBTreeNode;
 
 public class MemoryBTreeNodeFactory implements BTreeNodeFactory {
 
 	public MemoryBTreeNodeFactory() {
-		// TODO Auto-generated constructor stub
 	}
 
 	@Override

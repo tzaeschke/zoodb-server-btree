@@ -50,4 +50,50 @@ public class MemoryBTreeNode extends BTreeNode {
 
 	}
 
+	public boolean equalChildren(BTreeNode other) {
+		return arrayEquals(getChildren(), other.getChildren(), getNumKeys() + 1);
+	}
+
+	public BTreeNode getChild(int index) {
+		return getChildren()[index];
+	}
+
+	public void setChild(int index, BTreeNode child) {
+		getChildren()[index] = child;
+	}
+
+	protected BTreeNode leftSiblingOf(BTreeNode node) {
+		int index = 0;
+		for (BTreeNode child : getChildren()) {
+			if (child == node) {
+				if (index == 0) {
+					return null;
+				} else {
+					return getChild(index - 1);
+				}
+			}
+			index++;
+		}
+		return null;
+	}
+
+	protected BTreeNode rightSiblingOf(BTreeNode node) {
+		int index = 0;
+		for (BTreeNode child : getChildren()) {
+			if (child == node) {
+				if (index == getNumKeys()) {
+					return null;
+				} else {
+					return getChild(index + 1);
+				}
+			}
+			index++;
+		}
+		return null;
+	}
+
+	public void copyChildren(BTreeNode src, int srcPos,
+			BTreeNode dest, int destPos, int length) {
+		System.arraycopy(src.getChildren(), srcPos, dest.getChildren(), destPos, length);
+	}
 }

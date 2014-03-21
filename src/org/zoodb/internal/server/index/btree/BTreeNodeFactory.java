@@ -1,6 +1,5 @@
-package org.zoodb.test.index2.btree;
+package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.server.index.btree.BTreeNode;
 
 public interface BTreeNodeFactory {
 	
