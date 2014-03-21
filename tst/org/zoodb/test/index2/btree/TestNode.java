@@ -8,6 +8,7 @@ import java.util.Arrays;
 
 import org.junit.Test;
 import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.MemoryBTreeNode;
 import org.zoodb.internal.util.Pair;
 
 public class TestNode {
@@ -28,7 +29,7 @@ public class TestNode {
 
 	@Test
 	public void leafPut() {
-		BTreeNode leafNode = new BTreeNode(null, 6, true);
+		BTreeNode leafNode = new MemoryBTreeNode(null, 6, true);
 		assertEquals(leafNode.getValues().length, 5);
 		assertEquals(leafNode.getKeys().length, 5);
 
@@ -53,21 +54,21 @@ public class TestNode {
 	@Test
 	public void innerNodePut() {
 		final int order = 6;
-		BTreeNode innerNode = new BTreeNode(null, order, false);
+		BTreeNode innerNode = new MemoryBTreeNode(null, order, false);
 		assertEquals(5, innerNode.getKeys().length);
 		assertEquals(order, innerNode.getChildren().length);
 
-		BTreeNode child1 = new BTreeNode(null, order, true);
+		BTreeNode child1 = new MemoryBTreeNode(null, order, true);
 		child1.put(1, 1);
-		BTreeNode child2 = new BTreeNode(null, order, true);
+		BTreeNode child2 = new MemoryBTreeNode(null, order, true);
 		child2.put(2, 2);
-		BTreeNode child3 = new BTreeNode(null, order, true);
+		BTreeNode child3 = new MemoryBTreeNode(null, order, true);
 		child3.put(3, 3);
-		BTreeNode child4 = new BTreeNode(null, order, true);
+		BTreeNode child4 = new MemoryBTreeNode(null, order, true);
 		child4.put(4, 4);
-		BTreeNode child5 = new BTreeNode(null, order, true);
+		BTreeNode child5 = new MemoryBTreeNode(null, order, true);
 		child5.put(5, 5);
-		BTreeNode child6 = new BTreeNode(null, order, true);
+		BTreeNode child6 = new MemoryBTreeNode(null, order, true);
 		child6.put(6, 6);
 
 		innerNode.put(3, child1, child4);
@@ -98,7 +99,7 @@ public class TestNode {
 
 	@Test
 	public void leafSplit() {
-		BTreeNode unevenKeysLeaf = new BTreeNode(null, 4, true);
+		BTreeNode unevenKeysLeaf = new MemoryBTreeNode(null, 4, true);
 		unevenKeysLeaf.put(1, 1);
 		unevenKeysLeaf.put(2, 2);
 		unevenKeysLeaf.put(4, 4);
@@ -108,7 +109,7 @@ public class TestNode {
 		assertArrayEquals(new long[] { 3, 4 }, getValues(right));
 		assertArrayEquals(new long[] { 3, 4 }, getKeys(right));
 
-		unevenKeysLeaf = new BTreeNode(null, 4, true);
+		unevenKeysLeaf = new MemoryBTreeNode(null, 4, true);
 		unevenKeysLeaf.put(1, 1);
 		unevenKeysLeaf.put(3, 3);
 		unevenKeysLeaf.put(4, 4);
@@ -118,7 +119,7 @@ public class TestNode {
 		assertArrayEquals(new long[] { 3, 4 }, getValues(right));
 		assertArrayEquals(new long[] { 3, 4 }, getKeys(right));
 
-		BTreeNode evenKeysLeaf = new BTreeNode(null, 5, true);
+		BTreeNode evenKeysLeaf = new MemoryBTreeNode(null, 5, true);
 		evenKeysLeaf.put(1, 1);
 		evenKeysLeaf.put(2, 2);
 		evenKeysLeaf.put(3, 3);
@@ -129,7 +130,7 @@ public class TestNode {
 		assertArrayEquals(new long[] { 4, 5 }, getValues(right2));
 		assertArrayEquals(new long[] { 4, 5 }, getKeys(right2));
 
-		evenKeysLeaf = new BTreeNode(null, 5, true);
+		evenKeysLeaf = new MemoryBTreeNode(null, 5, true);
 		evenKeysLeaf.put(1, 1);
 		evenKeysLeaf.put(2, 2);
 		evenKeysLeaf.put(4, 4);
@@ -140,7 +141,7 @@ public class TestNode {
 		assertArrayEquals(new long[] { 4, 5 }, getValues(right2));
 		assertArrayEquals(new long[] { 4, 5 }, getKeys(right2));
 
-		evenKeysLeaf = new BTreeNode(null, 5, true);
+		evenKeysLeaf = new MemoryBTreeNode(null, 5, true);
 		evenKeysLeaf.put(2, 2);
 		evenKeysLeaf.put(3, 3);
 		evenKeysLeaf.put(5, 5);
@@ -151,7 +152,7 @@ public class TestNode {
 		assertArrayEquals(new long[] { 7, 8 }, getValues(right2));
 		assertArrayEquals(new long[] { 7, 8 }, getKeys(right2));
 
-		evenKeysLeaf = new BTreeNode(null, 5, true);
+		evenKeysLeaf = new MemoryBTreeNode(null, 5, true);
 		evenKeysLeaf.put(2, 2);
 		evenKeysLeaf.put(3, 3);
 		evenKeysLeaf.put(5, 5);
@@ -169,11 +170,11 @@ public class TestNode {
 	public void innerNodeSplit() {
 		// uneven order
 		int order = 3;
-		BTreeNode node = new BTreeNode(null, order, false);
-		BTreeNode child1 = new BTreeNode(null, order, true);
-		BTreeNode child2 = new BTreeNode(null, order, true);
-		BTreeNode child3 = new BTreeNode(null, order, true);
-		BTreeNode child4 = new BTreeNode(null, order, true);
+		BTreeNode node = new MemoryBTreeNode(null, order, false);
+		BTreeNode child1 = new MemoryBTreeNode(null, order, true);
+		BTreeNode child2 = new MemoryBTreeNode(null, order, true);
+		BTreeNode child3 = new MemoryBTreeNode(null, order, true);
+		BTreeNode child4 = new MemoryBTreeNode(null, order, true);
 		BTreeNode[] childArray = new BTreeNode[] {child1, child2, child3, child4};
 
 		node.put(3, child1, child3);
@@ -181,13 +182,13 @@ public class TestNode {
 		Pair<BTreeNode, Long> p = node.putAndSplit(2, child2);
 		checkEvenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
 
-		node = new BTreeNode(null, order, false);
+		node = new MemoryBTreeNode(null, order, false);
 		node.put(2, child1, child2);
 		node.put(3, child3);
 		p = node.putAndSplit(4, child4);
 		checkEvenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
 
-		node = new BTreeNode(null, order, false);
+		node = new MemoryBTreeNode(null, order, false);
 		node.put(3, child1, child3);
 		node.put(4, child4);
 		p = node.putAndSplit(2, child2);
@@ -195,8 +196,8 @@ public class TestNode {
 
 		// even order
 		order = 4;
-		node = new BTreeNode(null, order, false);
-		BTreeNode child5 = new BTreeNode(null, order, true);
+		node = new MemoryBTreeNode(null, order, false);
+		BTreeNode child5 = new MemoryBTreeNode(null, order, true);
         childArray = new BTreeNode[] {child1, child2, child3, child4, child5};
 
 		node.put(3, child1, child4);
@@ -205,14 +206,14 @@ public class TestNode {
 		p = node.putAndSplit(2, child3);
         checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
         
-		node = new BTreeNode(null, order, false);
+		node = new MemoryBTreeNode(null, order, false);
 		node.put(3, child1, child4);
 		node.put(1, child2);
 		node.put(2, child3);
 		p = node.putAndSplit(4, child5);
         checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
         
-        node = new BTreeNode(null, order, false);
+        node = new MemoryBTreeNode(null, order, false);
 		node.put(3, child1, child4);
 		node.put(2, child3);
 		node.put(4, child5);

@@ -1,6 +1,7 @@
 package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.util.Pair;
+import org.zoodb.test.index2.btree.BTreeNodeFactory;
 
 /**
  * B+ Tree data structure.
@@ -14,9 +15,11 @@ public class BTree {
 
     private int order;
     private BTreeNode root;
+    private BTreeNodeFactory nodeFactory;
 
-    public BTree(int order) {
+    public BTree(int order, BTreeNodeFactory nodeFactory) {
         this.order = order;
+        this.nodeFactory = nodeFactory;
     }
 
     public void setRoot(BTreeNode root) {
@@ -51,7 +54,7 @@ public class BTree {
      */
     public void insert(long key, long value) {
         if (root == null) {
-            root = new BTreeNode(null, order, true);
+            root = nodeFactory.newNode(null, order, true);
         }
         BTreeNode leaf = searchNode(key);
 
@@ -74,7 +77,7 @@ public class BTree {
      */
     private void insertInInnerNode(BTreeNode left, long key, BTreeNode right) {
         if (left.isRoot()) {
-            BTreeNode newRoot = new BTreeNode(null, order, false);
+            BTreeNode newRoot = nodeFactory.newNode(null, order, false);
             root = newRoot;
             root.put(key, left, right);
         } else {

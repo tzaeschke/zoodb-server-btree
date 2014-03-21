@@ -14,9 +14,11 @@ public class BTreeFactory {
 	
 	private BTree tree;
 	private List<BTreeNode> prevLayer;
+	private BTreeNodeFactory nodeFactory;
 
-	public BTreeFactory(int order) {
-		this.tree = new BTree(order);
+	public BTreeFactory(int order, BTreeNodeFactory nodeFactory) {
+		this.tree = new BTree(order, nodeFactory);
+		this.nodeFactory = nodeFactory;
 	}
 	
 	public void addInnerLayer(List<List<Long>> nodeKeys) {
@@ -45,7 +47,7 @@ public class BTreeFactory {
 	
 	public void addLayer(boolean isLeaf, List<List<Long>> nodeKeys) {
 		if(this.tree.isEmpty()) {
-			BTreeNode root = new BTreeNode(null, this.tree.getOrder(), isLeaf);
+			BTreeNode root = nodeFactory.newNode(null, this.tree.getOrder(), isLeaf);
 			root.setNumKeys(nodeKeys.get(0).size());
 			List<Long> keys = nodeKeys.get(0);
 			root.setKeys(padLongArray(toPrimitives(
@@ -60,7 +62,7 @@ public class BTreeFactory {
 			for(BTreeNode parent : prevLayer) {
 				BTreeNode[] children = new BTreeNode[this.tree.getOrder()];
 				for(int ik = 0; ik < parent.getNumKeys()+1; ik++) {
-					BTreeNode node = new BTreeNode(parent, this.tree.getOrder(), isLeaf);
+					BTreeNode node = nodeFactory.newNode(parent, this.tree.getOrder(), isLeaf);
 					List<Long> keys = nodeKeys.get(indexLayer);
 					node.setKeys(padLongArray(toPrimitives(
 									keys.toArray(new Long[keys.size()])), 
@@ -100,7 +102,7 @@ public class BTreeFactory {
 	}
 	
 	public void clear() {
-		this.tree = new BTree(this.tree.getOrder());
+		this.tree = new BTree(tree.getOrder(), nodeFactory);
 	}
 	
 	private static List<List<Pair<Long,Long>>> zip(List<List<Long>> l1, List<List<Long>> l2) {

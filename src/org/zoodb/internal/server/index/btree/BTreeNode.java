@@ -7,7 +7,7 @@ import org.zoodb.internal.util.Pair;
  *
  * Support for linked-lists of nodes on the leaf level is yet to be added.
  */
-public class BTreeNode {
+public abstract class BTreeNode {
 
     private final boolean isLeaf;
     private final int order;
@@ -17,11 +17,6 @@ public class BTreeNode {
     private long[] keys;
 
     private long[] values;
-    private BTreeNode[] children;
-    private BTreeNode parent;
-
-    private BTreeNode left;
-    private BTreeNode right;
 
     public BTreeNode(BTreeNode parent, int order, boolean isLeaf) {
         setParent(parent);
@@ -227,7 +222,7 @@ public class BTreeNode {
         if (!isLeaf()) {
             throw new IllegalStateException("Should only be called on leaf nodes.");
         }
-        BTreeNode tempNode = new BTreeNode(null, order + 1, true);
+        BTreeNode tempNode = newNode(null, order + 1, true);
         System.arraycopy(getKeys(), 0, tempNode.getKeys(), 0, getNumKeys());
         System.arraycopy(getValues(), 0, tempNode.getValues(), 0, getNumKeys());
         tempNode.setNumKeys(getNumKeys());
@@ -242,7 +237,7 @@ public class BTreeNode {
         setNumKeys(keysInLeftNode);
 
         //populate right node
-        BTreeNode rightNode = new BTreeNode(getParent(), order, true);
+        BTreeNode rightNode = newNode(getParent(), order, true);
         rightNode.setParent(getParent());
         System.arraycopy(tempNode.getKeys(), keysInLeftNode, rightNode.getKeys(), 0, keysInRightNode);
         System.arraycopy(tempNode.getValues(), keysInLeftNode, rightNode.getValues(), 0, keysInRightNode);
@@ -271,14 +266,14 @@ public class BTreeNode {
         }
 
         //create a temporary node to allow the insertion
-        BTreeNode tempNode = new BTreeNode(null, order + 1, false);
+        BTreeNode tempNode = newNode(null, order + 1, false);
         System.arraycopy(getKeys(), 0, tempNode.getKeys(), 0, getNumKeys());
         System.arraycopy(getChildren(), 0, tempNode.getChildren(), 0, order);
         tempNode.setNumKeys(getNumKeys());
         tempNode.put(key, newNode);
 
         //split
-        BTreeNode right = new BTreeNode(getParent(), order, false);
+        BTreeNode right = newNode(getParent(), order, false);
         int keysInLeftNode = (int) Math.floor(order / 2.0);
         //populate left node
         System.arraycopy(tempNode.getKeys(), 0, getKeys(), 0, keysInLeftNode);
@@ -554,7 +549,7 @@ public class BTreeNode {
     	} else {
     		ret+= "\n\tc:"; 
 	    	for (int i=0; i < this.getNumKeys()+1; i++) {
-				String[] lines = children[i].toString().split("\r\n|\r|\n");
+				String[] lines = this.getChild(i).toString().split("\r\n|\r|\n");
 			for(String l : lines) {
 					ret+="\n\t" + l;
 				}
@@ -624,9 +619,7 @@ public class BTreeNode {
         return numKeys;
     }
 
-    public BTreeNode getParent() {
-        return parent;
-    }
+    public abstract BTreeNode getParent();
 
     public long[] getKeys() {
         return keys;
@@ -640,20 +633,14 @@ public class BTreeNode {
         this.numKeys = numKeys;
     }
 
-    public void setParent(BTreeNode parent) {
-        this.parent = parent;
-    }
+    public abstract void setParent(BTreeNode parent);
 
-    public BTreeNode[] getChildren() {
-        return children;
-    }
+    public abstract BTreeNode[] getChildren();
 
-    public void setChildren(BTreeNode[] children) {
-        this.children = children;
-    }
+    public abstract void setChildren(BTreeNode[] children);
 
     public void setKeys(long[] keys) {
-        this.keys = keys;
+    	this.keys = keys;
     }
 
     public void setValues(long[] values) {
@@ -664,19 +651,13 @@ public class BTreeNode {
         return order;
     }
 
-    public void setLeft(BTreeNode left) {
-        this.left = left;
-    }
+    public abstract void setLeft(BTreeNode left);
 
-    public void setRight(BTreeNode right) {
-        this.right = right;
-    }
+    public abstract void setRight(BTreeNode right);
 
-    public BTreeNode getLeft() {
-        return left;
-    }
+    public abstract BTreeNode getLeft();
 
-    public BTreeNode getRight() {
-        return right;
-    }
+    public abstract BTreeNode getRight();
+    
+    public abstract BTreeNode newNode(BTreeNode parent, int order, boolean isLeaf);
 }
