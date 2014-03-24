@@ -7,15 +7,16 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 
 import org.junit.Test;
-import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
 import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 import org.zoodb.internal.util.Pair;
 
 public class TestNode {
-	
-	private BTreeNodeFactory nodeFactory = new PagedBTreeNodeFactory(new BTreeBufferManager());
+
+	private BTreeNodeFactory nodeFactory = new PagedBTreeNodeFactory(
+			new BTreeHashBufferManager());
 
 	public static long[] getKeys(BTreeNode node) {
 		return Arrays.copyOfRange(node.getKeys(), 0, node.getNumKeys());
@@ -170,8 +171,6 @@ public class TestNode {
 		assertArrayEquals(new long[] { 5, 7 }, getKeys(right2));
 	}
 
-
-
 	@Test
 	public void innerNodeSplit() {
 		// uneven order
@@ -181,7 +180,8 @@ public class TestNode {
 		BTreeNode child2 = nodeFactory.newNode(null, order, true);
 		BTreeNode child3 = nodeFactory.newNode(null, order, true);
 		BTreeNode child4 = nodeFactory.newNode(null, order, true);
-		BTreeNode[] childArray = new BTreeNode[] {child1, child2, child3, child4};
+		BTreeNode[] childArray = new BTreeNode[] { child1, child2, child3,
+				child4 };
 
 		node.put(3, child1, child3);
 		node.put(4, child4);
@@ -204,53 +204,58 @@ public class TestNode {
 		order = 4;
 		node = nodeFactory.newNode(null, order, false);
 		BTreeNode child5 = nodeFactory.newNode(null, order, true);
-        childArray = new BTreeNode[] {child1, child2, child3, child4, child5};
+		childArray = new BTreeNode[] { child1, child2, child3, child4, child5 };
 
 		node.put(3, child1, child4);
 		node.put(1, child2);
 		node.put(4, child5);
 		p = node.putAndSplit(2, child3);
-        checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
-        
+		checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+
 		node = nodeFactory.newNode(null, order, false);
 		node.put(3, child1, child4);
 		node.put(1, child2);
 		node.put(2, child3);
 		p = node.putAndSplit(4, child5);
-        checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
-        
-        node = nodeFactory.newNode(null, order, false);
+		checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+
+		node = nodeFactory.newNode(null, order, false);
 		node.put(3, child1, child4);
 		node.put(2, child3);
 		node.put(4, child5);
 		p = node.putAndSplit(1, child2);
-        checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+		checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
 	}
 
-	private void checkEvenInnerNodeSplit(BTreeNode node, BTreeNode right, long keyToMoveUp,
-			BTreeNode[] childArray) {
+	private void checkEvenInnerNodeSplit(BTreeNode node, BTreeNode right,
+			long keyToMoveUp, BTreeNode[] childArray) {
 		assertEquals(3, keyToMoveUp);
 		assertArrayEquals(new long[] { 2 }, getKeys(node));
-		assertArrayEquals(new BTreeNode[] { childArray[0], childArray[1] }, getChildren(node));
-		assertTrue(childArray[0].getParent() == node && childArray[1].getParent() == node);
+		assertArrayEquals(new BTreeNode[] { childArray[0], childArray[1] },
+				getChildren(node));
+		assertTrue(childArray[0].getParent() == node
+				&& childArray[1].getParent() == node);
 		assertArrayEquals(new long[] { 4 }, getKeys(right));
 		assertArrayEquals(new BTreeNode[] { childArray[2], childArray[3] },
 				getChildren(right));
-		assertTrue(childArray[2].getParent() == right && childArray[3].getParent() == right);
+		assertTrue(childArray[2].getParent() == right
+				&& childArray[3].getParent() == right);
 	}
-	
-    private void checkUnevenInnerNodeSplit(BTreeNode node, BTreeNode right, long keyToMoveUp,
-			BTreeNode[] childArray) {
+
+	private void checkUnevenInnerNodeSplit(BTreeNode node, BTreeNode right,
+			long keyToMoveUp, BTreeNode[] childArray) {
 		assertEquals(3, keyToMoveUp);
 		assertArrayEquals(new long[] { 1, 2 }, getKeys(node));
-		assertArrayEquals(new BTreeNode[] { childArray[0], childArray[1], childArray[2] },
-				getChildren(node));
-		assertTrue(childArray[0].getParent() == node && childArray[1].getParent() == node
+		assertArrayEquals(new BTreeNode[] { childArray[0], childArray[1],
+				childArray[2] }, getChildren(node));
+		assertTrue(childArray[0].getParent() == node
+				&& childArray[1].getParent() == node
 				&& childArray[2].getParent() == node);
 		assertArrayEquals(new long[] { 4 }, getKeys(right));
 		assertArrayEquals(new BTreeNode[] { childArray[3], childArray[4] },
 				getChildren(right));
-		assertTrue(childArray[3].getParent() == right && childArray[4].getParent() == right);
-    }
+		assertTrue(childArray[3].getParent() == right
+				&& childArray[4].getParent() == right);
+	}
 
 }

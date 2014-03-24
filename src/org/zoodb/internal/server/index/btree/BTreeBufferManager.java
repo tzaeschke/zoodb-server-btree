@@ -1,24 +1,12 @@
 package org.zoodb.internal.server.index.btree;
 
-import java.util.HashMap;
-import java.util.Map;
+public interface BTreeBufferManager {
 
-public class BTreeBufferManager {
-	private Map<Integer, PagedBTreeNode> map;
-	private int pageId;
+	/*
+	 * returns null if pageId can not be found
+	 */
+	public PagedBTreeNode read(int pageId);
 
-	public BTreeBufferManager() {
-		this.map = new HashMap<Integer, PagedBTreeNode>();
-	}
-	
-	public PagedBTreeNode read(int pageId) {
-		return map.get(pageId);
-	}
-	
-	public int write(PagedBTreeNode node) {
-		pageId++;
-		map.put(pageId, node);
-		return pageId;
-	}
+	public int write(PagedBTreeNode node);
 
 }

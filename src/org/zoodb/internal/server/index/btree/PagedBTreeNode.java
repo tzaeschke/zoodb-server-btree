@@ -1,9 +1,13 @@
 package org.zoodb.internal.server.index.btree;
 
+import org.zoodb.internal.util.Pair;
+
 public class PagedBTreeNode extends BTreeNode {
 
 	private int pageId;
 	private BTreeBufferManager bufferManager;
+	private boolean isDirty;
+    // isDirty: does the node in memory differ from the node in storage?
 
 	private int[] childrenPageIds;
 	private int parentPageId;
@@ -19,11 +23,58 @@ public class PagedBTreeNode extends BTreeNode {
 		this.pageId = bufferManager.write(this);
 
 		childrenPageIds = new int[order];
-		setParent(parent);
+		markDirty();
 	}
 
-	public int getPageId() {
-		return pageId;
+	public void put(long key, long value) {
+		markDirty();
+		super.put(key, value);
+	}
+	
+	
+	public void put(long key, BTreeNode newNode) {
+		markDirty();
+		super.put(key, newNode);
+	}
+	
+	public void put(long key, BTreeNode left, BTreeNode right) {
+		markDirty();
+		super.put(key, left, right);
+	}
+	
+	public BTreeNode putAndSplit(long newKey, long value) {
+		markDirty();
+		return super.putAndSplit(newKey, value);
+	}
+	
+	public Pair<BTreeNode, Long> putAndSplit(long key, BTreeNode newNode) {
+		markDirty();
+		return super.putAndSplit(key, newNode);
+	}
+	
+	public void delete(long key) {
+		markDirty();
+		super.delete(key);
+	}
+
+	public void setKey(int index, long key) {
+		markDirty();
+		super.setKey(index, key);
+	}
+	
+	public void setValue(int index, long value) {
+		markDirty();
+		super.setValue(index, value);
+	}
+	
+    public void setKeys(long[] keys) {
+		// markDirty(); would be called before buffer manager is ready
+		super.setKeys(keys);
+	}
+
+	public void setValues(long[] values) {
+		// markDirty(); would be called before buffer manager is ready
+		super.setValues(values);
 	}
 
 	@Override
@@ -36,7 +87,7 @@ public class PagedBTreeNode extends BTreeNode {
 
 	@Override
 	public void setParent(BTreeNode parent) {
-		this.parentPageId = nullSafeGetPageId(((PagedBTreeNode) parent));
+		this.parentPageId = nullSafeGetPageId(toPagedNode(parent));
 	}
 
 	@Override
@@ -58,19 +109,21 @@ public class PagedBTreeNode extends BTreeNode {
 
 		for (int i = 0; i < children.length; i++) {
 			if (children[i] != null) {
-				childrenPageIds[i] = ((PagedBTreeNode) children[i]).getPageId();
+				childrenPageIds[i] = toPagedNode(children[i]).getPageId();
 			}
 		}
 	}
 
 	@Override
 	public void setLeft(BTreeNode left) {
-		this.leftPageId = nullSafeGetPageId(((PagedBTreeNode) left));
+		markDirty();
+		this.leftPageId = nullSafeGetPageId(toPagedNode(left));
 	}
 
 	@Override
 	public void setRight(BTreeNode right) {
-		this.rightPageId = nullSafeGetPageId(((PagedBTreeNode) right));
+		markDirty();
+		this.rightPageId = nullSafeGetPageId(toPagedNode(right));
 	}
 
 	@Override
@@ -91,7 +144,7 @@ public class PagedBTreeNode extends BTreeNode {
 	@Override
 	protected BTreeNode leftSiblingOf(BTreeNode node) {
 		int index = 0;
-		int nodePageId = ((PagedBTreeNode) node).getPageId();
+		int nodePageId = toPagedNode(node).getPageId();
 		
 		for (int childPageId : childrenPageIds) {
 			if (childPageId == nodePageId) {
@@ -109,7 +162,7 @@ public class PagedBTreeNode extends BTreeNode {
 	@Override
 	protected BTreeNode rightSiblingOf(BTreeNode node) {
 		int index = 0;
-		int nodePageId = ((PagedBTreeNode) node).getPageId();
+		int nodePageId = toPagedNode(node).getPageId();
 		
 		for (int childPageId : childrenPageIds) {
 			if (childPageId == nodePageId) {
@@ -131,29 +184,61 @@ public class PagedBTreeNode extends BTreeNode {
 
 	@Override
 	public void setChild(int index, BTreeNode child) {
-		childrenPageIds[index] = ((PagedBTreeNode) child).getPageId();
+		markDirty();
+		childrenPageIds[index] = toPagedNode(child).getPageId();
 	}
 
 	@Override
 	public boolean equalChildren(BTreeNode other) {
         return arrayEquals(getChildren(), other.getChildren(), getNumKeys() + 1);
-		//return arrayEquals(childrenPageIds, ((PagedBTreeNode) other).getChildrenPageIds(), numKeys + 1);
 	}
 
 	@Override
 	public void copyChildren(BTreeNode source, int sourceIndex, BTreeNode dest,
 			int destIndex, int size) {
-		System.arraycopy(((PagedBTreeNode) source).getChildrenPageIds(), sourceIndex,
-				((PagedBTreeNode) dest).getChildrenPageIds(), destIndex, size);
+		System.arraycopy(toPagedNode(source).getChildrenPageIds(), sourceIndex,
+				toPagedNode(dest).getChildrenPageIds(), destIndex, size);
 	}
 	
 	public int[] getChildrenPageIds() {
 		return this.childrenPageIds;
 	}
 	
-	int nullSafeGetPageId(PagedBTreeNode node) {
+	public boolean isDirty() {
+		return isDirty;
+	}
+	
+	/*
+	 * Mark this node dirty which must mark all parents up to 
+	 * the root dirty as well because they depend on this node.
+	 */
+	public void markDirty() {
+		if(isDirty()) {
+			// this node is dirty, so parents must be already dirty
+			return;
+		}
+		isDirty = true;
+
+		PagedBTreeNode parent = toPagedNode(getParent());
+		if (parent != null) {
+			parent.markDirty();
+		}
+	}
+	
+	public void markClean() {
+		isDirty = false;
+	}
+	
+    public int getPageId() {
+		return pageId;
+	}
+
+	private int nullSafeGetPageId(PagedBTreeNode node) {
 		return node!=null ? node.getPageId() : -1;
 		
 	}
-
+	
+	private static PagedBTreeNode toPagedNode(BTreeNode node) {
+		return (PagedBTreeNode) node;
+	}
 }
