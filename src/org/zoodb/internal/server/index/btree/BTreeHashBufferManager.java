@@ -9,6 +9,7 @@ public class BTreeHashBufferManager implements BTreeBufferManager {
 
 	public BTreeHashBufferManager() {
 		this.map = new HashMap<Integer, PagedBTreeNode>();
+		this.pageId = 0;
 	}
 	@Override
 	public PagedBTreeNode read(int pageId) {
@@ -20,6 +21,19 @@ public class BTreeHashBufferManager implements BTreeBufferManager {
 		pageId++;
 		map.put(pageId, node);
 		return pageId;
+	}
+
+	@Override
+	public int save(PagedBTreeNode node) {
+		pageId++;
+		map.put(pageId, node);
+		return pageId;
+	}
+
+	@Override
+	public void delete(int id) {
+		map.remove(id);
+		return; 
 	}
 
 }
