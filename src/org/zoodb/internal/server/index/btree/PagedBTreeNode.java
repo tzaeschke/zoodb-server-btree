@@ -29,6 +29,23 @@ public class PagedBTreeNode extends BTreeNode {
 		childrenPageIds = new int[order];
 		markDirty();
 	}
+	
+	/*
+	 * Constructor when we know on which page this node lies.
+	 */
+    public PagedBTreeNode(BTreeBufferManager bufferManager, BTreeNode parent,
+            int order, boolean isLeaf, int pageId) {
+		super(parent, order, isLeaf);
+
+		this.bufferManager = bufferManager;
+		this.setPageId(pageId);
+		
+		childrenPageIds = new int[order];
+    }
+    
+    public void initBTreePagedBTreeNode() {
+    	
+    }
 
 	public void put(long key, long value) {
 		markDirty();
@@ -203,12 +220,17 @@ public class PagedBTreeNode extends BTreeNode {
 				toPagedNode(dest).getChildrenPageIds(), destIndex, size);
 	}
 
-	private int[] getChildrenPageIds() {
+	public int[] getChildrenPageIds() {
 		return this.childrenPageIds;
 	}
 
 	public List<Integer> getChildrenPageIdList() {
+		if(getNumKeys() == 0) {
+			return new ArrayList<Integer>(0);
+		}
+
 		List<Integer> childrenPageIdList = new ArrayList<Integer>(getNumKeys()+1);
+
 		for(int i=0; i<getNumKeys()+1; i++) {
 			childrenPageIdList.add(childrenPageIds[i]);
 		}
@@ -260,5 +282,9 @@ public class PagedBTreeNode extends BTreeNode {
 	public void setChildPageId(int childIndex, int childPageId) {
 		childrenPageIds[childIndex] = childPageId;
 		markDirty();
+	}
+
+	public void setChildrenPageIds(int[] childrenPageIds) {
+		this.childrenPageIds = childrenPageIds;
 	}
 }

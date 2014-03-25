@@ -36,4 +36,10 @@ public class BTreeHashBufferManager implements BTreeBufferManager {
 		return; 
 	}
 
+	@Override
+	public void clear() {
+		pageId = 0;
+		map.clear();
+	}
+
 }

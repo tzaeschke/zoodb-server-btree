@@ -3,13 +3,25 @@ package org.zoodb.internal.server.index.btree;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.zoodb.internal.server.DiskIO.DATA_TYPE;
+import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.StorageChannelInput;
+import org.zoodb.internal.server.StorageChannelOutput;
+
 public class BTreeStorageBufferManager implements BTreeBufferManager {
+
 	private Map<Integer, PagedBTreeNode> map;
 	private int pageIdCounter;
+	private final StorageChannelInput storageIn;
+	private final StorageChannelOutput storageOut;
+	// TODO: is this the correct data type?
+	private final DATA_TYPE dataType = DATA_TYPE.GENERIC_INDEX;
 
-	public BTreeStorageBufferManager() {
+	public BTreeStorageBufferManager(StorageChannel storage) {
 		this.map = new HashMap<Integer, PagedBTreeNode>();
 		this.pageIdCounter = 0;
+		this.storageIn = storage.getReader(false);
+		this.storageOut = storage.getWriter(false);
 	}
 
 	@Override
@@ -25,8 +37,42 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	}
 
 	public PagedBTreeNode readNodeFromStorage(int pageId) {
-		// TODO: 
-		return null;
+		// TODO: the constructor of nodes is called with
+		// parent = null!
+		
+		// TODO: do not use so many setters, make constructors/
+		PagedBTreeNode node;
+
+		short order = storageIn.readShort();
+		if (order == 0) {
+			// leaf
+			node = new PagedBTreeNode(this, null, order, true, pageId);
+			int numKeys = storageIn.readShort();
+			long[] keys = new long[order - 1];
+			long[] values = new long[order - 1];
+			storageIn.noCheckRead(keys);
+			storageIn.noCheckRead(values);
+
+			node = PagedBTreeNodeFactory.constructLeaf(this, null, 
+										order, pageId, numKeys, 
+										keys, values);
+		} else {
+			node = new PagedBTreeNode(this, null, order, false, pageId);
+			int[] childrenPageIds = new int[order];
+			long[] keys = new long[order - 1];
+
+			storageIn.noCheckRead(childrenPageIds);
+			int numKeys = storageIn.readShort();
+			storageIn.noCheckRead(keys);
+			
+			node = PagedBTreeNodeFactory.constructInnerNode(this, null, 
+								order, pageId, numKeys, keys, 
+								childrenPageIds);
+		}
+
+		// node in memory == node in storage
+		node.markClean();
+		return node;
 	}
 
 	@Override
@@ -64,9 +110,38 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return newPageId;
 	}
 
+	/*
+	 * Leaf node page: 
+	 * 2 byte 0 
+	 * 2 byte numKeys 
+	 * 8 byte * order-1 keys 
+	 * 8 byte * order-1 values
+	 * 
+	 * Inner node page 
+	 * 2 byte order 
+	 * 8 byte * order childrenPageIds 
+	 * 2 byte numKeys 
+	 * 8 byte * order-1 keys
+	 */
+
 	int writeNodeDataToStorage(PagedBTreeNode node) {
-		// TODO:
-		return 0;
+		// TODO: reasonable previous page id
+		int pageId = storageOut.allocateAndSeek(dataType, 0);
+
+		if (node.isLeaf()) {
+			storageOut.writeShort((short) 0);
+			storageOut.noCheckWrite(node.getKeys());
+
+		} else {
+			int[] childrenPageIds = node.getChildrenPageIds();
+			storageOut.writeShort((short) node.getOrder());
+			storageOut.noCheckWrite(childrenPageIds);
+			storageOut.writeShort((short) node.getNumKeys());
+			storageOut.noCheckWrite(node.getKeys());
+		}
+
+		storageOut.flush();
+		return pageId;
 	}
 
 	@Override
@@ -85,5 +160,12 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		// TODO: call delete
 		// TODO: free page in storage
 
+	}
+
+	@Override
+	public void clear() {
+		pageIdCounter = 0;
+		map.clear();
+		// TODO clear storage
 	}
 }

@@ -7,16 +7,16 @@ import static org.junit.Assert.assertTrue;
 import java.util.Arrays;
 
 import org.junit.Test;
+import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 import org.zoodb.internal.util.Pair;
 
 public class TestNode {
 
 	private BTreeNodeFactory nodeFactory = new PagedBTreeNodeFactory(
-			new BTreeStorageBufferManager());
+			new BTreeHashBufferManager());
 
 	public static long[] getKeys(BTreeNode node) {
 		return Arrays.copyOfRange(node.getKeys(), 0, node.getNumKeys());

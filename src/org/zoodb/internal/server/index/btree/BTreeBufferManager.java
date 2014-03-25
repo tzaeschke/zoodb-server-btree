@@ -21,5 +21,10 @@ public interface BTreeBufferManager {
 	 * writes the node to the storage channel
 	 */
 	public int write(PagedBTreeNode node);
+	
+    /*
+	 * writes the node to the storage channel
+	 */
+	public void clear();
 
 }

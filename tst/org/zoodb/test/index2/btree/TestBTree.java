@@ -10,16 +10,16 @@ import java.util.Map;
 import org.junit.Test;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 import org.zoodb.internal.util.Pair;
 
 public class TestBTree {
 
 	private BTreeNodeFactory nodeFactory = new PagedBTreeNodeFactory(
-			new BTreeStorageBufferManager());
+			new BTreeHashBufferManager());
 
 	@Test
 	public void searchSingleNode() {
