@@ -183,6 +183,7 @@ public class TestNode {
 
 		node.put(3, child1, child3);
 		node.put(4, child4);
+		System.out.println(node);
 		Pair<BTreeNode, Long> p = node.putAndSplit(2, child2);
 		checkEvenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
 
