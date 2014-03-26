@@ -1,15 +1,8 @@
 package org.zoodb.test.index2.btree;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.TreeSet;
-
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+
+import java.util.*;
 
 public class BTreeTestUtils {
 
@@ -30,9 +23,10 @@ public class BTreeTestUtils {
 						return Long.compare(e1.getKey(), e2.getKey());
 					}
 				});
-		Random prng = new Random(System.nanoTime());
+		//Random prng = new Random(System.nanoTime());
+        Random prng = new Random(42);
 		while (randomEntryList.size() < numElements) {
-			randomEntryList.add(new LLEntry(prng.nextLong(), prng.nextLong()));
+			randomEntryList.add(new LLEntry(prng.nextInt(Integer.MAX_VALUE), prng.nextInt(Integer.MAX_VALUE)));
 		}
 		return new ArrayList<LLEntry>(randomEntryList);
 	}

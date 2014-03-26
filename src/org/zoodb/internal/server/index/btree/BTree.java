@@ -2,6 +2,8 @@ package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.util.Pair;
 
+import java.util.LinkedList;
+
 /**
  * B+ Tree data structure.
  *
@@ -53,16 +55,18 @@ public class BTree {
      */
     public void insert(long key, long value) {
         if (root == null) {
-            root = nodeFactory.newNode(null, order, true);
+            root = nodeFactory.newNode(order, true, true);
         }
-        BTreeNode leaf = searchNode(key);
+        Pair<LinkedList<BTreeNode>, BTreeNode> result = searchNodeWithHistory(key);
+        LinkedList<BTreeNode> ancestorStack = result.getA();
+        BTreeNode leaf = result.getB();
 
         if (leaf.getNumKeys() < order - 1) {
             leaf.put(key, value);
         } else {
             //split node
             BTreeNode rightNode = leaf.putAndSplit(key, value);
-            insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode);
+            insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode, ancestorStack);
         }
     }
 
@@ -74,13 +78,13 @@ public class BTree {
      * @param key
      * @param right
      */
-    private void insertInInnerNode(BTreeNode left, long key, BTreeNode right) {
+    private void insertInInnerNode(BTreeNode left, long key, BTreeNode right, LinkedList<BTreeNode> ancestorStack) {
         if (left.isRoot()) {
-            BTreeNode newRoot = nodeFactory.newNode(null, order, false);
-            root = newRoot;
+            BTreeNode newRoot = nodeFactory.newNode(order, false, true);
+            swapRoot(newRoot);
             root.put(key, left, right);
         } else {
-            BTreeNode parent = left.getParent();
+            BTreeNode parent = ancestorStack.pop();
             //check if parent overflows
             if (parent.getNumKeys() < order - 1) {
                 parent.put(key, right);
@@ -88,7 +92,7 @@ public class BTree {
                 Pair<BTreeNode, Long > pair = parent.putAndSplit(key, right);
                 BTreeNode newNode = pair.getA();
                 long keyToMoveUp = pair.getB();
-                insertInInnerNode(parent, keyToMoveUp, newNode);
+                insertInInnerNode(parent, keyToMoveUp, newNode, ancestorStack);
             }
         }
     }
@@ -98,7 +102,9 @@ public class BTree {
      * @param key
      */
 	public void delete(long key) {
-		BTreeNode leaf = searchNode(key);
+		Pair<LinkedList<BTreeNode>,BTreeNode> pair = searchNodeWithHistory(key);
+        BTreeNode leaf = pair.getB();
+        LinkedList<BTreeNode> ancestorStack = pair.getA();
         deleteFromLeaf(leaf, key);
 
         if (leaf.isRoot()) {
@@ -106,26 +112,31 @@ public class BTree {
         }
         long replacementKey = leaf.smallestKey();
         BTreeNode current = leaf;
+        BTreeNode parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
         while (current != null && current.isUnderfull()) {
             //check if can borrow 1 value from the left or right siblings
-            if (current.leftSibling() != null && current.leftSibling().hasExtraKeys()) {
-                BTreeUtils.redistributeKeysFromLeft(current, current.leftSibling());
-            } else if (current.rightSibling() != null && current.rightSibling().hasExtraKeys()) {
-                BTreeUtils.redistributeKeysFromRight(current, current.rightSibling());
+            BTreeNode rightSibling = current.rightSibling(parent);
+            BTreeNode leftSibling = current.leftSibling(parent);
+            if (leftSibling != null && leftSibling.hasExtraKeys()) {
+                BTreeUtils.redistributeKeysFromLeft(current, leftSibling, parent);
+            } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
+                BTreeUtils.redistributeKeysFromRight(current, rightSibling, parent);
             } else {
                 //at this point, both left and right sibling have the minimum number of keys
-                if (current.leftSibling() != null && current.getParent() == current.leftSibling().getParent()) {
+                if (leftSibling!= null) {
                     //merge with left sibling
-                    BTreeUtils.mergeWithLeft(this, current, current.leftSibling());
+                    parent = BTreeUtils.mergeWithLeft(this, current, leftSibling, parent);
                 } else {
                     //merge with right sibling
-                    BTreeUtils.mergeWithRight(this, current, current.rightSibling());
+                    parent = BTreeUtils.mergeWithRight(this, current, rightSibling, parent);
+
                 }
             }
             if (current.containsKey(key)) {
                 current.replaceKey(key, replacementKey);
             }
-            current = current.getParent();
+            current = parent;
+            parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
         }
 	}
 
@@ -144,6 +155,16 @@ public class BTree {
 
     private BTreeNode searchNode(long key) {
         return searchNode(root, key);
+    }
+
+    private Pair<LinkedList<BTreeNode>, BTreeNode> searchNodeWithHistory(long key) {
+        LinkedList<BTreeNode> stack = new LinkedList<>();
+        BTreeNode current = root;
+        while (!current.isLeaf()) {
+            stack.push(current);
+            current = current.findChild(key);
+        }
+        return new Pair<>(stack, current);
     }
     
     public boolean isEmpty() {
@@ -177,6 +198,16 @@ public class BTree {
         if (root != null ? !root.equals(bTree.root) : bTree.root != null) return false;
 
         return true;
+    }
+
+    void swapRoot(BTreeNode newRoot) {
+        if (root != null) {
+            root.setIsRoot(false);
+        }
+        root = newRoot;
+        if (newRoot != null) {
+            newRoot.setIsRoot(true);
+        }
     }
 
 

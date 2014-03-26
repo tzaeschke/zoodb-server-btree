@@ -15,9 +15,8 @@ public class PagedBTreeNode extends BTreeNode {
 	private int leftPageId;
 	private int rightPageId;
 
-	public PagedBTreeNode(BTreeBufferManager bufferManager, BTreeNode parent,
-			int order, boolean isLeaf) {
-		super(parent, order, isLeaf);
+	public PagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {
+		super(order, isLeaf, isRoot);
 
 		this.bufferManager = bufferManager;
 		this.pageId = bufferManager.write(this);
@@ -137,8 +136,8 @@ public class PagedBTreeNode extends BTreeNode {
 	}
 
 	@Override
-	public BTreeNode newNode(BTreeNode parent, int order, boolean isLeaf) {
-		return new PagedBTreeNode(bufferManager, parent, order, isLeaf);
+	public BTreeNode newNode(int order, boolean isLeaf, boolean isRoot) {
+		return new PagedBTreeNode(bufferManager, order, isLeaf, isRoot);
 	}
 
 	@Override

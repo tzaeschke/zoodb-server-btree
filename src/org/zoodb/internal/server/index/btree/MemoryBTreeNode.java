@@ -8,8 +8,8 @@ public class MemoryBTreeNode extends BTreeNode {
 	private BTreeNode left;
 	private BTreeNode right;
 
-	public MemoryBTreeNode(BTreeNode parent, int order, boolean isLeaf) {
-		super(parent, order, isLeaf);
+	public MemoryBTreeNode(int order, boolean isLeaf, boolean isRoot) {
+		super(order, isLeaf, isRoot);
 		// TODO Auto-generated constructor stub
 	}
 
@@ -45,8 +45,8 @@ public class MemoryBTreeNode extends BTreeNode {
 		this.right = right;
 	}
 
-	public BTreeNode newNode(BTreeNode parent, int order, boolean isLeaf) {
-		return new MemoryBTreeNode(parent, order, isLeaf);
+	public BTreeNode newNode(int order, boolean isLeaf, boolean isRoot) {
+		return new MemoryBTreeNode(order, isLeaf, isRoot);
 
 	}
 

@@ -10,6 +10,7 @@ import org.zoodb.internal.util.Pair;
 public abstract class BTreeNode {
 
 	private final boolean isLeaf;
+    private boolean isRoot;
 	protected final int order;
 
 	// ToDo maybe we want to have the keys set dynamically sized somehow
@@ -18,10 +19,10 @@ public abstract class BTreeNode {
 
 	private long[] values;
 
-	public BTreeNode(BTreeNode parent, int order, boolean isLeaf) {
-		setParent(parent);
+	public BTreeNode(int order, boolean isLeaf, boolean isRoot) {
 		this.order = order;
 		this.isLeaf = isLeaf;
+        this.isRoot = isRoot;
 
 		initKeys(order);
 		if (isLeaf) {
@@ -87,7 +88,7 @@ public abstract class BTreeNode {
 					"Should only be called on leaf nodes.");
 		}
 		if (getNumKeys() == 0) {
-			return 0;
+			return -1;
 		}
 		int low = 0;
 		int high = getNumKeys() - 1;
@@ -238,7 +239,7 @@ public abstract class BTreeNode {
 			throw new IllegalStateException(
 					"Should only be called on leaf nodes.");
 		}
-		BTreeNode tempNode = newNode(null, order + 1, true);
+		BTreeNode tempNode = newNode( order + 1, true, false);
 		System.arraycopy(getKeys(), 0, tempNode.getKeys(), 0, getNumKeys());
 		System.arraycopy(getValues(), 0, tempNode.getValues(), 0, getNumKeys());
 		tempNode.setNumKeys(getNumKeys());
@@ -254,7 +255,7 @@ public abstract class BTreeNode {
 		setNumKeys(keysInLeftNode);
 
 		// populate right node
-		BTreeNode rightNode = newNode(getParent(), order, true);
+		BTreeNode rightNode = newNode(order, true, false);
 		rightNode.setParent(getParent());
 		System.arraycopy(tempNode.getKeys(), keysInLeftNode,
 				rightNode.getKeys(), 0, keysInRightNode);
@@ -286,14 +287,14 @@ public abstract class BTreeNode {
 		}
 
 		// create a temporary node to allow the insertion
-		BTreeNode tempNode = newNode(null, order + 1, false);
+		BTreeNode tempNode = newNode( order + 1, false, true);
 		System.arraycopy(getKeys(), 0, tempNode.getKeys(), 0, getNumKeys());
 		copyChildren(this, 0, tempNode, 0, order);
 		tempNode.setNumKeys(getNumKeys());
 		tempNode.put(key, newNode);
 
 		// split
-		BTreeNode right = newNode(getParent(), order, false);
+		BTreeNode right = newNode(order, false, false);
 		int keysInLeftNode = (int) Math.floor(order / 2.0);
 		// populate left node
 		System.arraycopy(tempNode.getKeys(), 0, getKeys(), 0, keysInLeftNode);
@@ -369,7 +370,7 @@ public abstract class BTreeNode {
 		if (isLeaf()) {
 			shiftValues(startIndex + amount, startIndex, keysToMove);
 		} else {
-			shiftChildren(startIndex + amount, startIndex, getNumKeys() + 1);
+			shiftChildren(startIndex + amount, startIndex, keysToMove + 1);
 		}
 	}
 
@@ -419,12 +420,12 @@ public abstract class BTreeNode {
 		return getNumKeys() >= order;
 	}
 
-	public BTreeNode leftSibling() {
-		return getParent().leftSiblingOf(this);
+	public BTreeNode leftSibling(BTreeNode parent) {
+        return (parent == null) ? null : parent.leftSiblingOf(this);
 	}
 
-	public BTreeNode rightSibling() {
-		return getParent().rightSiblingOf(this);
+	public BTreeNode rightSibling(BTreeNode parent) {
+		return (parent == null) ? null : parent.rightSiblingOf(this);
 	}
 
 	protected abstract BTreeNode leftSiblingOf(BTreeNode node);
@@ -502,7 +503,7 @@ public abstract class BTreeNode {
 	}
 
 	public boolean isRoot() {
-		return getParent() == null;
+		return isRoot;
 	}
 
 	public long getSmallestKey() {
@@ -684,11 +685,14 @@ public abstract class BTreeNode {
 
 	public abstract BTreeNode getRight();
 
-	public abstract BTreeNode newNode(BTreeNode parent, int order,
-			boolean isLeaf);
+	public abstract BTreeNode newNode(int order, boolean isLeaf, boolean isRoot);
 
 	public abstract boolean equalChildren(BTreeNode other);
 
 	public abstract void copyChildren(BTreeNode source, int sourceIndex,
 			BTreeNode dest, int destIndex, int size);
+
+    public void setIsRoot(boolean isRoot) {
+        this.isRoot = isRoot;
+    }
 }

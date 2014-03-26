@@ -9,7 +9,7 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory {
 	}
 
 	@Override
-	public BTreeNode newNode(BTreeNode parent, int order, boolean isLeaf) {
-		return new PagedBTreeNode(bufferManager, parent, order, isLeaf);
+	public BTreeNode newNode(int order, boolean isLeaf, boolean isRoot) {
+		return new PagedBTreeNode(bufferManager, order, isLeaf, isRoot);
 	}
 }

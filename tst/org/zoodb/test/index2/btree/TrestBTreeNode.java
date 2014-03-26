@@ -1,17 +1,17 @@
 package org.zoodb.test.index2.btree;
 
-import static org.junit.Assert.assertEquals;
-
 import org.junit.Test;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.MemoryBTreeNode;
+
+import static org.junit.Assert.assertEquals;
 
 //Todo move to package org.zoodb.internal.server.index.btree
 public class TrestBTreeNode {
 
     @Test
     public void findKeyPos() {
-        BTreeNode tree = new MemoryBTreeNode(null, 6, true);
+        BTreeNode tree = new MemoryBTreeNode(6, true, true);
 
         tree.put(3, 1);
         tree.put(2, 5);
@@ -23,7 +23,7 @@ public class TrestBTreeNode {
             assertEquals("Failed to return the index + 1", i+1, tree.findKeyPos(i));
         }
 
-        tree = new MemoryBTreeNode(null, 6, true);
+        tree = new MemoryBTreeNode(6, true, true);
         tree.put(3, 1);
         tree.put(1, 5);
         tree.put(5, 5);

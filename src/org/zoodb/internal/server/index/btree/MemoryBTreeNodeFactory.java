@@ -7,8 +7,8 @@ public class MemoryBTreeNodeFactory implements BTreeNodeFactory {
 	}
 
 	@Override
-	public BTreeNode newNode(BTreeNode parent, int order, boolean isLeaf) {
-		return new MemoryBTreeNode(parent, order, isLeaf);
+	public BTreeNode newNode(int order, boolean isLeaf, boolean isRoot) {
+        return new MemoryBTreeNode(order, isLeaf, isRoot);
 	}
 
 }

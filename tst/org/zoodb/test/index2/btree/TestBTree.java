@@ -1,20 +1,16 @@
 package org.zoodb.test.index2.btree;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.util.Pair;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
-import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeNode;
-import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
-import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
-import org.zoodb.internal.util.Pair;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 public class TestBTree {
 
@@ -280,7 +276,6 @@ public class TestBTree {
 	 * Delete Test according to Silberschatz, Database System Concepts, Sixth
 	 * edition
 	 * 
-	 * //ToDo disscuss this test, doesn't seem to be correct
 	 */
 	@Test
 	public void deleteMergeTest2() {
@@ -362,6 +357,28 @@ public class TestBTree {
 		assertEquals(tree2, tree1);
 	}
 
+    @Test
+    public void deleteRedistributeInnerNode() {
+        int order = 5;
+        BTreeFactory factory = new BTreeFactory(order, nodeFactory);
+        factory.addInnerLayer(
+                Arrays.asList(Arrays.asList(60L)));
+        factory.addInnerLayer(
+                Arrays.asList(Arrays.asList(10L, 20L, 50L),
+                              Arrays.asList(60L, 70L)));
+        factory.addLeafLayerDefault(
+                Arrays.asList(Arrays.asList(1L, 2L, 3L),
+                              Arrays.asList(21L, 22L, 23L),
+                              Arrays.asList(31L, 32L, 33L),
+                              Arrays.asList(41L, 42L, 43L),
+                              Arrays.asList(50L, 51L, 52L),
+                              Arrays.asList(61L, 62L, 63L),
+                              Arrays.asList(71L, 72L, 73L),
+                              Arrays.asList(81L, 82L, 83L)));
+
+        BTree tree1 = factory.getTree();
+    }
+
 	@Test
 	public void deleteRedistributeRightOdd() {
 		int order = 5;
@@ -436,8 +453,8 @@ public class TestBTree {
 	 */
 	@Test
 	public void deleteMassively() {
-		int order = 32;
-		int numEntries = 100000;
+		int order = 320;
+		int numEntries = 1000000;
 
 		BTree tree = new BTree(order, nodeFactory);
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries);
@@ -460,7 +477,7 @@ public class TestBTree {
 		}
 		// root is empty and has no children
 		assertEquals(0, tree.getRoot().getNumKeys());
-		BTreeNode[] emptyChildren = new BTreeNode[order - 1];
+		BTreeNode[] emptyChildren = new BTreeNode[order];
 		Arrays.fill(emptyChildren, null);
 		assertArrayEquals(emptyChildren, tree.getRoot().getChildren());
 
