@@ -14,10 +14,10 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory {
 	}
 
 	public static PagedBTreeNode constructLeaf(
-			BTreeBufferManager bufferManager, BTreeNode parent, int order,
+			BTreeBufferManager bufferManager, boolean isRoot, int order,
 			int pageId, int numKeys, long[] keys, long[] values) {
-		PagedBTreeNode node = new PagedBTreeNode(bufferManager, parent, order,
-				true, pageId);
+		PagedBTreeNode node = new PagedBTreeNode(bufferManager, order,
+				true, isRoot, pageId);
 
 		node.setNumKeys(numKeys);
 		node.setKeys(keys);
@@ -26,10 +26,10 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory {
 	}
 	
     public static PagedBTreeNode constructInnerNode(
-			BTreeBufferManager bufferManager, BTreeNode parent, int order,
+			BTreeBufferManager bufferManager, boolean isRoot, int order,
 			int pageId, int numKeys, long[] keys, int[] childrenPageIds) {
-		PagedBTreeNode node = new PagedBTreeNode(bufferManager, parent, order,
-				false, pageId);
+		PagedBTreeNode node = new PagedBTreeNode(bufferManager, order,
+				false, isRoot, pageId);
 
 		node.setNumKeys(numKeys);
 		node.setKeys(keys);

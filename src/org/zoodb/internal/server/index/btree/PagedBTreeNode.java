@@ -1,10 +1,9 @@
 package org.zoodb.internal.server.index.btree;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import org.zoodb.internal.util.Pair;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class PagedBTreeNode extends BTreeNode {
 
@@ -32,9 +31,8 @@ public class PagedBTreeNode extends BTreeNode {
 	/*
 	 * Constructor when we know on which page this node lies.
 	 */
-    public PagedBTreeNode(BTreeBufferManager bufferManager, BTreeNode parent,
-            int order, boolean isLeaf, int pageId) {
-		super(parent, order, isLeaf);
+    public PagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot, int pageId) {
+		super(order, isLeaf, isRoot);
 
 		this.bufferManager = bufferManager;
 		this.setPageId(pageId);
@@ -250,11 +248,12 @@ public class PagedBTreeNode extends BTreeNode {
 			return;
 		}
 		isDirty = true;
-
-		PagedBTreeNode parent = toPagedNode(getParent());
-		if (parent != null) {
-			parent.markDirty();
-		}
+        //TODO mark parents as dirty as well
+//
+//		PagedBTreeNode parent = toPagedNode(getParent());
+//		if (parent != null) {
+//			parent.markDirty();
+//		}
 	}
 
 	public void markClean() {

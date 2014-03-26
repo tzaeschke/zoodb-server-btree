@@ -1,12 +1,12 @@
 package org.zoodb.internal.server.index.btree;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageChannelInput;
 import org.zoodb.internal.server.StorageChannelOutput;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
@@ -46,18 +46,18 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		short order = storageIn.readShort();
 		if (order == 0) {
 			// leaf
-			node = new PagedBTreeNode(this, null, order, true, pageId);
+			node = new PagedBTreeNode(this, order, true, true, pageId);
 			int numKeys = storageIn.readShort();
 			long[] keys = new long[order - 1];
 			long[] values = new long[order - 1];
 			storageIn.noCheckRead(keys);
 			storageIn.noCheckRead(values);
 
-			node = PagedBTreeNodeFactory.constructLeaf(this, null, 
+			node = PagedBTreeNodeFactory.constructLeaf(this, true,
 										order, pageId, numKeys, 
 										keys, values);
 		} else {
-			node = new PagedBTreeNode(this, null, order, false, pageId);
+			node = new PagedBTreeNode(this, order, false, true, pageId);
 			int[] childrenPageIds = new int[order];
 			long[] keys = new long[order - 1];
 
@@ -65,7 +65,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			int numKeys = storageIn.readShort();
 			storageIn.noCheckRead(keys);
 			
-			node = PagedBTreeNodeFactory.constructInnerNode(this, null, 
+			node = PagedBTreeNodeFactory.constructInnerNode(this, true,
 								order, pageId, numKeys, keys, 
 								childrenPageIds);
 		}

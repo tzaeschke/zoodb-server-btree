@@ -256,7 +256,6 @@ public abstract class BTreeNode {
 
 		// populate right node
 		BTreeNode rightNode = newNode(order, true, false);
-		rightNode.setParent(getParent());
 		System.arraycopy(tempNode.getKeys(), keysInLeftNode,
 				rightNode.getKeys(), 0, keysInRightNode);
 		System.arraycopy(tempNode.getValues(), keysInLeftNode,
@@ -317,7 +316,6 @@ public abstract class BTreeNode {
 		for (int i = keysInLeftNode + 1; i < order + 1; i++) {
 			tempNode.getChild(i).setParent(right);
 		}
-		right.setParent(getParent());
 
 		return new Pair<>(right, keyToMoveUp);
 	}
