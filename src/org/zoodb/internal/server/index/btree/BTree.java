@@ -50,8 +50,8 @@ public class BTree {
      *  - if the leaf will overflow after the addition of the new (key, value) pair, the leaf is split into 2 leaves.
      *    The keys/values in the original leaf are split as evenly as possible between the 2 leaves.
      *    The references to the parent node are then fixed.
-     * @param key
-     * @param value
+     * @param key               The new key to be inserted
+     * @param value         The new value to be inserted
      */
     public void insert(long key, long value) {
         if (root == null) {
@@ -74,9 +74,10 @@ public class BTree {
      * Inserts the nodes left and right into the parent node. The right node is a new node, created
      * as a result of a split.
      *
-     * @param left
-     * @param key
-     * @param right
+     * @param left              The left node.
+     * @param key               The key that should separate them in the parent.
+     * @param right             The right node.
+     * @param ancestorStack     The ancestor stack that should be traversed.
      */
     private void insertInInnerNode(BTreeNode left, long key, BTreeNode right, LinkedList<BTreeNode> ancestorStack) {
         if (left.isRoot()) {
@@ -99,7 +100,19 @@ public class BTree {
 
     /**
      * Delete the value corresponding to the key from the tree.
-     * @param key
+     *
+     * Deletion steps are as a follows:
+     *  - find the leaf node that contains the key that needs to be deleted.
+     *  - delete the entry from the leaf
+     *  - at this point, it is possible that the leaf is underfull.
+     *    In this case, one of the following things are done:
+     *    - if the left sibling has extra keys (more than the minimum number), borrow keys from the left node
+     *    - if that is not possible, try to borrow extra keys from the right sibling
+     *    - if that is not possible, either both the left and right nodes have precisely half the max number of keys.
+     *      The current node has half the max number of keys - 1 so a merge can be done with either of them.
+     *      The left node is check for merge first, then the right one.
+     *
+     * @param key               The key to be deleted.
      */
 	public void delete(long key) {
 		Pair<LinkedList<BTreeNode>,BTreeNode> pair = searchNodeWithHistory(key);
@@ -129,7 +142,6 @@ public class BTree {
                 } else {
                     //merge with right sibling
                     parent = BTreeUtils.mergeWithRight(this, current, rightSibling, parent);
-
                 }
             }
             if (current.containsKey(key)) {
@@ -140,24 +152,7 @@ public class BTree {
         }
 	}
 
-    private void deleteFromLeaf(BTreeNode leaf, long key) {
-        leaf.delete(key);
-    }
-
-    private BTreeNode searchNode(BTreeNode node, long key) {
-        if (node.isLeaf())  {
-            return node;
-        }
-
-        BTreeNode child = node.findChild(key);
-        return searchNode(child, key);
-    }
-
-    private BTreeNode searchNode(long key) {
-        return searchNode(root, key);
-    }
-
-    private Pair<LinkedList<BTreeNode>, BTreeNode> searchNodeWithHistory(long key) {
+    protected Pair<LinkedList<BTreeNode>, BTreeNode> searchNodeWithHistory(long key) {
         LinkedList<BTreeNode> stack = new LinkedList<>();
         BTreeNode current = root;
         while (!current.isLeaf()) {
@@ -208,6 +203,10 @@ public class BTree {
         if (newRoot != null) {
             newRoot.setIsRoot(true);
         }
+    }
+
+    private void deleteFromLeaf(BTreeNode leaf, long key) {
+        leaf.delete(key);
     }
 
 
