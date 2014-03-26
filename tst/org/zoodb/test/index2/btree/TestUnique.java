@@ -1,0 +1,40 @@
+package org.zoodb.test.index2.btree;
+
+import org.junit.Test;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTree;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+public class TestUnique {
+
+    private BTreeBufferManager bufferManager = new BTreeHashBufferManager();
+
+    @Test
+    public void testInsertDuplicates() {
+        int order = 5;
+        BTree tree = new PagedBTree(order, bufferManager);
+        Map<Long, Long> entries = new LinkedHashMap<Long, Long>() {{
+            put(1L, 1L);
+            put(2L, 2L);
+        }};
+
+        for (Map.Entry<Long, Long> entry : entries.entrySet()) {
+            tree.insert(entry.getKey(), entry.getValue());
+        }
+        for (int i = 0; i < 50; i++) {
+            tree.insert(5L, Long.valueOf(i));
+        }
+        for (int i = 0; i < 10; i++) {
+            System.out.println(tree.search(5L));
+            tree.delete(5L);
+        }
+        System.out.println(tree.search(5L));
+        System.out.println(tree);
+
+    }
+
+}

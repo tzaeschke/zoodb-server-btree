@@ -20,19 +20,6 @@
  */
 package org.zoodb.test.index2;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Random;
-import java.util.TreeMap;
-
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -40,12 +27,15 @@ import org.junit.Test;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.BTreeIndex;
 import org.zoodb.internal.server.index.LongLongIndex;
-import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
 import org.zoodb.internal.server.index.PagedLongLong;
 import org.zoodb.internal.util.CloseableIterator;
 import org.zoodb.tools.ZooConfig;
+
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 public class TestLongLongNonUniqueIndex {
 
@@ -90,7 +80,8 @@ public class TestLongLongNonUniqueIndex {
     @Test
     public void testAddWithMockStrongCheck() {
         final int MAX = 5000;
-        LongLongIndex ind = createIndex();
+        //LongLongIndex ind = createIndex();
+        BTreeIndex ind = new BTreeIndex(createPageAccessFile(), true, false);
         for (int i = 1000; i < 1000+MAX; i++) {
             ind.insertLong(i, 32+i);
             //Now check every entry!!!

@@ -20,19 +20,19 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public void insertLong(long key, long value) {
-		// TODO Auto-generated method stub
+		tree.insert(key, value);
 
 	}
 
 	@Override
 	public long removeLong(long key, long value) {
-		// TODO Auto-generated method stub
+		tree.delete(key);
 		return 0;
 	}
 
 	@Override
 	public void print() {
-		// TODO Auto-generated method stub
+        System.out.println(tree);
 
 	}
 
@@ -56,7 +56,7 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public void clear() {
-		// TODO Auto-generated method stub
+		tree = new PagedBTree(tree.getOrder(),  new BTreeStorageBufferManager(file));
 
 	}
 
@@ -116,14 +116,13 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public LLEntry findValue(long key) {
-		// TODO Auto-generated method stub
-		return null;
+		return new LLEntry(key, tree.search(key));
 	}
 
 	@Override
 	public long removeLong(long key) {
-		// TODO Auto-generated method stub
-		return 0;
+		tree.delete(key);
+        return 0;
 	}
 
 }
