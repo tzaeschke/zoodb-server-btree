@@ -7,6 +7,7 @@ import static org.junit.Assert.assertFalse;
 import java.util.Arrays;
 
 import org.junit.Test;
+import org.junit.Before;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.btree.BTree;
@@ -19,17 +20,23 @@ import org.zoodb.tools.ZooConfig;
 
 public class TestBTreeStorageBufferManager {
 
-	StorageChannel storage = new StorageRootInMemory(
-			ZooConfig.getFilePageSize());
+	StorageChannel storage;
 
+	@Before 
+	public void resetStorage() {
+		this.storage = new StorageRootInMemory(
+			ZooConfig.getFilePageSize());
+	}
 	@Test
 	public void testWriteLeaf() {
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
 				storage);
 
 		PagedBTreeNode leafNode = getTestLeaf(bufferManager);
+		assertEquals(0, storage.statsGetPageCount());
 		int pageId = bufferManager.write(leafNode);
 
+		assertEquals(2, storage.statsGetPageCount());
 		assertEquals(leafNode, bufferManager.read(pageId));
 
 		BTreeStorageBufferManager bufferManager2 = new BTreeStorageBufferManager(
@@ -47,6 +54,7 @@ public class TestBTreeStorageBufferManager {
 		PagedBTreeNode innerNode = getTestInnerNode(bufferManager, order);
 		int pageId = bufferManager.write(innerNode);
 
+		assertEquals(2, storage.statsGetPageCount());
 		assertEquals(innerNode, bufferManager.read(pageId));
 
 		BTreeStorageBufferManager bufferManager2 = new BTreeStorageBufferManager(
@@ -63,6 +71,7 @@ public class TestBTreeStorageBufferManager {
 		BTree tree = getTestTree(bufferManager);
 		int pageId = bufferManager.write((PagedBTreeNode) tree.getRoot());
 
+		assertEquals(10, storage.statsGetPageCount());
 		assertEquals(tree.getRoot(), bufferManager.read(pageId));
 
 		BTreeStorageBufferManager bufferManager2 = new BTreeStorageBufferManager(
@@ -77,9 +86,11 @@ public class TestBTreeStorageBufferManager {
 				storage);
 		PagedBTreeNode leafNode = getTestLeaf(bufferManager);
 		int pageId = bufferManager.write(leafNode);
+		assertEquals(2, storage.statsGetPageCount());
 
 		bufferManager.delete(pageId);
 		assertEquals(null, bufferManager.getMemoryBuffer().get(pageId));
+		assertEquals(0, storage.statsGetPageCount());
 		// assertEquals(null, bufferManager.read(pageId));
 		// does not work because data is still on the page
 	}
