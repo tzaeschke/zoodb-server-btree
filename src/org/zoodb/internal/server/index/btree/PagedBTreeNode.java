@@ -208,7 +208,11 @@ public class PagedBTreeNode extends BTreeNode {
 
 	@Override
 	public boolean equalChildren(BTreeNode other) {
-		return arrayEquals(getChildren(), other.getChildren(), getNumKeys() + 1);
+		if(getNumKeys() > 0) {
+            return arrayEquals(getChildren(), other.getChildren(), getNumKeys() + 1);
+		} else {
+			return getNumKeys() == other.getNumKeys();
+		}
 	}
 
 	@Override

@@ -41,13 +41,16 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		// parent = null!
 		
 		// TODO: do not use so many setters, make constructors/
+		storageIn.seekPageForRead(dataType, pageId);
 		PagedBTreeNode node;
 
-		short order = storageIn.readShort();
-		if (order == 0) {
+		short orderIfInner = storageIn.readShort();
+		if (orderIfInner == 0) {
 			// leaf
-			node = new PagedBTreeNode(this, order, true, true, pageId);
+			short order = storageIn.readShort();
+			System.out.println(order);
 			int numKeys = storageIn.readShort();
+			System.out.println(numKeys);
 			long[] keys = new long[order - 1];
 			long[] values = new long[order - 1];
 			storageIn.noCheckRead(keys);
@@ -57,16 +60,15 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 										order, pageId, numKeys, 
 										keys, values);
 		} else {
-			node = new PagedBTreeNode(this, order, false, true, pageId);
-			int[] childrenPageIds = new int[order];
-			long[] keys = new long[order - 1];
+			int[] childrenPageIds = new int[orderIfInner];
+			long[] keys = new long[orderIfInner - 1];
 
 			storageIn.noCheckRead(childrenPageIds);
 			int numKeys = storageIn.readShort();
 			storageIn.noCheckRead(keys);
 			
 			node = PagedBTreeNodeFactory.constructInnerNode(this, true,
-								order, pageId, numKeys, keys, 
+								orderIfInner, pageId, numKeys, keys, 
 								childrenPageIds);
 		}
 
@@ -88,7 +90,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 				// be dirty
 				PagedBTreeNode child = read(childPageId);
 				int newChildPageId = write(child);
-				node.setChildPageId(childIndex, childPageId);
+				node.setChildPageId(childIndex, newChildPageId);
 
 				childIndex++;
 			}
@@ -113,6 +115,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	/*
 	 * Leaf node page: 
 	 * 2 byte 0 
+	 * 2 byte order
 	 * 2 byte numKeys 
 	 * 8 byte * order-1 keys 
 	 * 8 byte * order-1 values
@@ -123,6 +126,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	 * 2 byte numKeys 
 	 * 8 byte * order-1 keys
 	 */
+	// TODO: rework file format
 
 	int writeNodeDataToStorage(PagedBTreeNode node) {
 		// TODO: reasonable previous page id
@@ -130,7 +134,10 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 		if (node.isLeaf()) {
 			storageOut.writeShort((short) 0);
+			storageOut.writeShort((short) node.getOrder());
+			storageOut.writeShort((short) node.getNumKeys());
 			storageOut.noCheckWrite(node.getKeys());
+			storageOut.noCheckWrite(node.getValues());
 
 		} else {
 			int[] childrenPageIds = node.getChildrenPageIds();

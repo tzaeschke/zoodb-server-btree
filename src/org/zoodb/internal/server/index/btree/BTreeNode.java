@@ -568,7 +568,7 @@ public abstract class BTreeNode {
 			return false;
 		if (order != bTreeNode.order)
 			return false;
-		if (!equalChildren(bTreeNode))
+		if (!isLeaf() && !equalChildren(bTreeNode))
 			return false;
 		if (!arrayEquals(getKeys(), bTreeNode.getKeys(), getNumKeys()))
 			return false;
