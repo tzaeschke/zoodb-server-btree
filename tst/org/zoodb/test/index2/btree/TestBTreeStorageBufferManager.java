@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
@@ -21,14 +22,12 @@ public class TestBTreeStorageBufferManager {
 
 	@Test
 	public void testWriteLeaf() {
-		int order = 3;
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
 				storage);
 
-		PagedBTreeNode leafNode = new PagedBTreeNode(bufferManager, order,
-				true, true);
-		leafNode.put(1, 2);
+		PagedBTreeNode leafNode = getTestLeaf(bufferManager);
 		int pageId = bufferManager.write(leafNode);
+
 		assertEquals(leafNode, bufferManager.read(pageId));
 
 		BTreeStorageBufferManager bufferManager2 = new BTreeStorageBufferManager(
@@ -41,9 +40,10 @@ public class TestBTreeStorageBufferManager {
 		int order = 3;
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
 				storage);
-		PagedBTreeNode innerNode = new PagedBTreeNode(bufferManager, order,
-				false, true);
+
+		PagedBTreeNode innerNode = getTestInnerNode(bufferManager, order);
 		int pageId = bufferManager.write(innerNode);
+
 		assertEquals(innerNode, bufferManager.read(pageId));
 
 		BTreeStorageBufferManager bufferManager2 = new BTreeStorageBufferManager(
@@ -53,9 +53,47 @@ public class TestBTreeStorageBufferManager {
 
 	@Test
 	public void testWriteTree() {
-		int order = 5;
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
 				storage);
+
+		BTree tree = getTestTree(bufferManager);
+		int pageId = bufferManager.write((PagedBTreeNode) tree.getRoot());
+
+		assertEquals(tree.getRoot(), bufferManager.read(pageId));
+
+		BTreeStorageBufferManager bufferManager2 = new BTreeStorageBufferManager(
+				storage);
+		assertEquals(tree.getRoot(), bufferManager2.read(pageId));
+	}
+
+	@Test
+	public void testDelete() {
+		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(storage);
+		PagedBTreeNode leafNode = getTestLeaf(bufferManager);
+		int pageId = bufferManager.write(leafNode);
+
+		bufferManager.delete(pageId);
+		// assertEquals(null, bufferManager.read(pageId));
+		// does not work because data is still on the page
+	}
+
+	private PagedBTreeNode getTestLeaf(BTreeBufferManager bufferManager) {
+		int order = 3;
+		PagedBTreeNode leafNode = new PagedBTreeNode(bufferManager, order,
+				true, true);
+		leafNode.put(1, 2);
+		return leafNode;
+	}
+
+	private PagedBTreeNode getTestInnerNode(BTreeBufferManager bufferManager,
+			int order) {
+		PagedBTreeNode innerNode = new PagedBTreeNode(bufferManager, order,
+				false, true);
+		return innerNode;
+	}
+
+	private BTree getTestTree(BTreeBufferManager bufferManager) {
+		int order = 5;
 		BTreeNodeFactory nodeFactory = new PagedBTreeNodeFactory(bufferManager);
 		BTreeFactory factory = new BTreeFactory(order, nodeFactory);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
@@ -66,12 +104,7 @@ public class TestBTreeStorageBufferManager {
 				Arrays.asList(19L, 20L, 22L), Arrays.asList(24L, 27L, 29L),
 				Arrays.asList(33L, 34L, 38L, 39L)));
 		BTree tree = factory.getTree();
-
-		int pageId = bufferManager.write((PagedBTreeNode) tree.getRoot());
-		assertEquals(tree.getRoot(), bufferManager.read(pageId));
-
-		BTreeStorageBufferManager bufferManager2 = new BTreeStorageBufferManager(
-				storage);
-		assertEquals(tree.getRoot(), bufferManager2.read(pageId));
+		return tree;
 	}
+
 }

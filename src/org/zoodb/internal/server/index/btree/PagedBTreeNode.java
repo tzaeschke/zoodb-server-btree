@@ -112,9 +112,11 @@ public class PagedBTreeNode extends BTreeNode {
 	public BTreeNode[] getChildren() {
 		BTreeNode[] children = new BTreeNode[order];
 		int i = 0;
-		for (; i < numKeys + 1; i++) {
-			children[i] = bufferManager.read(childrenPageIds[i]);
-		}
+		if(numKeys > 0) {
+            for (; i < numKeys + 1; i++) {
+                    children[i] = bufferManager.read(childrenPageIds[i]);
+            }
+        }
 		for (; i < order; i++) {
 			children[i] = null;
 		}
@@ -184,7 +186,7 @@ public class PagedBTreeNode extends BTreeNode {
 
 		for (int childPageId : childrenPageIds) {
 			if (childPageId == nodePageId) {
-				if (index == childrenPageIds.length - 1) {
+				if (index == getNumKeys() || index == childrenPageIds.length - 1) {
 					return null;
 				} else {
 					return getChild(index + 1);

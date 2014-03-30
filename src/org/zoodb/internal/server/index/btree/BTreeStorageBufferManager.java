@@ -12,22 +12,33 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	private Map<Integer, PagedBTreeNode> map;
 	private int pageIdCounter;
+	private final StorageChannel storageFile;
 	private final StorageChannelInput storageIn;
 	private final StorageChannelOutput storageOut;
-	// TODO: is this the correct data type?
-	private final DATA_TYPE dataType = DATA_TYPE.GENERIC_INDEX;
+	private DATA_TYPE dataType;
 
 	public BTreeStorageBufferManager(StorageChannel storage) {
 		this.map = new HashMap<Integer, PagedBTreeNode>();
 		this.pageIdCounter = 0;
+		this.storageFile = storage;
 		this.storageIn = storage.getReader(false);
 		this.storageOut = storage.getWriter(false);
+        this.dataType = DATA_TYPE.GENERIC_INDEX;
 	}
 
+	public BTreeStorageBufferManager(StorageChannel storage, DATA_TYPE dataType) {
+		this(storage);
+		this.dataType = dataType;
+	}
+
+	/*
+	 * Only read pageIds that are known to be in BufferManager,
+	 * otherwise the result is undefined
+	 */
 	@Override
 	public PagedBTreeNode read(int pageId) {
 		// search node in memory
-		PagedBTreeNode node = map.get(pageId);
+		PagedBTreeNode node = readNodeFromMemory(pageId);
 		if (node != null) {
 			return node;
 		}
@@ -36,21 +47,23 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return readNodeFromStorage(pageId);
 	}
 
+	public PagedBTreeNode readNodeFromMemory(int pageId) {
+		return map.get(pageId);
+	}
+
 	public PagedBTreeNode readNodeFromStorage(int pageId) {
-		// TODO: the constructor of nodes is called with
-		// parent = null!
-		
-		// TODO: do not use so many setters, make constructors/
-		storageIn.seekPageForRead(dataType, pageId);
+		try {
+            storageIn.seekPageForRead(dataType, pageId);
+		} catch(IndexOutOfBoundsException e) {
+        	return null;
+        }
 		PagedBTreeNode node;
 
 		short orderIfInner = storageIn.readShort();
 		if (orderIfInner == 0) {
 			// leaf
 			short order = storageIn.readShort();
-			System.out.println(order);
 			int numKeys = storageIn.readShort();
-			System.out.println(numKeys);
 			long[] keys = new long[order - 1];
 			long[] values = new long[order - 1];
 			storageIn.noCheckRead(keys);
@@ -86,11 +99,12 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			// write children
 			int childIndex = 0;
 			for (int childPageId : node.getChildrenPageIdList()) {
-				// TODO: optimize: if children is not in memory, then it can not
-				// be dirty
-				PagedBTreeNode child = read(childPageId);
-				int newChildPageId = write(child);
-				node.setChildPageId(childIndex, newChildPageId);
+				PagedBTreeNode child = readNodeFromMemory(childPageId);
+                //if child is not in memory, then it can not be dirty
+				if(node != null && child.isDirty()) {
+                    int newChildPageId = write(child);
+                    node.setChildPageId(childIndex, newChildPageId);
+				}
 
 				childIndex++;
 			}
@@ -100,10 +114,6 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 		// update pageId in memory
 		map.remove(node.getPageId());
-		// TODO: handle case when newPageId is already in map for another node
-		// n'.
-		// This could happen if n' was never written to the storage before, so
-		// it received a pageId which is not associated with a page.
 		map.put(newPageId, node);
 
 		node.setPageId(newPageId);
@@ -129,8 +139,11 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	// TODO: rework file format
 
 	int writeNodeDataToStorage(PagedBTreeNode node) {
-		// TODO: reasonable previous page id
-		int pageId = storageOut.allocateAndSeek(dataType, 0);
+
+		int previousPageId = node.getPageId() < 0 ? 0 : node.getPageId();
+		// if node was not written before (negative "page id") use 0
+		// as previous page id
+		int pageId = storageOut.allocateAndSeek(dataType, previousPageId);
 
 		if (node.isLeaf()) {
 			storageOut.writeShort((short) 0);
@@ -153,9 +166,11 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	@Override
 	public int save(PagedBTreeNode node) {
-		pageIdCounter++;
-		// TODO: handle case that this key is already reserved for the "real" id
-		// of a page.
+		/*
+		 * nodes which only reside in memory have a negative
+		 * "page id".
+		 */
+		pageIdCounter--;
 		map.put(pageIdCounter, node);
 
 		return pageIdCounter;
@@ -164,15 +179,21 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	@Override
 	public void delete(int id) {
 		map.remove(id);
-		// TODO: call delete
-		// TODO: free page in storage
-
+		if(id > 0) {
+			// page has been written to storage
+			this.storageFile.reportFreePage(id);
+		}
 	}
 
 	@Override
 	public void clear() {
 		pageIdCounter = 0;
+		for(int id : map.keySet()) {
+            if(id > 0) {
+                // page has been written to storage
+                this.storageFile.reportFreePage(id);
+            }
+		}
 		map.clear();
-		// TODO clear storage
 	}
 }
