@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
-	private Map<Integer, PagedBTreeNode> map;
+	private Map<Integer, PagedBTreeNode> memoryBuffer;
 	private int pageIdCounter;
 	private final StorageChannel storageFile;
 	private final StorageChannelInput storageIn;
@@ -18,7 +18,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	private DATA_TYPE dataType;
 
 	public BTreeStorageBufferManager(StorageChannel storage) {
-		this.map = new HashMap<Integer, PagedBTreeNode>();
+		this.memoryBuffer = new HashMap<Integer, PagedBTreeNode>();
 		this.pageIdCounter = 0;
 		this.storageFile = storage;
 		this.storageIn = storage.getReader(false);
@@ -48,7 +48,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	}
 
 	public PagedBTreeNode readNodeFromMemory(int pageId) {
-		return map.get(pageId);
+		return memoryBuffer.get(pageId);
 	}
 
 	public PagedBTreeNode readNodeFromStorage(int pageId) {
@@ -113,8 +113,8 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		int newPageId = writeNodeDataToStorage(node);
 
 		// update pageId in memory
-		map.remove(node.getPageId());
-		map.put(newPageId, node);
+		memoryBuffer.remove(node.getPageId());
+		memoryBuffer.put(newPageId, node);
 
 		node.setPageId(newPageId);
 
@@ -171,14 +171,14 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		 * "page id".
 		 */
 		pageIdCounter--;
-		map.put(pageIdCounter, node);
+		memoryBuffer.put(pageIdCounter, node);
 
 		return pageIdCounter;
 	}
 
 	@Override
 	public void delete(int id) {
-		map.remove(id);
+		memoryBuffer.remove(id);
 		if(id > 0) {
 			// page has been written to storage
 			this.storageFile.reportFreePage(id);
@@ -188,12 +188,16 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	@Override
 	public void clear() {
 		pageIdCounter = 0;
-		for(int id : map.keySet()) {
+		for(int id : memoryBuffer.keySet()) {
             if(id > 0) {
                 // page has been written to storage
                 this.storageFile.reportFreePage(id);
             }
 		}
-		map.clear();
+		memoryBuffer.clear();
+	}
+
+	public Map<Integer, PagedBTreeNode> getMemoryBuffer() {
+		return memoryBuffer;
 	}
 }

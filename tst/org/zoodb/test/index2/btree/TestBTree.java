@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
+import org.junit.Before;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
@@ -22,9 +23,17 @@ import org.zoodb.tools.ZooConfig;
 
 public class TestBTree {
 
-    StorageChannel storage = new StorageRootInMemory(ZooConfig.getFilePageSize());
-    private BTreeBufferManager bufferManager = new BTreeStorageBufferManager(storage);
-	private BTreeNodeFactory nodeFactory = new PagedBTreeNodeFactory(bufferManager);
+	StorageChannel storage = new StorageRootInMemory(
+			ZooConfig.getFilePageSize());
+	private BTreeBufferManager bufferManager = new BTreeStorageBufferManager(
+			storage);
+	private BTreeNodeFactory nodeFactory = new PagedBTreeNodeFactory(
+			bufferManager);
+
+	@Before
+	public void clearBufferManager() {
+		bufferManager.clear();
+	}
 
 	@Test
 	public void searchSingleNode() {
@@ -284,7 +293,6 @@ public class TestBTree {
 	/*
 	 * Delete Test according to Silberschatz, Database System Concepts, Sixth
 	 * edition
-	 * 
 	 */
 	@Test
 	public void deleteMergeTest2() {
@@ -366,27 +374,21 @@ public class TestBTree {
 		assertEquals(tree2, tree1);
 	}
 
-    @Test
-    public void deleteRedistributeInnerNode() {
-        int order = 5;
-        BTreeFactory factory = new BTreeFactory(order, nodeFactory);
-        factory.addInnerLayer(
-                Arrays.asList(Arrays.asList(60L)));
-        factory.addInnerLayer(
-                Arrays.asList(Arrays.asList(10L, 20L, 50L),
-                        Arrays.asList(60L, 70L)));
-        factory.addLeafLayerDefault(
-                Arrays.asList(Arrays.asList(1L, 2L, 3L),
-                        Arrays.asList(21L, 22L, 23L),
-                        Arrays.asList(31L, 32L, 33L),
-                        Arrays.asList(41L, 42L, 43L),
-                        Arrays.asList(50L, 51L, 52L),
-                        Arrays.asList(61L, 62L, 63L),
-                        Arrays.asList(71L, 72L, 73L),
-                        Arrays.asList(81L, 82L, 83L)));
+	@Test
+	public void deleteRedistributeInnerNode() {
+		int order = 5;
+		BTreeFactory factory = new BTreeFactory(order, nodeFactory);
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(60L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(10L, 20L, 50L),
+				Arrays.asList(60L, 70L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L, 3L),
+				Arrays.asList(21L, 22L, 23L), Arrays.asList(31L, 32L, 33L),
+				Arrays.asList(41L, 42L, 43L), Arrays.asList(50L, 51L, 52L),
+				Arrays.asList(61L, 62L, 63L), Arrays.asList(71L, 72L, 73L),
+				Arrays.asList(81L, 82L, 83L)));
 
-        BTree tree1 = factory.getTree();
-    }
+		BTree tree1 = factory.getTree();
+	}
 
 	@Test
 	public void deleteRedistributeRightOdd() {
