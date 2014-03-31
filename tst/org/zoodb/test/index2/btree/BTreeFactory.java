@@ -11,14 +11,9 @@ import java.util.List;
  */
 public class BTreeFactory {
 	
-	private BTree tree;
+	private PagedBTree tree;
 	private List<BTreeNode> prevLayer;
 	private BTreeNodeFactory nodeFactory;
-
-	public BTreeFactory(int order, BTreeNodeFactory nodeFactory) {
-		this.tree = new BTree(order, nodeFactory);
-		this.nodeFactory = nodeFactory;
-	}
 
     public BTreeFactory(int order, BTreeBufferManager bufferManager)  {
         this.tree = new PagedBTree(order, bufferManager);
@@ -86,7 +81,7 @@ public class BTreeFactory {
 	}
 	
 	public void clear() {
-		this.tree = new BTree(tree.getOrder(), nodeFactory);
+		this.tree = new PagedBTree(tree.getOrder(), tree.getBufferManager());
 	}
 	
 	private static List<List<Pair<Long,Long>>> zip(List<List<Long>> l1, List<List<Long>> l2) {

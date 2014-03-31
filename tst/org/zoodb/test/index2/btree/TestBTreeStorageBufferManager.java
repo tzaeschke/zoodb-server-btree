@@ -150,7 +150,7 @@ public class TestBTreeStorageBufferManager {
 				Arrays.asList(5L, 7L, 8L), Arrays.asList(14L, 16L),
 				Arrays.asList(19L, 20L, 22L), Arrays.asList(24L, 27L, 29L),
 				Arrays.asList(33L, 34L, 38L, 39L)));
-		BTree tree = factory.getTree();
+        BTree tree = factory.getTree();
 		return tree;
 	}
 

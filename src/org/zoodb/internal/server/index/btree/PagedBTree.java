@@ -11,8 +11,11 @@ import java.util.LinkedList;
  */
 public class PagedBTree extends BTree {
 
+    private BTreeBufferManager bufferManager;
+
     public PagedBTree(int order, BTreeBufferManager bufferManager) {
         super(order, new PagedBTreeNodeFactory(bufferManager));
+        this.bufferManager = bufferManager;
     }
 
     @Override
@@ -50,5 +53,9 @@ public class PagedBTree extends BTree {
             pagedBTreeNode.markDirty();
         }
         return bTreeNodeList;
+    }
+
+    public BTreeBufferManager getBufferManager() {
+        return bufferManager;
     }
 }
