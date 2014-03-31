@@ -2,6 +2,8 @@ package org.zoodb.test.index2.btree;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.util.Arrays;
 import java.util.List;
@@ -17,6 +19,7 @@ import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 import org.zoodb.internal.util.Pair;
 import org.zoodb.tools.ZooConfig;
@@ -465,7 +468,7 @@ public class TestBTree {
 	@Test
 	public void deleteMassively() {
 		int order = 320;
-		int numEntries = 1000000;
+		int numEntries = 10000;
 
 		BTree tree = new BTree(order, nodeFactory);
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries);
@@ -517,6 +520,95 @@ public class TestBTree {
 			i++;
 		}
 
+	}
+	
+	@Test
+	public void markDirtyTest() {
+		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
+				storage);
+
+		BTree tree = getTestTree(bufferManager);
+		PagedBTreeNode root = (PagedBTreeNode) tree.getRoot();
+		assertTrue(root.isDirty());
+		bufferManager.write((PagedBTreeNode) tree.getRoot());
+		assertFalse(root.isDirty());
+
+		tree.insert(4, 4);
+		
+
+		PagedBTreeNode lvl1child1 = (PagedBTreeNode) root.getChild(0);
+		PagedBTreeNode lvl2child1 = (PagedBTreeNode) lvl1child1.getChild(0);
+		assertTrue(root.isDirty());
+		assertTrue(lvl1child1.isDirty());
+		assertTrue(lvl2child1.isDirty());
+
+		PagedBTreeNode lvl2child2 = (PagedBTreeNode) lvl1child1.getChild(1);
+		PagedBTreeNode lvl2child3 = (PagedBTreeNode) lvl1child1.getChild(2);
+		PagedBTreeNode lvl1child2 = (PagedBTreeNode) root.getChild(1);
+		PagedBTreeNode lvl2child4 = (PagedBTreeNode) lvl1child2.getChild(0);
+		PagedBTreeNode lvl2child5 = (PagedBTreeNode) lvl1child2.getChild(1);
+		PagedBTreeNode lvl2child6 = (PagedBTreeNode) lvl1child2.getChild(2);
+		assertFalse(lvl2child2.isDirty());
+		assertFalse(lvl2child3.isDirty());
+		assertFalse(lvl1child2.isDirty());
+		assertFalse(lvl2child4.isDirty());
+		assertFalse(lvl2child5.isDirty());
+		assertFalse(lvl2child6.isDirty());
+		
+		bufferManager.write(root);
+		
+		tree.insert(32, 32);
+		PagedBTreeNode lvl2child7 = (PagedBTreeNode) lvl1child2.getChild(3);
+		assertTrue(root.isDirty());
+		assertTrue(lvl1child2.isDirty());
+		assertTrue(lvl2child6.isDirty());
+		assertTrue(lvl2child7.isDirty());
+		assertFalse(lvl1child1.isDirty());
+		assertFalse(lvl2child1.isDirty());
+		assertFalse(lvl2child2.isDirty());
+		assertFalse(lvl2child3.isDirty());
+		assertFalse(lvl2child4.isDirty());
+		assertFalse(lvl2child5.isDirty());
+		
+		bufferManager.write(root);
+		tree.delete(16);
+		assertTrue(root.isDirty());
+		assertTrue(lvl1child1.isDirty());
+		assertFalse(lvl1child2.isDirty());
+		assertFalse(lvl2child1.isDirty());
+		assertTrue(lvl2child2.isDirty());
+		assertTrue(lvl2child3.isDirty());
+		assertFalse(lvl2child4.isDirty());
+		assertFalse(lvl2child5.isDirty());
+		assertFalse(lvl2child6.isDirty());
+		assertFalse(lvl2child7.isDirty());
+		
+		bufferManager.write(root);
+		tree.delete(14);
+		assertTrue(root.isDirty());
+		assertTrue(lvl1child1.isDirty());
+		assertTrue(lvl1child2.isDirty());
+		assertFalse(lvl2child1.isDirty());
+		assertTrue(lvl2child2.isDirty());
+		assertTrue(lvl2child3.isDirty());
+		assertFalse(lvl2child4.isDirty());
+		assertFalse(lvl2child5.isDirty());
+		assertFalse(lvl2child6.isDirty());
+		assertFalse(lvl2child7.isDirty());
+	}
+	
+	public static BTree getTestTree(BTreeBufferManager bufferManager) {
+		int order = 5;
+		BTreeFactory factory = new BTreeFactory(order, bufferManager);
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 13L),
+				Arrays.asList(24L, 30L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L, 3L),
+				Arrays.asList(5L, 7L, 8L), Arrays.asList(14L, 16L),
+				Arrays.asList(19L, 20L, 22L), Arrays.asList(24L, 27L, 29L),
+				Arrays.asList(33L, 34L, 38L, 39L)));
+		BTree tree = factory.getTree();
+		return tree;
 	}
 
 	public static Pair<Long, Long> pair(long x, long y) {
