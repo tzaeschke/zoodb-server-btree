@@ -7,8 +7,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
 import org.junit.Before;
+import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;

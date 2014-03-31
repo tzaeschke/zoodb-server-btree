@@ -46,7 +46,6 @@ public class BTreeFactory {
 									values.toArray(new Long[values.size()])), 
 									this.tree.getOrder()));
 		}
-        addLeafLinkedList(prevLayer);
 	}
 	
 	public void addLayer(boolean isLeaf, List<List<Long>> nodeKeys) {
@@ -82,25 +81,6 @@ public class BTreeFactory {
 		}
 	}
 
-    public void addLeafLinkedList(List<BTreeNode> layer) {
-        int size = layer.size();
-        BTreeNode left, right;
-        for (int i = 0; i < size; i++) {
-            if (i == 0) {
-                left = null;
-                right = layer.get(i+1);
-            } else if (i == size - 1) {
-                right = null;
-                left = layer.get(i - 1);
-            } else {
-                left = layer.get(i - 1);
-                right = layer.get(i + 1);
-            }
-            layer.get(i).setLeft(left);
-            layer.get(i).setRight(right);
-        }
-    }
-	
 	public BTree getTree() {
 		return this.tree;
 	}

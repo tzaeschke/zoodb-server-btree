@@ -10,7 +10,7 @@ import org.zoodb.internal.util.Pair;
 public abstract class BTreeNode {
 
 	private final boolean isLeaf;
-    private boolean isRoot;
+	private boolean isRoot;
 	protected final int order;
 
 	// ToDo maybe we want to have the keys set dynamically sized somehow
@@ -22,7 +22,7 @@ public abstract class BTreeNode {
 	public BTreeNode(int order, boolean isLeaf, boolean isRoot) {
 		this.order = order;
 		this.isLeaf = isLeaf;
-        this.isRoot = isRoot;
+		this.isRoot = isRoot;
 
 		initKeys(order);
 		if (isLeaf) {
@@ -239,7 +239,7 @@ public abstract class BTreeNode {
 			throw new IllegalStateException(
 					"Should only be called on leaf nodes.");
 		}
-		BTreeNode tempNode = newNode( order + 1, true, false);
+		BTreeNode tempNode = newNode(order + 1, true, false);
 		System.arraycopy(getKeys(), 0, tempNode.getKeys(), 0, getNumKeys());
 		System.arraycopy(getValues(), 0, tempNode.getValues(), 0, getNumKeys());
 		tempNode.setNumKeys(getNumKeys());
@@ -262,13 +262,6 @@ public abstract class BTreeNode {
 				rightNode.getValues(), 0, keysInRightNode);
 		rightNode.setNumKeys(keysInRightNode);
 
-		// fix references
-		rightNode.setLeft(this);
-		rightNode.setRight(this.getRight());
-		this.setRight(rightNode);
-		if (rightNode.getRight() != null) {
-			rightNode.getRight().setLeft(rightNode);
-		}
 		return rightNode;
 	}
 
@@ -286,7 +279,7 @@ public abstract class BTreeNode {
 		}
 
 		// create a temporary node to allow the insertion
-		BTreeNode tempNode = newNode( order + 1, false, true);
+		BTreeNode tempNode = newNode(order + 1, false, true);
 		System.arraycopy(getKeys(), 0, tempNode.getKeys(), 0, getNumKeys());
 		copyChildren(this, 0, tempNode, 0, order);
 		tempNode.setNumKeys(getNumKeys());
@@ -297,16 +290,15 @@ public abstract class BTreeNode {
 		int keysInLeftNode = (int) Math.floor(order / 2.0);
 		// populate left node
 		System.arraycopy(tempNode.getKeys(), 0, getKeys(), 0, keysInLeftNode);
-		copyChildren(tempNode, 0, this, 0,
-				keysInLeftNode + 1);
+		copyChildren(tempNode, 0, this, 0, keysInLeftNode + 1);
 		setNumKeys(keysInLeftNode);
 
 		// populate right node
 		int keysInRightNode = order - keysInLeftNode - 1;
 		System.arraycopy(tempNode.getKeys(), keysInLeftNode + 1,
 				right.getKeys(), 0, keysInRightNode);
-		copyChildren(tempNode, keysInLeftNode + 1,
-				right, 0, keysInRightNode + 1);
+		copyChildren(tempNode, keysInLeftNode + 1, right, 0,
+				keysInRightNode + 1);
 		right.setNumKeys(keysInRightNode);
 
 		long keyToMoveUp = tempNode.getKeys()[keysInLeftNode];
@@ -419,7 +411,7 @@ public abstract class BTreeNode {
 	}
 
 	public BTreeNode leftSibling(BTreeNode parent) {
-        return (parent == null) ? null : parent.leftSiblingOf(this);
+		return (parent == null) ? null : parent.leftSiblingOf(this);
 	}
 
 	public BTreeNode rightSibling(BTreeNode parent) {
@@ -540,7 +532,7 @@ public abstract class BTreeNode {
 			ret += "]";
 		} else {
 			ret += "\n\tc:";
-			if(this.getNumKeys()!=0) {
+			if (this.getNumKeys() != 0) {
 				for (int i = 0; i < this.getNumKeys() + 1; i++) {
 					String[] lines = this.getChild(i).toString()
 							.split("\r\n|\r|\n");
@@ -619,7 +611,7 @@ public abstract class BTreeNode {
 		}
 		return true;
 	}
-	
+
 	protected boolean arrayEquals(int[] first, int[] second, int size) {
 		if (first == second) {
 			return true;
@@ -675,14 +667,6 @@ public abstract class BTreeNode {
 		return order;
 	}
 
-	public abstract void setLeft(BTreeNode left);
-
-	public abstract void setRight(BTreeNode right);
-
-	public abstract BTreeNode getLeft();
-
-	public abstract BTreeNode getRight();
-
 	public abstract BTreeNode newNode(int order, boolean isLeaf, boolean isRoot);
 
 	public abstract boolean equalChildren(BTreeNode other);
@@ -690,7 +674,7 @@ public abstract class BTreeNode {
 	public abstract void copyChildren(BTreeNode source, int sourceIndex,
 			BTreeNode dest, int destIndex, int size);
 
-    public void setIsRoot(boolean isRoot) {
-        this.isRoot = isRoot;
-    }
+	public void setIsRoot(boolean isRoot) {
+		this.isRoot = isRoot;
+	}
 }
