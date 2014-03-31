@@ -15,9 +15,6 @@ public class PagedBTreeNode extends BTreeNode {
 	private int[] childrenPageIds;
 	private int parentPageId;
 
-	private int leftPageId;
-	private int rightPageId;
-
 	public PagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {
 		super(order, isLeaf, isRoot);
 
@@ -132,28 +129,6 @@ public class PagedBTreeNode extends BTreeNode {
 				childrenPageIds[i] = toPagedNode(children[i]).getPageId();
 			}
 		}
-	}
-
-	@Override
-	public void setLeft(BTreeNode left) {
-		markDirty();
-		this.leftPageId = nullSafeGetPageId(toPagedNode(left));
-	}
-
-	@Override
-	public void setRight(BTreeNode right) {
-		markDirty();
-		this.rightPageId = nullSafeGetPageId(toPagedNode(right));
-	}
-
-	@Override
-	public BTreeNode getLeft() {
-		return bufferManager.read(leftPageId);
-	}
-
-	@Override
-	public BTreeNode getRight() {
-		return bufferManager.read(rightPageId);
 	}
 
 	@Override

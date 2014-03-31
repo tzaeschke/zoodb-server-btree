@@ -52,11 +52,8 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	}
 
 	public PagedBTreeNode readNodeFromStorage(int pageId) {
-		try {
-            storageIn.seekPageForRead(dataType, pageId);
-		} catch(IndexOutOfBoundsException e) {
-        	return null;
-        }
+        storageIn.seekPageForRead(dataType, pageId);
+
 		PagedBTreeNode node;
 
 		short orderIfInner = storageIn.readShort();

@@ -39,16 +39,6 @@ public class BTreeUtils {
                 right.increaseNumKeys(current.getNumKeys());
             }
         }
-        if (right.isLeaf()) {
-            //fix list references
-            right.setLeft(current.getLeft());
-            if (right.getRight() != null) {
-                right.getRight().setLeft(right);
-            }
-            current.setLeft(null);
-            current.setRight(null);
-        }
-
         return parent;
     }
 
@@ -91,14 +81,6 @@ public class BTreeUtils {
 
         }
 
-        if (current.isLeaf()) {
-            current.setLeft(left.getLeft());
-            if (current.getLeft() != null) {
-                current.getLeft().setRight(current);
-            }
-            left.setLeft(null);
-            left.setRight(null);
-        }
 
         return parent;
     }
