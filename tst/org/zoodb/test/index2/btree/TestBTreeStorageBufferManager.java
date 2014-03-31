@@ -1,15 +1,17 @@
 package org.zoodb.test.index2.btree;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.tools.ZooConfig;
-
-import java.util.Arrays;
-
-import static org.junit.Assert.*;
 
 public class TestBTreeStorageBufferManager {
 
@@ -91,7 +93,6 @@ public class TestBTreeStorageBufferManager {
 	@Test
 	public void dirtyCleanTest() {
 		// TODO: test number of writes
-
 	}
 
 	private PagedBTreeNode getTestLeaf(BTreeBufferManager bufferManager) {
@@ -108,7 +109,5 @@ public class TestBTreeStorageBufferManager {
 				false, true);
 		return innerNode;
 	}
-
-
 
 }
