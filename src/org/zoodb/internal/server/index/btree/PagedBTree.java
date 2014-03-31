@@ -32,7 +32,16 @@ public class PagedBTree extends BTree {
     @Override
     protected Pair<LinkedList<BTreeNode>, BTreeNode> searchNodeWithHistory(long key) {
         Pair<LinkedList<BTreeNode>, BTreeNode> result = super.searchNodeWithHistory(key);
-        return new Pair<>(markListAsDirty(result.getA()), result.getB());
+        return new Pair<>(
+                markListAsDirty(result.getA()),
+                result.getB()
+        );
+    }
+
+    @Override
+    protected void markChanged(BTreeNode node) {
+        PagedBTreeNode pagedNode = (PagedBTreeNode) node;
+        pagedNode.markDirty();
     }
 
     private LinkedList<BTreeNode> markListAsDirty(LinkedList<BTreeNode> bTreeNodeList) {

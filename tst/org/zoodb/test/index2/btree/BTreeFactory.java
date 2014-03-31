@@ -1,8 +1,6 @@
 package org.zoodb.test.index2.btree;
 
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeNode;
-import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
+import org.zoodb.internal.server.index.btree.*;
 import org.zoodb.internal.util.Pair;
 
 import java.util.ArrayList;
@@ -21,6 +19,11 @@ public class BTreeFactory {
 		this.tree = new BTree(order, nodeFactory);
 		this.nodeFactory = nodeFactory;
 	}
+
+    public BTreeFactory(int order, BTreeBufferManager bufferManager)  {
+        this.tree = new PagedBTree(order, bufferManager);
+        this.nodeFactory = tree.getNodeFactory();
+    }
 	
 	public void addInnerLayer(List<List<Long>> nodeKeys) {
 		this.addLayer(false, nodeKeys);

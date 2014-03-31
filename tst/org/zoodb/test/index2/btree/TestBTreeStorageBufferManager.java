@@ -1,22 +1,15 @@
 package org.zoodb.test.index2.btree;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
+import org.junit.Before;
+import org.junit.Test;
+import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.tools.ZooConfig;
 
 import java.util.Arrays;
 
-import org.junit.Test;
-import org.junit.Before;
-import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
-import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
-import org.zoodb.tools.ZooConfig;
+import static org.junit.Assert.*;
 
 public class TestBTreeStorageBufferManager {
 
@@ -149,7 +142,7 @@ public class TestBTreeStorageBufferManager {
 	private BTree getTestTree(BTreeBufferManager bufferManager) {
 		int order = 5;
 		BTreeNodeFactory nodeFactory = new PagedBTreeNodeFactory(bufferManager);
-		BTreeFactory factory = new BTreeFactory(order, nodeFactory);
+		BTreeFactory factory = new BTreeFactory(order, bufferManager);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 13L),
 				Arrays.asList(24L, 30L)));

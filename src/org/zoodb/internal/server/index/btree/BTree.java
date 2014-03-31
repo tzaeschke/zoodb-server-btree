@@ -63,9 +63,11 @@ public class BTree {
 
         if (leaf.getNumKeys() < order - 1) {
             leaf.put(key, value);
+            markChanged(leaf);
         } else {
             //split node
             BTreeNode rightNode = leaf.putAndSplit(key, value);
+            markChanged(rightNode);
             insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode, ancestorStack);
         }
     }
@@ -84,8 +86,10 @@ public class BTree {
             BTreeNode newRoot = nodeFactory.newNode(order, false, true);
             swapRoot(newRoot);
             root.put(key, left, right);
+            markChanged(newRoot);
         } else {
             BTreeNode parent = ancestorStack.pop();
+            markChanged(parent);
             //check if parent overflows
             if (parent.getNumKeys() < order - 1) {
                 parent.put(key, right);
@@ -95,6 +99,7 @@ public class BTree {
                 long keyToMoveUp = pair.getB();
                 insertInInnerNode(parent, keyToMoveUp, newNode, ancestorStack);
             }
+
         }
     }
 
@@ -119,6 +124,7 @@ public class BTree {
         BTreeNode leaf = pair.getB();
         LinkedList<BTreeNode> ancestorStack = pair.getA();
         deleteFromLeaf(leaf, key);
+        markChanged(leaf);
 
         if (leaf.isRoot()) {
             return;
@@ -132,16 +138,20 @@ public class BTree {
             BTreeNode leftSibling = current.leftSibling(parent);
             if (leftSibling != null && leftSibling.hasExtraKeys()) {
                 BTreeUtils.redistributeKeysFromLeft(current, leftSibling, parent);
+                markChanged(leftSibling);
             } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
                 BTreeUtils.redistributeKeysFromRight(current, rightSibling, parent);
+                markChanged(rightSibling);
             } else {
                 //at this point, both left and right sibling have the minimum number of keys
                 if (leftSibling!= null) {
                     //merge with left sibling
                     parent = BTreeUtils.mergeWithLeft(this, current, leftSibling, parent);
+                    markChanged(leftSibling);
                 } else {
                     //merge with right sibling
                     parent = BTreeUtils.mergeWithRight(this, current, rightSibling, parent);
+                    markChanged(rightSibling);
                 }
             }
             if (current.containsKey(key)) {
@@ -209,5 +219,11 @@ public class BTree {
         leaf.delete(key);
     }
 
+    protected void markChanged(BTreeNode node) {
+        //ToDo make abstract and fix references in the tests
+    }
 
+    public BTreeNodeFactory getNodeFactory() {
+        return nodeFactory;
+    }
 }
