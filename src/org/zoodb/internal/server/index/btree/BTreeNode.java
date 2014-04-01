@@ -7,7 +7,7 @@ import org.zoodb.internal.util.Pair;
  * 
  * Support for linked-lists of nodes on the leaf level is yet to be added.
  */
-public abstract class BTreeNode extends NodeOperations {
+public abstract class BTreeNode {
 
 	private final boolean isLeaf;
 	private boolean isRoot;
@@ -32,16 +32,16 @@ public abstract class BTreeNode extends NodeOperations {
 		}
 	}
 
-    public abstract BTreeNode[] getChildren();
-
-    public abstract void setChildren(BTreeNode[] children);
-
     public abstract BTreeNode newNode(int order, boolean isLeaf, boolean isRoot);
-
     public abstract boolean equalChildren(BTreeNode other);
-
     public abstract void copyChildren(BTreeNode source, int sourceIndex,
                                       BTreeNode dest, int destIndex, int size);
+    protected abstract BTreeNode leftSiblingOf(BTreeNode node);
+    protected abstract BTreeNode rightSiblingOf(BTreeNode node);
+    public abstract BTreeNode getChild(int index);
+    public abstract void setChild(int index, BTreeNode child);
+    public abstract BTreeNode[] getChildren();
+    public abstract void setChildren(BTreeNode[] children);
 
 	/**
 	 * Returns the index + 1 of the key received as an argument. If the key is
@@ -94,6 +94,11 @@ public abstract class BTreeNode extends NodeOperations {
 		return found ? getValue(position) : -1;
 	}
 
+    /**
+     * Check if this node contains the key received as argument.
+     * @param key
+     * @return          True if the node contains the key, false otherwise.
+     */
 	public boolean containsKey(long key) {
 		if (getNumKeys() == 0) {
 			return false;
@@ -103,6 +108,11 @@ public abstract class BTreeNode extends NodeOperations {
         return found;
 	}
 
+    /**
+     * Find the child subtree that contains the leaf node corresponding to the key received as argument.
+     * @param key
+     * @return          The child of the current node that contains the key or the root of a subtree that contains the key.
+     */
 	public BTreeNode findChild(long key) {
 		return getChild(findKeyPos(key));
 	}
@@ -282,8 +292,26 @@ public abstract class BTreeNode extends NodeOperations {
 		int recordsToMove = getNumKeys() - keyPos;
 		shiftRecords(keyPos, keyPos - 1, recordsToMove);
 		decrementNumKeys();
-
 	}
+
+    public BTreeNode leftSibling(BTreeNode parent) {
+        return (parent == null) ? null : parent.leftSiblingOf(this);
+    }
+
+    public BTreeNode rightSibling(BTreeNode parent) {
+        return (parent == null) ? null : parent.rightSiblingOf(this);
+    }
+
+    public void replaceKey(long key, long replacementKey) {
+        if (replacementKey < key) {
+            throw new RuntimeException("Replacing " + key + " with "
+                    + replacementKey + " might be illegal.");
+        }
+        int pos = findKeyPos(key);
+        if (pos > -1) {
+            setKey(pos - 1, replacementKey);
+        }
+    }
 
 	public void setKey(int index, long key) {
 		getKeys()[index] = key;
@@ -291,50 +319,6 @@ public abstract class BTreeNode extends NodeOperations {
 
 	public void setValue(int index, long value) {
 		getValues()[index] = value;
-	}
-
-	private void shiftRecords(int startIndex, int endIndex, int amount) {
-		shiftKeys(startIndex, endIndex, amount);
-		if (isLeaf()) {
-			shiftValues(startIndex, endIndex, amount);
-		} else {
-			shiftChildren(startIndex, endIndex, amount + 1);
-		}
-	}
-
-	public void shiftRecordsRight(int amount) {
-		shiftKeys(0, amount, getNumKeys());
-		if (isLeaf()) {
-			shiftValues(0, amount, getNumKeys());
-		} else {
-			shiftChildren(0, amount, getNumKeys() + 1);
-		}
-	}
-
-	public void shiftRecordsLeftWithIndex(int startIndex, int amount) {
-		int keysToMove = getNumKeys() - amount;
-		shiftKeys(startIndex + amount, startIndex, keysToMove);
-		if (isLeaf()) {
-			shiftValues(startIndex + amount, startIndex, keysToMove);
-		} else {
-			shiftChildren(startIndex + amount, startIndex, keysToMove + 1);
-		}
-	}
-
-	public void shiftRecordsLeft(int amount) {
-		shiftRecordsLeftWithIndex(0, amount);
-	}
-
-	private void shiftKeys(int startIndex, int endIndex, int amount) {
-		System.arraycopy(getKeys(), startIndex, getKeys(), endIndex, amount);
-	}
-
-	private void shiftValues(int startIndex, int endIndex, int amount) {
-		System.arraycopy(getValues(), startIndex, getValues(), endIndex, amount);
-	}
-
-	private void shiftChildren(int startIndex, int endIndex, int amount) {
-		copyChildren(this, startIndex, this, endIndex, amount);
 	}
 
 	public int keyIndexOf(BTreeNode left, BTreeNode right) {
@@ -365,29 +349,6 @@ public abstract class BTreeNode extends NodeOperations {
 
 	public boolean isOverflowing() {
 		return getNumKeys() >= order;
-	}
-
-	public BTreeNode leftSibling(BTreeNode parent) {
-		return (parent == null) ? null : parent.leftSiblingOf(this);
-	}
-
-	public BTreeNode rightSibling(BTreeNode parent) {
-		return (parent == null) ? null : parent.rightSiblingOf(this);
-	}
-
-	protected abstract BTreeNode leftSiblingOf(BTreeNode node);
-
-	protected abstract BTreeNode rightSiblingOf(BTreeNode node);
-
-	public void replaceKey(long key, long replacementKey) {
-		if (replacementKey < key) {
-			throw new RuntimeException("Replacing " + key + " with "
-					+ replacementKey + " might be illegal.");
-		}
-		int pos = findKeyPos(key);
-		if (pos > -1) {
-			setKey(pos - 1, replacementKey);
-		}
 	}
 
 	public boolean incrementNumKyes() {
@@ -437,10 +398,6 @@ public abstract class BTreeNode extends NodeOperations {
 		return getKeys()[index];
 	}
 
-	public abstract BTreeNode getChild(int index);
-
-	public abstract void setChild(int index, BTreeNode child);
-
 	public double minKeysAmount() {
 		return (order - 1) / 2.0D;
 	}
@@ -467,125 +424,6 @@ public abstract class BTreeNode extends NodeOperations {
 
 	public long largestKey() {
 		return keys[numKeys - 1];
-	}
-
-	public String toString() {
-		String ret = (isLeaf() ? "leaf" : "inner") + "-node: k:";
-		ret += "[";
-		for (int i = 0; i < this.getNumKeys(); i++) {
-			ret += Long.toString(keys[i]);
-			if (i != this.getNumKeys() - 1)
-				ret += " ";
-		}
-		ret += "]";
-		if (isLeaf()) {
-			ret += ",   \tv:";
-			ret += "[";
-			for (int i = 0; i < this.getNumKeys(); i++) {
-				ret += Long.toString(values[i]);
-				if (i != this.getNumKeys() - 1)
-					ret += " ";
-			}
-			ret += "]";
-		} else {
-			ret += "\n\tc:";
-			if (this.getNumKeys() != 0) {
-				for (int i = 0; i < this.getNumKeys() + 1; i++) {
-					String[] lines = this.getChild(i).toString()
-							.split("\r\n|\r|\n");
-					for (String l : lines) {
-						ret += "\n\t" + l;
-					}
-				}
-			}
-		}
-		return ret;
-	}
-
-	@Override
-	public boolean equals(Object o) {
-		if (this == o)
-			return true;
-		if (!(o instanceof BTreeNode))
-			return false;
-
-		BTreeNode bTreeNode = (BTreeNode) o;
-
-		if (isLeaf() != bTreeNode.isLeaf())
-			return false;
-		if (getNumKeys() != bTreeNode.getNumKeys())
-			return false;
-		if (order != bTreeNode.order)
-			return false;
-		if (!isLeaf() && !equalChildren(bTreeNode))
-			return false;
-		if (!arrayEquals(getKeys(), bTreeNode.getKeys(), getNumKeys()))
-			return false;
-		// checking for parent equality would result in infinite loop
-		// if (parent != null ? !parent.equals(bTreeNode.parent) :
-		// bTreeNode.parent != null) return false;
-		if (!arrayEquals(getValues(), bTreeNode.getValues(), getNumKeys()))
-			return false;
-
-		return true;
-	}
-
-	protected <T> boolean arrayEquals(T[] first, T[] second, int size) {
-		if (first == second) {
-			return true;
-		}
-		if (first == null || second == null) {
-			return false;
-		}
-		if (first.length < size || second.length < size) {
-			return false;
-		}
-
-		for (int i = 0; i < size; i++) {
-			if ((first[i] != second[i]) && (first[i] != null)
-					&& (!first[i].equals(second[i]))) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	private boolean arrayEquals(long[] first, long[] second, int size) {
-		if (first == second) {
-			return true;
-		}
-		if (first == null || second == null) {
-			return false;
-		}
-		if (first.length < size || second.length < size) {
-			return false;
-		}
-
-		for (int i = 0; i < size; i++) {
-			if (!(first[i] == second[i])) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	protected boolean arrayEquals(int[] first, int[] second, int size) {
-		if (first == second) {
-			return true;
-		}
-		if (first == null || second == null) {
-			return false;
-		}
-		if (first.length < size || second.length < size) {
-			return false;
-		}
-
-		for (int i = 0; i < size; i++) {
-			if (!(first[i] == second[i])) {
-				return false;
-			}
-		}
-		return true;
 	}
 
 	public int getNumKeys() {
@@ -648,5 +486,165 @@ public abstract class BTreeNode extends NodeOperations {
             }
         }
         return new Pair<>(found, mid);
+    }
+
+    /*
+        Node modification operations
+     */
+
+    public void copyFromNodeToNode(int srcStartK, int srcStartC, BTreeNode destination, int destStartK, int destStartC, int keys, int children) {
+        BTreeNode source = this;
+        System.arraycopy(source.getKeys(), srcStartK, destination.getKeys(), destStartK, keys);
+        if (destination.isLeaf()) {
+            System.arraycopy(source.getValues(), srcStartK, destination.getValues(), destStartK, keys);
+        } else {
+            source.copyChildren(source, srcStartC, destination, destStartC, children);
+        }
+    }
+
+    private void shiftRecords(int startIndex, int endIndex, int amount) {
+        shiftKeys(startIndex, endIndex, amount);
+        if (isLeaf()) {
+            shiftValues(startIndex, endIndex, amount);
+        } else {
+            shiftChildren(startIndex, endIndex, amount + 1);
+        }
+    }
+
+    public void shiftRecordsRight(int amount) {
+        shiftKeys(0, amount, getNumKeys());
+        if (isLeaf()) {
+            shiftValues(0, amount, getNumKeys());
+        } else {
+            shiftChildren(0, amount, getNumKeys() + 1);
+        }
+    }
+
+    public void shiftRecordsLeftWithIndex(int startIndex, int amount) {
+        int keysToMove = getNumKeys() - amount;
+        shiftKeys(startIndex + amount, startIndex, keysToMove);
+        if (isLeaf()) {
+            shiftValues(startIndex + amount, startIndex, keysToMove);
+        } else {
+            shiftChildren(startIndex + amount, startIndex, keysToMove + 1);
+        }
+    }
+
+    public void shiftRecordsLeft(int amount) {
+        shiftRecordsLeftWithIndex(0, amount);
+    }
+
+    private void shiftKeys(int startIndex, int endIndex, int amount) {
+        System.arraycopy(getKeys(), startIndex, getKeys(), endIndex, amount);
+    }
+
+    private void shiftValues(int startIndex, int endIndex, int amount) {
+        System.arraycopy(getValues(), startIndex, getValues(), endIndex, amount);
+    }
+
+    private void shiftChildren(int startIndex, int endIndex, int amount) {
+        copyChildren(this, startIndex, this, endIndex, amount);
+    }
+
+
+
+    public String toString() {
+        String ret = (isLeaf() ? "leaf" : "inner") + "-node: k:";
+        ret += "[";
+        for (int i = 0; i < this.getNumKeys(); i++) {
+            ret += Long.toString(keys[i]);
+            if (i != this.getNumKeys() - 1)
+                ret += " ";
+        }
+        ret += "]";
+        if (isLeaf()) {
+            ret += ",   \tv:";
+            ret += "[";
+            for (int i = 0; i < this.getNumKeys(); i++) {
+                ret += Long.toString(values[i]);
+                if (i != this.getNumKeys() - 1)
+                    ret += " ";
+            }
+            ret += "]";
+        } else {
+            ret += "\n\tc:";
+            if (this.getNumKeys() != 0) {
+                for (int i = 0; i < this.getNumKeys() + 1; i++) {
+                    String[] lines = this.getChild(i).toString()
+                            .split("\r\n|\r|\n");
+                    for (String l : lines) {
+                        ret += "\n\t" + l;
+                    }
+                }
+            }
+        }
+        return ret;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof BTreeNode))
+            return false;
+
+        BTreeNode bTreeNode = (BTreeNode) o;
+
+        if (isLeaf() != bTreeNode.isLeaf())
+            return false;
+        if (getNumKeys() != bTreeNode.getNumKeys())
+            return false;
+        if (order != bTreeNode.order)
+            return false;
+        if (!isLeaf() && !equalChildren(bTreeNode))
+            return false;
+        if (!arrayEquals(getKeys(), bTreeNode.getKeys(), getNumKeys()))
+            return false;
+        // checking for parent equality would result in infinite loop
+        // if (parent != null ? !parent.equals(bTreeNode.parent) :
+        // bTreeNode.parent != null) return false;
+        if (!arrayEquals(getValues(), bTreeNode.getValues(), getNumKeys()))
+            return false;
+
+        return true;
+    }
+
+    protected <T> boolean arrayEquals(T[] first, T[] second, int size) {
+        if (first == second) {
+            return true;
+        }
+        if (first == null || second == null) {
+            return false;
+        }
+        if (first.length < size || second.length < size) {
+            return false;
+        }
+
+        for (int i = 0; i < size; i++) {
+            if ((first[i] != second[i]) && (first[i] != null)
+                    && (!first[i].equals(second[i]))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean arrayEquals(long[] first, long[] second, int size) {
+        if (first == second) {
+            return true;
+        }
+        if (first == null || second == null) {
+            return false;
+        }
+        if (first.length < size || second.length < size) {
+            return false;
+        }
+
+        for (int i = 0; i < size; i++) {
+            if (!(first[i] == second[i])) {
+                return false;
+            }
+        }
+        return true;
     }
 }

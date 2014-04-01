@@ -14,7 +14,7 @@ public class BTreeUtils {
                 right.increaseNumKeys(1);
             }
             right.shiftRecordsRight(current.getNumKeys());
-            BTreeUtils.copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
+            copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
             right.increaseNumKeys(current.getNumKeys());
             tree.swapRoot(right);
             parent = right;
@@ -25,7 +25,7 @@ public class BTreeUtils {
                 parent.shiftRecordsLeftWithIndex(keyIndex, 1);
                 parent.decreaseNumKeys(1);
                 right.shiftRecordsRight(current.getNumKeys());
-                BTreeUtils.copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
+                copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
                 right.increaseNumKeys(current.getNumKeys());
             } else {
                 //merge inner nodes
@@ -36,7 +36,7 @@ public class BTreeUtils {
                 parent.decreaseNumKeys(1);
 
                 right.shiftRecordsRight(current.getNumKeys());
-                BTreeUtils.copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
+                copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
                 right.increaseNumKeys(current.getNumKeys());
             }
         }
@@ -53,7 +53,7 @@ public class BTreeUtils {
             current.increaseNumKeys(parent.getNumKeys());
 
             current.shiftRecordsRight(left.getNumKeys());
-            BTreeUtils.copyNodeToAnother(left, current, 0);
+            copyNodeToAnother(left, current, 0);
             current.increaseNumKeys(left.getNumKeys());
             tree.swapRoot(current);
             parent = current;
@@ -64,7 +64,7 @@ public class BTreeUtils {
                 parent.decreaseNumKeys(1);
 
                 current.shiftRecordsRight(left.getNumKeys());
-                BTreeUtils.copyNodeToAnother(left, current, 0);
+                copyNodeToAnother(left, current, 0);
                 current.increaseNumKeys(left.getNumKeys());
 
             } else {
@@ -76,7 +76,7 @@ public class BTreeUtils {
                 parent.decreaseNumKeys(1);
 
                 //copy from left node
-                BTreeUtils.copyNodeToAnother(left, current, 0);
+                copyNodeToAnother(left, current, 0);
                 current.increaseNumKeys(left.getNumKeys() + 1);
             }
 
@@ -97,7 +97,7 @@ public class BTreeUtils {
             int startIndexRight = 0;
             int startIndexLeft = current.getNumKeys();
             //copy from left to current
-            BTreeUtils.copyFromRightNodeToLeftNode(right, startIndexRight, current, startIndexLeft, keysToMove, keysToMove);
+            copyFromRightNodeToLeftNode(right, startIndexRight, current, startIndexLeft, keysToMove, keysToMove);
 
             //shift nodes in current node right
             right.shiftRecordsLeft(keysToMove);
@@ -115,7 +115,7 @@ public class BTreeUtils {
             int startIndexLeft = current.getNumKeys();
             keysToMove--;
             //copy from left to current
-            BTreeUtils.copyFromRightNodeToLeftNode(right, startIndexRight, current, startIndexLeft, keysToMove, keysToMove + 1);
+            copyFromRightNodeToLeftNode(right, startIndexRight, current, startIndexLeft, keysToMove, keysToMove + 1);
             current.increaseNumKeys(keysToMove);
 
             //shift nodes in current node right
@@ -140,7 +140,7 @@ public class BTreeUtils {
             int startIndexLeft = left.getNumKeys() - keysToMove;
             int startIndexRight = 0;
             //copy from left to current
-            BTreeUtils.copyRedistributeFromLeftNodeToRightNode(left, startIndexLeft, current, startIndexRight, keysToMove, keysToMove);
+            copyRedistributeFromLeftNodeToRightNode(left, startIndexLeft, current, startIndexRight, keysToMove, keysToMove);
 
             //fix number of keys
             left.decreaseNumKeys(keysToMove);
@@ -164,7 +164,7 @@ public class BTreeUtils {
             current.shiftRecordsRight(keysToMove);
 
             //copy k keys and k+1 children from left
-            copyFromNodeToNode(left, startIndexLeft, startIndexLeft, current, startIndexRight, startIndexRight, keysToMove, keysToMove+1);
+            left.copyFromNodeToNode(startIndexLeft, startIndexLeft, current, startIndexRight, startIndexRight, keysToMove, keysToMove+1);
             current.increaseNumKeys(keysToMove);
             left.decreaseNumKeys(keysToMove);
             //move the biggest key to parent
@@ -180,14 +180,14 @@ public class BTreeUtils {
                                                                int destinationStartIndex,
                                                                int keys,
                                                                int children) {
-        copyFromNodeToNode( source,
-                sourceStartIndex,
-                sourceStartIndex,
-                destination,
-                destinationStartIndex,
-                destinationStartIndex,
-                keys,
-                children + 1);
+        source.copyFromNodeToNode(
+                    sourceStartIndex,
+                    sourceStartIndex,
+                    destination,
+                    destinationStartIndex,
+                    destinationStartIndex,
+                    keys,
+                    children + 1);
     }
 
     public static void copyRedistributeFromLeftNodeToRightNode(BTreeNode source,
@@ -196,7 +196,7 @@ public class BTreeUtils {
                                                    int destinationStartIndex,
                                                    int keys,
                                                    int children) {
-        copyFromNodeToNode( source,
+        source.copyFromNodeToNode(
                             sourceStartIndex,
                             sourceStartIndex + 1,
                             destination,
@@ -212,28 +212,17 @@ public class BTreeUtils {
                                                    int destinationStartIndex,
                                                    int keys,
                                                    int children) {
-        copyFromNodeToNode( source,
-                            sourceStartIndex,
-                            sourceStartIndex,
-                            destination,
-                            destinationStartIndex,
-                            destinationStartIndex,
-                            keys,
-                            children);
-    }
-
-    public static void copyFromNodeToNode(BTreeNode source, int srcStartK, int srcStartC, BTreeNode destination, int destStartK, int destStartC, int keys, int children) {
-        System.arraycopy(source.getKeys(), srcStartK, destination.getKeys(), destStartK, keys);
-        if (destination.isLeaf()) {
-            System.arraycopy(source.getValues(), srcStartK, destination.getValues(), destStartK, keys);
-        } else {
-            source.copyChildren(source, srcStartC, destination, destStartC, children);
-        }
+        source.copyFromNodeToNode(
+                                sourceStartIndex,
+                                sourceStartIndex,
+                                destination,
+                                destinationStartIndex,
+                                destinationStartIndex,
+                                keys,
+                                children);
     }
 
     public static void copyNodeToAnother(BTreeNode source, BTreeNode destination, int destinationIndex) {
-        copyFromNodeToNode(source, 0, 0, destination, destinationIndex, destinationIndex, source.getNumKeys(), source.getNumKeys() + 1);
+        source.copyFromNodeToNode(0, 0, destination, destinationIndex, destinationIndex, source.getNumKeys(), source.getNumKeys() + 1);
     }
-
-
 }
