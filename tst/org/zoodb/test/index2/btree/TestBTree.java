@@ -638,6 +638,21 @@ public class TestBTree {
 			assertEquals(null, bufferManager.read(node.getPageId()));
 		}
 	}
+	
+	@Test
+	public void anotherDeleteTest() {
+		BTree tree = getTestTree(bufferManager);
+		tree.delete(2);
+		tree.delete(3);
+		tree.delete(33);
+		tree.delete(34);
+		tree.delete(39);
+		tree.delete(24);
+		tree.delete(14);
+		System.out.println(tree);
+		// deleting any key >= 19 fails
+		tree.delete(19);
+	}
 
 	public static BTree getTestTree(BTreeBufferManager bufferManager) {
 		int order = 5;
