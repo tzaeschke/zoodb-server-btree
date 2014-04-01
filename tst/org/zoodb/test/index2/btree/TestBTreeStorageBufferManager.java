@@ -5,6 +5,8 @@ import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.server.index.btree.unique.UniqueBTree;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 import org.zoodb.tools.ZooConfig;
 
 import static org.junit.Assert.assertEquals;

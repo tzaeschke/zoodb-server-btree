@@ -1,6 +1,8 @@
 package org.zoodb.test.index2.btree;
 
 import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
+import org.zoodb.internal.server.index.btree.unique.UniqueBTree;
 import org.zoodb.internal.util.Pair;
 
 import java.util.ArrayList;
@@ -11,12 +13,12 @@ import java.util.List;
  */
 public class BTreeFactory {
 	
-	private PagedUniqueBTree tree;
+	private UniquePagedBTree tree;
 	private List<BTreeNode> prevLayer;
 	private BTreeNodeFactory nodeFactory;
 
     public BTreeFactory(int order, BTreeBufferManager bufferManager)  {
-        this.tree = new PagedUniqueBTree(order, bufferManager);
+        this.tree = new UniquePagedBTree(order, bufferManager);
         this.nodeFactory = tree.getNodeFactory();
     }
 	
@@ -81,7 +83,7 @@ public class BTreeFactory {
 	}
 	
 	public void clear() {
-		this.tree = new PagedUniqueBTree(tree.getOrder(), tree.getBufferManager());
+		this.tree = new UniquePagedBTree(tree.getOrder(), tree.getBufferManager());
 	}
 	
 	private static List<List<Pair<Long,Long>>> zip(List<List<Long>> l1, List<List<Long>> l2) {

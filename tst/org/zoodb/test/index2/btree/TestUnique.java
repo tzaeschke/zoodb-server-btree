@@ -1,7 +1,7 @@
 package org.zoodb.test.index2.btree;
 
 import org.junit.Test;
-import org.zoodb.internal.server.index.btree.UniqueBTree;
+import org.zoodb.internal.server.index.btree.unique.UniqueBTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
 

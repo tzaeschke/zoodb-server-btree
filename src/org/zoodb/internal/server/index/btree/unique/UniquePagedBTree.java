@@ -1,5 +1,6 @@
-package org.zoodb.internal.server.index.btree;
+package org.zoodb.internal.server.index.btree.unique;
 
+import org.zoodb.internal.server.index.btree.*;
 import org.zoodb.internal.util.Pair;
 
 import java.util.LinkedList;
@@ -9,11 +10,11 @@ import java.util.LinkedList;
  *
  * Also, adds the buffer manager that will be used by this type of node as an argument.
  */
-public class PagedUniqueBTree extends UniqueBTree {
+public class UniquePagedBTree extends UniqueBTree {
 
     private BTreeBufferManager bufferManager;
 
-    public PagedUniqueBTree(int order, BTreeBufferManager bufferManager) {
+    public UniquePagedBTree(int order, BTreeBufferManager bufferManager) {
         super(order, new PagedBTreeNodeFactory(bufferManager));
         this.bufferManager = bufferManager;
     }

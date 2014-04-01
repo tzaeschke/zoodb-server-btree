@@ -1,5 +1,8 @@
 package org.zoodb.internal.server.index.btree;
 
+import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTreeNode;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
+
 public class PagedBTreeNodeFactory implements BTreeNodeFactory {
 
 	private BTreeBufferManager bufferManager;

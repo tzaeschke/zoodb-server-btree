@@ -3,19 +3,19 @@ package org.zoodb.internal.server.index;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.PagedUniqueBTree;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 
 
 public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 	
-	private PagedUniqueBTree tree;
+	private UniquePagedBTree tree;
 
 	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
 		
 		// TODO Auto-generated constructor stub
 		final int order = 4;
-		tree = new PagedUniqueBTree(order, new BTreeStorageBufferManager(file));
+		tree = new UniquePagedBTree(order, new BTreeStorageBufferManager(file));
 	}
 
 	@Override
@@ -56,7 +56,7 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public void clear() {
-		tree = new PagedUniqueBTree(tree.getOrder(),  new BTreeStorageBufferManager(file));
+		tree = new UniquePagedBTree(tree.getOrder(),  new BTreeStorageBufferManager(file));
 
 	}
 

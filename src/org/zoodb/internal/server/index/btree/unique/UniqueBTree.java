@@ -1,5 +1,9 @@
-package org.zoodb.internal.server.index.btree;
+package org.zoodb.internal.server.index.btree.unique;
 
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
+import org.zoodb.internal.server.index.btree.BTreeUtils;
 import org.zoodb.internal.util.Pair;
 
 import java.util.LinkedList;

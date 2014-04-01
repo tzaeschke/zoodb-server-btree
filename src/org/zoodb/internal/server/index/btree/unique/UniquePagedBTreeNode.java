@@ -1,4 +1,8 @@
-package org.zoodb.internal.server.index.btree;
+package org.zoodb.internal.server.index.btree.unique;
+
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
 /**
  * Corresponds to Unique B+ tree indices.

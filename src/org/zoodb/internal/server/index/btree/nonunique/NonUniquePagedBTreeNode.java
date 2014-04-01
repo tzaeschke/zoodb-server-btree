@@ -1,4 +1,8 @@
-package org.zoodb.internal.server.index.btree;
+package org.zoodb.internal.server.index.btree.nonunique;
+
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
 public class NonUniquePagedBTreeNode extends PagedBTreeNode {
 

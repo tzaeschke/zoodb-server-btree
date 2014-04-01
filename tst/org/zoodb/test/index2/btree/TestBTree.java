@@ -6,6 +6,7 @@ import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.server.index.btree.unique.UniqueBTree;
 import org.zoodb.internal.util.Pair;
 import org.zoodb.tools.ZooConfig;
 

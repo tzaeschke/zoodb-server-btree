@@ -1,5 +1,7 @@
 package org.zoodb.internal.server.index.btree;
 
+import org.zoodb.internal.server.index.btree.unique.UniqueBTree;
+
 /**
  * Shared behaviour of unique and non-unique B+ tree.
  */
