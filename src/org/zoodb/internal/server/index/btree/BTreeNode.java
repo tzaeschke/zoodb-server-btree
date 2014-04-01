@@ -7,7 +7,7 @@ import org.zoodb.internal.util.Pair;
  * 
  * Support for linked-lists of nodes on the leaf level is yet to be added.
  */
-public abstract class BTreeNode {
+public abstract class BTreeNode extends NodeOperations {
 
 	private final boolean isLeaf;
 	private boolean isRoot;
@@ -32,6 +32,17 @@ public abstract class BTreeNode {
 		}
 	}
 
+    public abstract BTreeNode[] getChildren();
+
+    public abstract void setChildren(BTreeNode[] children);
+
+    public abstract BTreeNode newNode(int order, boolean isLeaf, boolean isRoot);
+
+    public abstract boolean equalChildren(BTreeNode other);
+
+    public abstract void copyChildren(BTreeNode source, int sourceIndex,
+                                      BTreeNode dest, int destIndex, int size);
+
 	/**
 	 * Returns the index + 1 of the key received as an argument. If the key is
 	 * not in the array, it will return the index of the smallest key in the
@@ -45,33 +56,19 @@ public abstract class BTreeNode {
 		if (getNumKeys() == 0) {
 			return 0;
 		}
-		int low = 0;
-		int high = getNumKeys() - 1;
-		int mid = 0;
-		boolean found = false;
-		// perform binary search
-		while (!found && low <= high) {
-			mid = low + (high - low) / 2;
-			if (getKey(mid) == key) {
-				found = true;
-			} else {
-				if (key < getKey(mid)) {
-					high = mid - 1;
-				} else {
-					low = mid + 1;
-				}
-			}
-		}
+		Pair<Boolean, Integer> result = binarySearch(key);
+        int closest = result.getB();
+        boolean found = result.getA();
 
 		// if the key is not here, find the child subtree that has it
 		if (!found) {
-			if (mid == 0 && key < getKey(0)) {
+			if (closest == 0 && key < getKey(0)) {
 				return 0;
-			} else if (key < getKey(mid)) {
-				return mid;
+			} else if (key < getKey(closest)) {
+				return closest;
 			}
 		}
-		return mid + 1;
+		return closest + 1;
 	}
 
 	/**
@@ -90,49 +87,20 @@ public abstract class BTreeNode {
 		if (getNumKeys() == 0) {
 			return -1;
 		}
-		int low = 0;
-		int high = getNumKeys() - 1;
-		int mid = 0;
-		boolean found = false;
-		while (!found && low <= high) {
-			mid = low + (high - low) / 2;
-			if (getKey(mid) == key) {
-				found = true;
-			} else {
-				if (key < getKey(mid)) {
-					high = mid - 1;
-				} else {
-					low = mid + 1;
-				}
-			}
-		}
-		if (!found) {
-			return -1;
-		}
-		return getValue(mid);
+        Pair<Boolean, Integer> result = binarySearch(key);
+        int position = result.getB();
+        boolean found = result.getA();
+
+		return found ? getValue(position) : -1;
 	}
 
 	public boolean containsKey(long key) {
 		if (getNumKeys() == 0) {
 			return false;
 		}
-		int low = 0;
-		int high = getNumKeys() - 1;
-		int mid = 0;
-		boolean found = false;
-		while (!found && low <= high) {
-			mid = low + (high - low) / 2;
-			if (getKey(mid) == key) {
-				found = true;
-			} else {
-				if (key < getKey(mid)) {
-					high = mid - 1;
-				} else {
-					low = mid + 1;
-				}
-			}
-		}
-		return found;
+        Pair<Boolean, Integer> result = binarySearch(key);
+        boolean found = result.getA();
+        return found;
 	}
 
 	public BTreeNode findChild(long key) {
@@ -191,7 +159,6 @@ public abstract class BTreeNode {
 		int recordsToMove = getNumKeys() - pos;
 		shiftChildren(pos + 1, pos + 2, recordsToMove);
 		setChild(pos + 1, newNode);
-		newNode.setParent(this);
 
 		shiftKeys(pos, pos + 1, recordsToMove);
 		setKey(pos, key);
@@ -221,10 +188,6 @@ public abstract class BTreeNode {
 
 		setChild(0, left);
 		setChild(1, right);
-		;
-
-		left.setParent(this);
-		right.setParent(this);
 	}
 
 	/**
@@ -302,12 +265,6 @@ public abstract class BTreeNode {
 		right.setNumKeys(keysInRightNode);
 
 		long keyToMoveUp = tempNode.getKeys()[keysInLeftNode];
-
-		// update children pointers
-		newNode.setParent(key < keyToMoveUp ? this : right);
-		for (int i = keysInLeftNode + 1; i < order + 1; i++) {
-			tempNode.getChild(i).setParent(right);
-		}
 
 		return new Pair<>(right, keyToMoveUp);
 	}
@@ -635,8 +592,6 @@ public abstract class BTreeNode {
 		return numKeys;
 	}
 
-	public abstract BTreeNode getParent();
-
 	public long[] getKeys() {
 		return keys;
 	}
@@ -648,12 +603,6 @@ public abstract class BTreeNode {
 	public void setNumKeys(int numKeys) {
 		this.numKeys = numKeys;
 	}
-
-	public abstract void setParent(BTreeNode parent);
-
-	public abstract BTreeNode[] getChildren();
-
-	public abstract void setChildren(BTreeNode[] children);
 
 	public void setKeys(long[] keys) {
 		this.keys = keys;
@@ -667,14 +616,37 @@ public abstract class BTreeNode {
 		return order;
 	}
 
-	public abstract BTreeNode newNode(int order, boolean isLeaf, boolean isRoot);
-
-	public abstract boolean equalChildren(BTreeNode other);
-
-	public abstract void copyChildren(BTreeNode source, int sourceIndex,
-			BTreeNode dest, int destIndex, int size);
 
 	public void setIsRoot(boolean isRoot) {
 		this.isRoot = isRoot;
 	}
+
+    /**
+     * Perform binary search on the key array for a certain key
+     *
+     *
+     * @param key   The key received as an argument.
+     * @return      In case the key is contained in the key array,
+     *              returns the position of the key in this array.
+     *              If the key is not found, returns -1.
+     */
+    private Pair<Boolean, Integer> binarySearch(long key) {
+        int low = 0;
+        int high = getNumKeys() - 1;
+        int mid = 0;
+        boolean found = false;
+        while (!found && low <= high) {
+            mid = low + (high - low) / 2;
+            if (getKey(mid) == key) {
+                found = true;
+            } else {
+                if (key < getKey(mid)) {
+                    high = mid - 1;
+                } else {
+                    low = mid + 1;
+                }
+            }
+        }
+        return new Pair<>(found, mid);
+    }
 }

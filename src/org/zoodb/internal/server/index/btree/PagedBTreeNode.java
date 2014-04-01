@@ -93,19 +93,6 @@ public class PagedBTreeNode extends BTreeNode {
 	}
 
 	@Override
-	public BTreeNode getParent() {
-		if (parentPageId == -1) {
-			return null;
-		}
-		return bufferManager.read(parentPageId);
-	}
-
-	@Override
-	public void setParent(BTreeNode parent) {
-		this.parentPageId = nullSafeGetPageId(toPagedNode(parent));
-	}
-
-	@Override
 	public BTreeNode[] getChildren() {
 		BTreeNode[] children = new BTreeNode[order];
 		int i = 0;
@@ -220,7 +207,6 @@ public class PagedBTreeNode extends BTreeNode {
 		return isDirty;
 	}
 
-
 	/*
 	 * Mark this node dirty which must mark all parents up to the root dirty as
 	 * well because they depend on this node.
@@ -232,11 +218,6 @@ public class PagedBTreeNode extends BTreeNode {
 		}
 		isDirty = true;
         //TODO mark parents as dirty as well
-//
-//		PagedBTreeNode parent = toPagedNode(getParent());
-//		if (parent != null) {
-//			parent.markDirty();
-//		}
 	}
 
 	public void markClean() {
