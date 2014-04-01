@@ -5,10 +5,10 @@ import org.zoodb.internal.server.index.btree.unique.UniqueBTree;
 /**
  * Shared behaviour of unique and non-unique B+ tree.
  */
-public abstract class BTree {
+public abstract class BTree<T extends BTreeNode> {
 
     protected int order;
-    protected BTreeNode root;
+    protected T root;
     protected BTreeNodeFactory nodeFactory;
 
     public BTree(int order, BTreeNodeFactory nodeFactory) {
@@ -16,7 +16,7 @@ public abstract class BTree {
         this.nodeFactory = nodeFactory;
     }
 
-    public void setRoot(BTreeNode root) {
+    public void setRoot(T root) {
         this.root = root;
     }
 
@@ -28,7 +28,7 @@ public abstract class BTree {
         return this.order;
     }
 
-    public BTreeNode getRoot() {
+    public T getRoot() {
         return this.root;
     }
 
@@ -53,7 +53,7 @@ public abstract class BTree {
         return true;
     }
 
-    public void swapRoot(BTreeNode newRoot) {
+    public void swapRoot(T newRoot) {
         if (root != null) {
             root.setIsRoot(false);
         }
@@ -63,9 +63,7 @@ public abstract class BTree {
         }
     }
 
-    protected void markChanged(BTreeNode node) {
-        //ToDo make abstract and fix references in the tests
-    }
+    protected abstract void markChanged(BTreeNode node);
 
     public BTreeNodeFactory getNodeFactory() {
         return nodeFactory;

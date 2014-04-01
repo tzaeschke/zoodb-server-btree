@@ -1,7 +1,5 @@
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.util.Pair;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,36 +32,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		
 		childrenPageIds = new int[order];
     }
-
-	public void put(long key, long value) {
-		markDirty();
-		super.put(key, value);
-	}
-
-	public void put(long key, BTreeNode newNode) {
-		markDirty();
-		super.put(key, newNode);
-	}
-
-	public void put(long key, BTreeNode left, BTreeNode right) {
-		markDirty();
-		super.put(key, left, right);
-	}
-
-	public BTreeNode putAndSplit(long newKey, long value) {
-		markDirty();
-		return super.putAndSplit(newKey, value);
-	}
-
-	public Pair<BTreeNode, Long> putAndSplit(long key, BTreeNode newNode) {
-		markDirty();
-		return super.putAndSplit(key, newNode);
-	}
-
-	public void delete(long key) {
-		markDirty();
-		super.delete(key);
-	}
 
 	public void setKey(int index, long key) {
 		markDirty();
@@ -225,7 +193,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		return node != null ? node.getPageId() : -1;
 
 	}
-
 	private static PagedBTreeNode toPagedNode(BTreeNode node) {
 		return (PagedBTreeNode) node;
 	}

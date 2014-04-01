@@ -97,7 +97,7 @@ public class TestBTreeStorageBufferManager {
 	private PagedBTreeNode getTestLeaf(BTreeBufferManager bufferManager) {
 		int order = 3;
 		PagedBTreeNode leafNode = new UniquePagedBTreeNode(bufferManager, order, true, true);
-		leafNode.put(1, 2);
+		UniqueBTreeUtils.put(leafNode, 1, 2);
 		return leafNode;
 	}
 

@@ -1,11 +1,12 @@
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.server.index.btree.unique.UniqueBTree;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
+import org.zoodb.internal.util.Pair;
 
 public class BTreeUtils {
     //Todo Move to an abstract node class
 
-    public static BTreeNode mergeWithRight(UniqueBTree tree, BTreeNode current, BTreeNode right, BTreeNode parent) {
+    public static <T extends BTreeNode> T mergeWithRight(BTree<T> tree, T current, T right, T parent) {
         int keyIndex = parent.keyIndexOf(current, right);
 
         //check if parent needs merging -> tree gets smaller
@@ -45,7 +46,7 @@ public class BTreeUtils {
         return parent;
     }
 
-    public static BTreeNode mergeWithLeft(UniqueBTree tree, BTreeNode current, BTreeNode left, BTreeNode parent) {
+    public static <T extends BTreeNode> T  mergeWithLeft(BTree<T> tree, T current, T left, T parent) {
         int keyIndex = parent.keyIndexOf(left, current);
 
         //check if we need to merge with parent
@@ -88,7 +89,7 @@ public class BTreeUtils {
         return parent;
     }
 
-    public static void redistributeKeysFromRight(BTreeNode current, BTreeNode right, BTreeNode parent) {
+    public static <T extends BTreeNode> void redistributeKeysFromRight(T current, T right, T parent) {
         int totalKeys = right.getNumKeys() + current.getNumKeys();
         int keysToMove = right.getNumKeys() - (totalKeys / 2);
 
@@ -130,7 +131,7 @@ public class BTreeUtils {
         }
     }
 
-    public static void redistributeKeysFromLeft(BTreeNode current, BTreeNode left, BTreeNode parent) {
+    public static <T extends BTreeNode> void redistributeKeysFromLeft(T current, T left, T parent) {
         int totalKeys = left.getNumKeys() + current.getNumKeys();
         int keysToMove = left.getNumKeys() - (totalKeys / 2);
         int parentKeyIndex = parent.keyIndexOf(left, current);
@@ -176,9 +177,9 @@ public class BTreeUtils {
         }
     }
 
-    public static void copyMergeFromLeftNodeToRightNode(BTreeNode source,
+    public static <T extends BTreeNode> void copyMergeFromLeftNodeToRightNode(T source,
                                                                int sourceStartIndex,
-                                                               BTreeNode destination,
+                                                               T destination,
                                                                int destinationStartIndex,
                                                                int keys,
                                                                int children) {
@@ -192,9 +193,9 @@ public class BTreeUtils {
                 children + 1);
     }
 
-    public static void copyRedistributeFromLeftNodeToRightNode(BTreeNode source,
+    public static <T extends BTreeNode> void copyRedistributeFromLeftNodeToRightNode(T source,
                                                    int sourceStartIndex,
-                                                   BTreeNode destination,
+                                                   T destination,
                                                    int destinationStartIndex,
                                                    int keys,
                                                    int children) {
@@ -208,9 +209,9 @@ public class BTreeUtils {
                 children);
     }
 
-    public static void copyFromRightNodeToLeftNode(BTreeNode source,
+    public static <T extends BTreeNode> void copyFromRightNodeToLeftNode(T source,
                                                    int sourceStartIndex,
-                                                   BTreeNode destination,
+                                                   T destination,
                                                    int destinationStartIndex,
                                                    int keys,
                                                    int children) {
@@ -224,7 +225,32 @@ public class BTreeUtils {
                 children);
     }
 
-    public static void copyNodeToAnother(BTreeNode source, BTreeNode destination, int destinationIndex) {
+    public static <T extends BTreeNode> void copyNodeToAnother(T source, T destination, int destinationIndex) {
         source.copyFromNodeToNode(0, 0, destination, destinationIndex, destinationIndex, source.getNumKeys(), source.getNumKeys() + 1);
+    }
+
+    /**
+     * Root-node put.
+     *
+     * Used when a non-leaf root is empty and will be populated by a single key
+     * and two nodes.
+     *
+     * @param key
+     *            The new key on the root.
+     * @param left
+     *            The left node.
+     * @param right
+     *            The right node.
+     */
+    public static <T extends BTreeNode> void put(T root, long key, T left, T right) {
+        if (!root.isRoot()) {
+            throw new IllegalStateException(
+                    "Should only be called on the root node.");
+        }
+        root.setKey(0, key);
+        root.setNumKeys(1);
+
+        root.setChild(0, left);
+        root.setChild(1, right);
     }
 }

@@ -77,4 +77,9 @@ public class MemoryBTreeNode extends BTreeNode {
 			BTreeNode dest, int destPos, int length) {
 		System.arraycopy(src.getChildren(), srcPos, dest.getChildren(), destPos, length);
 	}
+
+    @Override
+    public <T extends BTreeNode> void put(long key, long value) {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
 }

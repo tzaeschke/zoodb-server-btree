@@ -1,7 +1,5 @@
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.util.Pair;
-
 /**
  * Represents the node of a B+ tree.
  * 
@@ -36,281 +34,20 @@ public abstract class BTreeNode {
     public abstract boolean equalChildren(BTreeNode other);
     public abstract void copyChildren(BTreeNode source, int sourceIndex,
                                       BTreeNode dest, int destIndex, int size);
-    protected abstract BTreeNode leftSiblingOf(BTreeNode node);
-    protected abstract BTreeNode rightSiblingOf(BTreeNode node);
+    protected abstract <T extends BTreeNode> T  leftSiblingOf(BTreeNode node);
+    protected abstract <T extends BTreeNode> T  rightSiblingOf(BTreeNode node);
+    public abstract <T extends BTreeNode> void put(long key, long value);
     public abstract BTreeNode getChild(int index);
     public abstract void setChild(int index, BTreeNode child);
     public abstract BTreeNode[] getChildren();
     public abstract void setChildren(BTreeNode[] children);
 
-	/**
-	 * Returns the index + 1 of the key received as an argument. If the key is
-	 * not in the array, it will return the index of the smallest key in the
-	 * array that is larger than the key received as argument.
-	 * 
-	 * @param key
-	 * @return
-	 */
-	public int findKeyPos(long key) {
-		// ToDo compare keys and values
-		if (getNumKeys() == 0) {
-			return 0;
-		}
-		Pair<Boolean, Integer> result = binarySearch(key);
-        int closest = result.getB();
-        boolean found = result.getA();
-
-		// if the key is not here, find the child subtree that has it
-		if (!found) {
-			if (closest == 0 && key < getKey(0)) {
-				return 0;
-			} else if (key < getKey(closest)) {
-				return closest;
-			}
-		}
-		return closest + 1;
-	}
-
-	/**
-	 * Find the value corresponding to a key in a leaf node.
-	 * 
-	 * @param key
-	 *            The key received as argument
-	 * @return The value corresponding to the key in the index. If the key is
-	 *         not found in the index, -1 is returned.
-	 */
-	public long findValue(long key) {
-		if (!this.isLeaf()) {
-			throw new IllegalStateException(
-					"Should only be called on leaf nodes.");
-		}
-		if (getNumKeys() == 0) {
-			return -1;
-		}
-        Pair<Boolean, Integer> result = binarySearch(key);
-        int position = result.getB();
-        boolean found = result.getA();
-
-		return found ? getValue(position) : -1;
-	}
-
-    /**
-     * Check if this node contains the key received as argument.
-     * @param key
-     * @return          True if the node contains the key, false otherwise.
-     */
-	public boolean containsKey(long key) {
-		if (getNumKeys() == 0) {
-			return false;
-		}
-        Pair<Boolean, Integer> result = binarySearch(key);
-        boolean found = result.getA();
-        return found;
-	}
-
-    /**
-     * Find the child subtree that contains the leaf node corresponding to the key received as argument.
-     * @param key
-     * @return          The child of the current node that contains the key or the root of a subtree that contains the key.
-     */
-	public BTreeNode findChild(long key) {
-		return getChild(findKeyPos(key));
-	}
-
-	/**
-	 * Leaf put.
-	 * 
-	 * Requires that node is not full.
-	 * 
-	 * @param key
-	 * @param value
-	 */
-	public void put(long key, long value) {
-		if (!isLeaf()) {
-			throw new IllegalStateException(
-					"Should only be called on leaf nodes.");
-		}
-
-		int pos = findKeyPos(key);
-		if (pos > numKeys && keys[pos] == key) {
-			throw new IllegalStateException(
-					"Tree is not allowed to have non-unique keys.");
-		}
-		shiftRecords(pos, pos + 1, getNumKeys() - pos);
-		setKey(pos, key);
-		setValue(pos, value);
-		incrementNumKyes();
-	}
-
-	/**
-	 * Inner-node put. Places key to the left of the next bigger key k'.
-	 * 
-	 * Requires that key <= keys(newUniqueNode) all elements of the left child of k'
-	 * are smaller than key node is not full. Assumes that leftOf(key') <=
-	 * keys(newUniqueNode)
-	 * 
-	 * @param key
-	 * @param newNode
-	 */
-	public void put(long key, BTreeNode newNode) {
-		if (isLeaf()) {
-			throw new IllegalStateException(
-					"Should only be called on inner nodes.");
-		} else if (getNumKeys() == 0) {
-			throw new IllegalStateException(
-					"Should only be called when node is non-empty.");
-		}
-
-		int pos = findKeyPos(key);
-		if (pos > numKeys && keys[pos] == key) {
-			throw new IllegalStateException(
-					"Tree is not allowed to have non-unique keys.");
-		}
-		int recordsToMove = getNumKeys() - pos;
-		shiftChildren(pos + 1, pos + 2, recordsToMove);
-		setChild(pos + 1, newNode);
-
-		shiftKeys(pos, pos + 1, recordsToMove);
-		setKey(pos, key);
-		incrementNumKyes();
-	}
-
-	/**
-	 * Root-node put.
-	 * 
-	 * Used when a non-leaf root is empty and will be populated by a single key
-	 * and two nodes.
-	 * 
-	 * @param key
-	 *            The new key on the root.
-	 * @param left
-	 *            The left node.
-	 * @param right
-	 *            The right node.
-	 */
-	public void put(long key, BTreeNode left, BTreeNode right) {
-		if (!isRoot()) {
-			throw new IllegalStateException(
-					"Should only be called on the root node.");
-		}
-		setKey(0, key);
-		setNumKeys(1);
-
-		setChild(0, left);
-		setChild(1, right);
-	}
-
-	/**
-	 * Puts a new key into the node and splits accordingly. Returns the newly
-	 * created leaf, which is to the right.
-	 * 
-	 * @param newKey
-	 * @return
-	 */
-	public BTreeNode putAndSplit(long newKey, long value) {
-		if (!isLeaf()) {
-			throw new IllegalStateException(
-					"Should only be called on leaf nodes.");
-		}
-		BTreeNode tempNode = newNode(order + 1, true, false);
-		System.arraycopy(getKeys(), 0, tempNode.getKeys(), 0, getNumKeys());
-		System.arraycopy(getValues(), 0, tempNode.getValues(), 0, getNumKeys());
-		tempNode.setNumKeys(getNumKeys());
-		tempNode.put(newKey, value);
-
-		int keysInLeftNode = (int) Math.ceil((order) / 2.0);
-		int keysInRightNode = order - keysInLeftNode;
-
-		// populate left node
-		System.arraycopy(tempNode.getKeys(), 0, getKeys(), 0, keysInLeftNode);
-		System.arraycopy(tempNode.getValues(), 0, getValues(), 0,
-				keysInLeftNode);
-		setNumKeys(keysInLeftNode);
-
-		// populate right node
-		BTreeNode rightNode = newNode(order, true, false);
-		System.arraycopy(tempNode.getKeys(), keysInLeftNode,
-				rightNode.getKeys(), 0, keysInRightNode);
-		System.arraycopy(tempNode.getValues(), keysInLeftNode,
-				rightNode.getValues(), 0, keysInRightNode);
-		rightNode.setNumKeys(keysInRightNode);
-
-		return rightNode;
-	}
-
-	/**
-	 * Puts a key and a new node to the inner structure of the tree.
-	 * 
-	 * @param key
-	 * @param newNode
-	 * @return
-	 */
-	public Pair<BTreeNode, Long> putAndSplit(long key, BTreeNode newNode) {
-		if (isLeaf()) {
-			throw new IllegalStateException(
-					"Should only be called on inner nodes.");
-		}
-
-		// create a temporary node to allow the insertion
-		BTreeNode tempNode = newNode(order + 1, false, true);
-		System.arraycopy(getKeys(), 0, tempNode.getKeys(), 0, getNumKeys());
-		copyChildren(this, 0, tempNode, 0, order);
-		tempNode.setNumKeys(getNumKeys());
-		tempNode.put(key, newNode);
-
-		// split
-		BTreeNode right = newNode(order, false, false);
-		int keysInLeftNode = (int) Math.floor(order / 2.0);
-		// populate left node
-		System.arraycopy(tempNode.getKeys(), 0, getKeys(), 0, keysInLeftNode);
-		copyChildren(tempNode, 0, this, 0, keysInLeftNode + 1);
-		setNumKeys(keysInLeftNode);
-
-		// populate right node
-		int keysInRightNode = order - keysInLeftNode - 1;
-		System.arraycopy(tempNode.getKeys(), keysInLeftNode + 1,
-				right.getKeys(), 0, keysInRightNode);
-		copyChildren(tempNode, keysInLeftNode + 1, right, 0,
-				keysInRightNode + 1);
-		right.setNumKeys(keysInRightNode);
-
-		long keyToMoveUp = tempNode.getKeys()[keysInLeftNode];
-
-		return new Pair<>(right, keyToMoveUp);
-	}
-
-	/**
-	 * Delete the key from the node.
-	 * 
-	 * @param key
-	 */
-	public void delete(long key) {
-		if (!isLeaf()) {
-			throw new IllegalStateException("Should be a leaf node");
-		}
-		final int keyPos = findKeyPos(key);
-		int recordsToMove = getNumKeys() - keyPos;
-		shiftRecords(keyPos, keyPos - 1, recordsToMove);
-		decrementNumKeys();
-	}
-
-    public BTreeNode leftSibling(BTreeNode parent) {
-        return (parent == null) ? null : parent.leftSiblingOf(this);
+    public <T extends BTreeNode> T leftSibling(BTreeNode parent) {
+        return (parent == null) ? null : (T) parent.leftSiblingOf(this);
     }
 
-    public BTreeNode rightSibling(BTreeNode parent) {
-        return (parent == null) ? null : parent.rightSiblingOf(this);
-    }
-
-    public void replaceKey(long key, long replacementKey) {
-        if (replacementKey < key) {
-            throw new RuntimeException("Replacing " + key + " with "
-                    + replacementKey + " might be illegal.");
-        }
-        int pos = findKeyPos(key);
-        if (pos > -1) {
-            setKey(pos - 1, replacementKey);
-        }
+    public <T extends BTreeNode> T rightSibling(BTreeNode parent) {
+        return (parent == null) ? null : (T) parent.rightSiblingOf(this);
     }
 
 	public void setKey(int index, long key) {
@@ -454,39 +191,9 @@ public abstract class BTreeNode {
 		return order;
 	}
 
-
 	public void setIsRoot(boolean isRoot) {
 		this.isRoot = isRoot;
 	}
-
-    /**
-     * Perform binary search on the key array for a certain key
-     *
-     *
-     * @param key   The key received as an argument.
-     * @return      In case the key is contained in the key array,
-     *              returns the position of the key in this array.
-     *              If the key is not found, returns -1.
-     */
-    private Pair<Boolean, Integer> binarySearch(long key) {
-        int low = 0;
-        int high = getNumKeys() - 1;
-        int mid = 0;
-        boolean found = false;
-        while (!found && low <= high) {
-            mid = low + (high - low) / 2;
-            if (getKey(mid) == key) {
-                found = true;
-            } else {
-                if (key < getKey(mid)) {
-                    high = mid - 1;
-                } else {
-                    low = mid + 1;
-                }
-            }
-        }
-        return new Pair<>(found, mid);
-    }
 
     /*
         Node modification operations
@@ -502,7 +209,7 @@ public abstract class BTreeNode {
         }
     }
 
-    private void shiftRecords(int startIndex, int endIndex, int amount) {
+    protected void shiftRecords(int startIndex, int endIndex, int amount) {
         shiftKeys(startIndex, endIndex, amount);
         if (isLeaf()) {
             shiftValues(startIndex, endIndex, amount);
@@ -530,19 +237,19 @@ public abstract class BTreeNode {
         }
     }
 
-    public void shiftRecordsLeft(int amount) {
+    protected void shiftRecordsLeft(int amount) {
         shiftRecordsLeftWithIndex(0, amount);
     }
 
-    private void shiftKeys(int startIndex, int endIndex, int amount) {
+    protected void shiftKeys(int startIndex, int endIndex, int amount) {
         System.arraycopy(getKeys(), startIndex, getKeys(), endIndex, amount);
     }
 
-    private void shiftValues(int startIndex, int endIndex, int amount) {
+    protected void shiftValues(int startIndex, int endIndex, int amount) {
         System.arraycopy(getValues(), startIndex, getValues(), endIndex, amount);
     }
 
-    private void shiftChildren(int startIndex, int endIndex, int amount) {
+    protected void shiftChildren(int startIndex, int endIndex, int amount) {
         copyChildren(this, startIndex, this, endIndex, amount);
     }
 
@@ -647,4 +354,5 @@ public abstract class BTreeNode {
         }
         return true;
     }
+
 }
