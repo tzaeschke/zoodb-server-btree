@@ -26,7 +26,8 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory {
                                                 int numKeys,
                                                 long[] keys,
                                                 long[] values) {
-        PagedBTreeNode node = createNode(bufferManager, isUnique, isRoot, order, pageId);
+        boolean isLeaf = true;
+        PagedBTreeNode node = createNode(bufferManager, isUnique, isRoot, isLeaf, order, pageId);
 
 		node.setNumKeys(numKeys);
 		node.setKeys(keys);
@@ -42,7 +43,8 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory {
                                                      int numKeys,
                                                      long[] keys,
                                                      int[] childrenPageIds) {
-		PagedBTreeNode node = createNode(bufferManager, isUnique, isRoot, order, pageId);
+        boolean isLeaf = false;
+		PagedBTreeNode node = createNode(bufferManager, isUnique, isRoot, isLeaf, order, pageId);
 
 		node.setNumKeys(numKeys);
 		node.setKeys(keys);
@@ -53,13 +55,14 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory {
     private static PagedBTreeNode createNode(   BTreeBufferManager bufferManager,
                                                 boolean isUnique,
                                                 boolean isRoot,
+                                                boolean isLeaf,
                                                 int order,
                                                 int pageId) {
         PagedBTreeNode node;
         if (isUnique) {
-            node = new UniquePagedBTreeNode(bufferManager, order, false, isRoot, pageId);
+            node = new UniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot, pageId);
         } else {
-            node = new NonUniquePagedBTreeNode(bufferManager, order, false, isRoot, pageId);
+            node = new NonUniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot, pageId);
         }
         return node;
     }
