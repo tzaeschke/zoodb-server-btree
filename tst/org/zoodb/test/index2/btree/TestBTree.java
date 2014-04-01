@@ -31,7 +31,7 @@ public class TestBTree {
 	public void searchSingleNode() {
 		final int order = 10;
         BTreeFactory factory = new BTreeFactory(order, bufferManager);
-		BTree tree = factory.getTree();
+		UniqueBTree tree = factory.getTree();
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
 				.increasingKeysRandomValues(order / 2);
@@ -50,7 +50,7 @@ public class TestBTree {
 	public void searchAfterSplit() {
 		final int order = 10000;
         BTreeFactory factory = new BTreeFactory(order, bufferManager);
-		BTree tree = factory.getTree();
+		UniqueBTree tree = factory.getTree();
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
 				.increasingKeysRandomValues(order);
@@ -69,7 +69,7 @@ public class TestBTree {
 	public void searchMissingSingleNode() {
 		final int order = 10000;
         BTreeFactory factory = new BTreeFactory(order, bufferManager);
-		BTree tree = factory.getTree();
+		UniqueBTree tree = factory.getTree();
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
 				.increasingKeysRandomValues(order / 2);
@@ -89,7 +89,7 @@ public class TestBTree {
 	public void searchMissingAfterSplit() {
 		final int order = 10000;
         BTreeFactory factory = new BTreeFactory(order, bufferManager);
-		BTree tree = factory.getTree();
+		UniqueBTree tree = factory.getTree();
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
 				.increasingKeysRandomValues(order);
@@ -109,7 +109,7 @@ public class TestBTree {
 	public void insertWithSimpleSplit() {
 		int order = 5;
         BTreeFactory factory = new BTreeFactory(order, bufferManager);
-		BTree tree = factory.getTree();
+		UniqueBTree tree = factory.getTree();
 		tree.insert(3, 1);
 		tree.insert(2, 5);
 		tree.insert(0, 5);
@@ -122,7 +122,7 @@ public class TestBTree {
 		factory.addLeafLayer(Arrays.asList(
 				Arrays.asList(pair(0L, 5L), pair(1L, -100L), pair(2L, 5L)),
 				Arrays.asList(pair(3L, 1L), pair(4L, 10L))));
-		BTree expected = factory.getTree();
+		UniqueBTree expected = factory.getTree();
 
 		assertEquals(
 				"Tree does not have the proper structure after insertion ",
@@ -143,7 +143,7 @@ public class TestBTree {
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(10L, 20L, 30L),
 				Arrays.asList(40L, 50L), Arrays.asList(60L, 70L, 80L),
 				Arrays.asList(90L, 100L), Arrays.asList(110L, 120L)));
-		BTree tree = factory.getTree();
+		UniqueBTree tree = factory.getTree();
 
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(90L)));
@@ -153,7 +153,7 @@ public class TestBTree {
 				Arrays.asList(20L, 30L), Arrays.asList(40L, 50L),
 				Arrays.asList(60L, 70L, 80L), Arrays.asList(90L, 100L),
 				Arrays.asList(110L, 120L)));
-		BTree expected = factory.getTree();
+		UniqueBTree expected = factory.getTree();
 
 		tree.insert(5, 5);
 		assertEquals("Tree did not split properly after first insert.",
@@ -188,7 +188,7 @@ public class TestBTree {
 				Arrays.asList(2L, 3L, 5L, 7L), Arrays.asList(14L, 16L),
 				Arrays.asList(19L, 20L, 22L), Arrays.asList(24L, 27L, 29L),
 				Arrays.asList(33L, 34L, 38L, 39L)));
-		BTree tree = factory.getTree();
+		UniqueBTree tree = factory.getTree();
 
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
@@ -198,7 +198,7 @@ public class TestBTree {
 				Arrays.asList(7L, 8L), Arrays.asList(14L, 16L),
 				Arrays.asList(19L, 20L, 22L), Arrays.asList(24L, 27L, 29L),
 				Arrays.asList(33L, 34L, 38L, 39L)));
-		BTree expected = factory.getTree();
+		UniqueBTree expected = factory.getTree();
 
 		tree.insert(8, 8);
 		assertEquals("Tree did not split properly after insert.", expected,
@@ -220,7 +220,7 @@ public class TestBTree {
 				Arrays.asList(5L, 7L, 8L), Arrays.asList(14L, 16L),
 				Arrays.asList(19L, 20L, 22L), Arrays.asList(24L, 27L, 29L),
 				Arrays.asList(33L, 34L, 38L, 39L)));
-		BTree tree = factory.getTree();
+		UniqueBTree tree = factory.getTree();
 
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
@@ -230,7 +230,7 @@ public class TestBTree {
 				Arrays.asList(5L, 7L, 8L), Arrays.asList(14L, 16L),
 				Arrays.asList(20L, 22L), Arrays.asList(24L, 27L, 29L),
 				Arrays.asList(33L, 34L, 38L, 39L)));
-		BTree expectedTree = factory.getTree();
+		UniqueBTree expectedTree = factory.getTree();
 
 		tree.delete(19);
 		assertEquals(expectedTree, tree);
@@ -247,7 +247,7 @@ public class TestBTree {
 				Arrays.asList(5L, 7L, 8L), Arrays.asList(14L, 16L),
 				Arrays.asList(20L, 22L), Arrays.asList(24L, 27L, 29L),
 				Arrays.asList(33L, 34L, 38L, 39L)));
-		BTree tree = factory.getTree();
+		UniqueBTree tree = factory.getTree();
 
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
@@ -257,7 +257,7 @@ public class TestBTree {
 				Arrays.asList(5L, 7L, 8L), Arrays.asList(14L, 16L),
 				Arrays.asList(22L, 24L), Arrays.asList(27L, 29L),
 				Arrays.asList(33L, 34L, 38L, 39L)));
-		BTree expectedTree = factory.getTree();
+		UniqueBTree expectedTree = factory.getTree();
 
 		tree.delete(20);
 		assertEquals(expectedTree, tree);
@@ -274,14 +274,14 @@ public class TestBTree {
 				Arrays.asList(5L, 7L, 8L), Arrays.asList(14L, 16L),
 				Arrays.asList(22L, 24L), Arrays.asList(27L, 29L),
 				Arrays.asList(33L, 34L, 38L, 39L)));
-		BTree tree = factory.getTree();
+		UniqueBTree tree = factory.getTree();
 
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 13L, 17L, 30L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L, 3L),
 				Arrays.asList(5L, 7L, 8L), Arrays.asList(14L, 16L),
 				Arrays.asList(22L, 27L, 29L), Arrays.asList(33L, 34L, 38L, 39L)));
-		BTree expectedTree = factory.getTree();
+		UniqueBTree expectedTree = factory.getTree();
 
 		tree.delete(24);
 		assertEquals(expectedTree, tree);
@@ -302,7 +302,7 @@ public class TestBTree {
 				Arrays.asList(3L, 4L), Arrays.asList(5L, 6L),
 				Arrays.asList(7L, 8L, 9L), Arrays.asList(10L, 11L),
 				Arrays.asList(12L, 13L)));
-		BTree tree1 = factory.getTree();
+		UniqueBTree tree1 = factory.getTree();
 
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(7L)));
@@ -311,7 +311,7 @@ public class TestBTree {
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L),
 				Arrays.asList(3L, 4L), Arrays.asList(5L, 6L),
 				Arrays.asList(7L, 8L, 9L), Arrays.asList(10L, 11L, 13L)));
-		BTree tree2 = factory.getTree();
+		UniqueBTree tree2 = factory.getTree();
 		tree1.delete(12L);
 		assertEquals(tree2, tree1);
 
@@ -322,7 +322,7 @@ public class TestBTree {
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L),
 				Arrays.asList(3L, 4L), Arrays.asList(5L, 6L),
 				Arrays.asList(7L, 8L), Arrays.asList(9L, 10L)));
-		BTree tree3 = factory.getTree();
+		UniqueBTree tree3 = factory.getTree();
 		tree2.delete(11L);
 		tree2.delete(13L);
 		assertEquals(tree3, tree2);
@@ -332,7 +332,7 @@ public class TestBTree {
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L),
 				Arrays.asList(3L, 4L), Arrays.asList(5L, 6L),
 				Arrays.asList(8L, 9L, 10L)));
-		BTree tree4 = factory.getTree();
+		UniqueBTree tree4 = factory.getTree();
 		tree3.delete(7L);
 		assertEquals(tree4, tree3);
 	}
@@ -344,12 +344,12 @@ public class TestBTree {
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 10L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L, 3L),
 				Arrays.asList(5L, 9L), Arrays.asList(10L, 11L)));
-		BTree tree1 = factory.getTree();
+		UniqueBTree tree1 = factory.getTree();
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L, 3L),
 				Arrays.asList(5L, 9L, 11L)));
-		BTree tree2 = factory.getTree();
+		UniqueBTree tree2 = factory.getTree();
 		tree1.delete(10L);
 		assertEquals(tree2, tree1);
 	}
@@ -361,12 +361,12 @@ public class TestBTree {
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 10L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L),
 				Arrays.asList(5L, 9L), Arrays.asList(10L, 11L)));
-		BTree tree1 = factory.getTree();
+		UniqueBTree tree1 = factory.getTree();
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L, 9L),
 				Arrays.asList(10L, 11L)));
-		BTree tree2 = factory.getTree();
+		UniqueBTree tree2 = factory.getTree();
 		tree1.delete(5L);
 		assertEquals(tree2, tree1);
 	}
@@ -378,12 +378,12 @@ public class TestBTree {
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L),
 				Arrays.asList(10L, 11L, 12L, 13L)));
-		BTree tree1 = factory.getTree();
+		UniqueBTree tree1 = factory.getTree();
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(12L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 10L, 11L),
 				Arrays.asList(12L, 13L)));
-		BTree tree2 = factory.getTree();
+		UniqueBTree tree2 = factory.getTree();
 		tree1.delete(2L);
 		assertEquals(tree2, tree1);
 	}
@@ -395,12 +395,12 @@ public class TestBTree {
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L),
 				Arrays.asList(10L, 11L, 12L)));
-		BTree tree1 = factory.getTree();
+		UniqueBTree tree1 = factory.getTree();
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(11L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 10L),
 				Arrays.asList(11L, 12L)));
-		BTree tree2 = factory.getTree();
+		UniqueBTree tree2 = factory.getTree();
 		tree1.delete(2L);
 		assertEquals(tree2, tree1);
 	}
@@ -412,12 +412,12 @@ public class TestBTree {
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
 		factory.addLeafLayerDefault(Arrays.asList(
 				Arrays.asList(1L, 2L, 3L, 4L), Arrays.asList(10L, 11L)));
-		BTree tree1 = factory.getTree();
+		UniqueBTree tree1 = factory.getTree();
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(3L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L),
 				Arrays.asList(3L, 4L, 11L)));
-		BTree tree2 = factory.getTree();
+		UniqueBTree tree2 = factory.getTree();
 		tree1.delete(10L);
 		assertEquals(tree2, tree1);
 	}
@@ -429,12 +429,12 @@ public class TestBTree {
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L, 3L),
 				Arrays.asList(10L, 11L)));
-		BTree tree1 = factory.getTree();
+		UniqueBTree tree1 = factory.getTree();
 		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(3L)));
 		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L),
 				Arrays.asList(3L, 11L)));
-		BTree tree2 = factory.getTree();
+		UniqueBTree tree2 = factory.getTree();
 		tree1.delete(10L);
 		assertEquals(tree2, tree1);
 	}
@@ -448,7 +448,7 @@ public class TestBTree {
 		int order = 320;
 		int numEntries = 10000;
         BTreeFactory factory = new BTreeFactory(order, bufferManager);
-		BTree tree = factory.getTree();
+		UniqueBTree tree = factory.getTree();
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries);
 
 		for (LLEntry entry : entries) {
@@ -505,7 +505,7 @@ public class TestBTree {
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
 				storage);
 
-		BTree tree = getTestTree(bufferManager);
+		UniqueBTree tree = getTestTree(bufferManager);
 		PagedBTreeNode root = (PagedBTreeNode) tree.getRoot();
 		assertTrue(root.isDirty());
 		bufferManager.write((PagedBTreeNode) tree.getRoot());
@@ -575,7 +575,7 @@ public class TestBTree {
 		assertFalse(lvl2child7.isDirty());
 	}
 	
-	public static BTree getTestTree(BTreeBufferManager bufferManager) {
+	public static UniqueBTree getTestTree(BTreeBufferManager bufferManager) {
 		int order = 5;
 		BTreeFactory factory = new BTreeFactory(order, bufferManager);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
@@ -585,7 +585,7 @@ public class TestBTree {
 				Arrays.asList(5L, 7L, 8L), Arrays.asList(14L, 16L),
 				Arrays.asList(19L, 20L, 22L), Arrays.asList(24L, 27L, 29L),
 				Arrays.asList(33L, 34L, 38L, 39L)));
-		BTree tree = factory.getTree();
+		UniqueBTree tree = factory.getTree();
 		return tree;
 	}
 

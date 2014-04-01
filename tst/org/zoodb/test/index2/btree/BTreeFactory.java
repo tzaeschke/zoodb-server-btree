@@ -7,16 +7,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 /*
- * Convenience class to build a BTree layer by layer.
+ * Convenience class to build a UniqueBTree layer by layer.
  */
 public class BTreeFactory {
 	
-	private PagedBTree tree;
+	private PagedUniqueBTree tree;
 	private List<BTreeNode> prevLayer;
 	private BTreeNodeFactory nodeFactory;
 
     public BTreeFactory(int order, BTreeBufferManager bufferManager)  {
-        this.tree = new PagedBTree(order, bufferManager);
+        this.tree = new PagedUniqueBTree(order, bufferManager);
         this.nodeFactory = tree.getNodeFactory();
     }
 	
@@ -76,12 +76,12 @@ public class BTreeFactory {
 		}
 	}
 
-	public BTree getTree() {
+	public UniqueBTree getTree() {
 		return this.tree;
 	}
 	
 	public void clear() {
-		this.tree = new PagedBTree(tree.getOrder(), tree.getBufferManager());
+		this.tree = new PagedUniqueBTree(tree.getOrder(), tree.getBufferManager());
 	}
 	
 	private static List<List<Pair<Long,Long>>> zip(List<List<Long>> l1, List<List<Long>> l2) {

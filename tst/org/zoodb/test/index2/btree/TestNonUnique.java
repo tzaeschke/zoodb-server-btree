@@ -1,7 +1,7 @@
 package org.zoodb.test.index2.btree;
 
 import org.junit.Test;
-import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.UniqueBTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
 
@@ -16,7 +16,7 @@ public class TestNonUnique {
     @Test(expected = IllegalStateException.class)
     public void testSameKeyValuePair() {
         int order = 5;
-        BTree tree = factory(order).getTree();
+        UniqueBTree tree = factory(order).getTree();
         tree.insert(1, 1);
         tree.insert(1, 1);
     }
@@ -25,7 +25,7 @@ public class TestNonUnique {
     public void testSameKeyLeaf() {
         int order = 5;
         BTreeFactory factory = factory(order);
-        BTree tree = factory.getTree();
+        UniqueBTree tree = factory.getTree();
         tree.insert(1, 1);
         tree.insert(2, 2);
         tree.insert(2, 3);
@@ -36,7 +36,7 @@ public class TestNonUnique {
                     Arrays.asList(1L, 2L, 2L)
                 )
         );
-        BTree expected = factory.getTree();
+        UniqueBTree expected = factory.getTree();
         assertEquals(expected, tree);
     }
 
@@ -44,7 +44,7 @@ public class TestNonUnique {
     public void testDeleteLeaf() {
         int order = 5;
         BTreeFactory factory = factory(order);
-        BTree tree = factory.getTree();
+        UniqueBTree tree = factory.getTree();
 
         tree.insert(1, 1);
         tree.insert(2, 2);
@@ -59,7 +59,7 @@ public class TestNonUnique {
                         )
                 )
         );
-        BTree expected = factory.getTree();
+        UniqueBTree expected = factory.getTree();
         //ToDo add delete key, value
 
         assertEquals(expected, tree);

@@ -1,7 +1,7 @@
 package org.zoodb.test.index2.btree;
 
 import org.junit.Test;
-import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.UniqueBTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
 
@@ -15,7 +15,7 @@ public class TestUnique {
     @Test
     public void testInsertDuplicates() {
         int order = 5;
-        BTree tree = factory(order).getTree();
+        UniqueBTree tree = factory(order).getTree();
 
         Map<Long, Long> entries = new LinkedHashMap<Long, Long>() {{
             put(1L, 1L);
@@ -39,7 +39,7 @@ public class TestUnique {
     @Test(expected = IllegalStateException.class)
     public void testSameKeyPair() {
         int order = 5;
-        BTree tree = factory(order).getTree();
+        UniqueBTree tree = factory(order).getTree();
         tree.insert(1, 1);
         tree.insert(1, 2);
     }

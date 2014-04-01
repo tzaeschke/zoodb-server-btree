@@ -3,7 +3,7 @@ package org.zoodb.internal.server.index.btree;
 public class BTreeUtils {
     //Todo Move to an abstract node class
 
-    public static BTreeNode mergeWithRight(BTree tree, BTreeNode current, BTreeNode right, BTreeNode parent) {
+    public static BTreeNode mergeWithRight(UniqueBTree tree, BTreeNode current, BTreeNode right, BTreeNode parent) {
         int keyIndex = parent.keyIndexOf(current, right);
 
         //check if parent needs merging -> tree gets smaller
@@ -43,7 +43,7 @@ public class BTreeUtils {
         return parent;
     }
 
-    public static BTreeNode mergeWithLeft(BTree tree, BTreeNode current, BTreeNode left, BTreeNode parent) {
+    public static BTreeNode mergeWithLeft(UniqueBTree tree, BTreeNode current, BTreeNode left, BTreeNode parent) {
         int keyIndex = parent.keyIndexOf(left, current);
 
         //check if we need to merge with parent
@@ -164,7 +164,7 @@ public class BTreeUtils {
             current.shiftRecordsRight(keysToMove);
 
             //copy k keys and k+1 children from left
-            left.copyFromNodeToNode(startIndexLeft, startIndexLeft, current, startIndexRight, startIndexRight, keysToMove, keysToMove+1);
+            left.copyFromNodeToNode(startIndexLeft, startIndexLeft, current, startIndexRight, startIndexRight, keysToMove, keysToMove + 1);
             current.increaseNumKeys(keysToMove);
             left.decreaseNumKeys(keysToMove);
             //move the biggest key to parent
@@ -181,13 +181,13 @@ public class BTreeUtils {
                                                                int keys,
                                                                int children) {
         source.copyFromNodeToNode(
-                    sourceStartIndex,
-                    sourceStartIndex,
-                    destination,
-                    destinationStartIndex,
-                    destinationStartIndex,
-                    keys,
-                    children + 1);
+                sourceStartIndex,
+                sourceStartIndex,
+                destination,
+                destinationStartIndex,
+                destinationStartIndex,
+                keys,
+                children + 1);
     }
 
     public static void copyRedistributeFromLeftNodeToRightNode(BTreeNode source,
@@ -197,13 +197,13 @@ public class BTreeUtils {
                                                    int keys,
                                                    int children) {
         source.copyFromNodeToNode(
-                            sourceStartIndex,
-                            sourceStartIndex + 1,
-                            destination,
-                            destinationStartIndex,
-                            destinationStartIndex,
-                            keys,
-                            children);
+                sourceStartIndex,
+                sourceStartIndex + 1,
+                destination,
+                destinationStartIndex,
+                destinationStartIndex,
+                keys,
+                children);
     }
 
     public static void copyFromRightNodeToLeftNode(BTreeNode source,
@@ -213,13 +213,13 @@ public class BTreeUtils {
                                                    int keys,
                                                    int children) {
         source.copyFromNodeToNode(
-                                sourceStartIndex,
-                                sourceStartIndex,
-                                destination,
-                                destinationStartIndex,
-                                destinationStartIndex,
-                                keys,
-                                children);
+                sourceStartIndex,
+                sourceStartIndex,
+                destination,
+                destinationStartIndex,
+                destinationStartIndex,
+                keys,
+                children);
     }
 
     public static void copyNodeToAnother(BTreeNode source, BTreeNode destination, int destinationIndex) {

@@ -60,7 +60,7 @@ public class TestBTreeStorageBufferManager {
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
 				storage);
 
-		BTree tree = TestBTree.getTestTree(bufferManager);
+		UniqueBTree tree = TestBTree.getTestTree(bufferManager);
 		int pageId = bufferManager.write((PagedBTreeNode) tree.getRoot());
 
 		assertEquals(10, storage.statsGetPageCount());
