@@ -5,9 +5,6 @@ public class MemoryBTreeNode extends BTreeNode {
 	private BTreeNode[] children;
 	private BTreeNode parent;
 
-	private BTreeNode left;
-	private BTreeNode right;
-
 	public MemoryBTreeNode(int order, boolean isLeaf, boolean isRoot) {
 		super(order, isLeaf, isRoot);
 		// TODO Auto-generated constructor stub
@@ -27,22 +24,6 @@ public class MemoryBTreeNode extends BTreeNode {
 
 	public void setParent(BTreeNode parent) {
 		this.parent = parent;
-	}
-
-	public BTreeNode getLeft() {
-		return left;
-	}
-
-	public void setLeft(BTreeNode left) {
-		this.left = left;
-	}
-
-	public BTreeNode getRight() {
-		return right;
-	}
-
-	public void setRight(BTreeNode right) {
-		this.right = right;
 	}
 
 	public BTreeNode newNode(int order, boolean isLeaf, boolean isRoot) {
