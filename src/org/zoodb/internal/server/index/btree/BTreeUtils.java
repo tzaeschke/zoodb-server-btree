@@ -1,6 +1,7 @@
 package org.zoodb.internal.server.index.btree;
 
 public class BTreeUtils {
+    //Todo Move to an abstract node class
 
     public static BTreeNode mergeWithRight(BTree tree, BTreeNode current, BTreeNode right, BTreeNode parent) {
         int keyIndex = parent.keyIndexOf(current, right);

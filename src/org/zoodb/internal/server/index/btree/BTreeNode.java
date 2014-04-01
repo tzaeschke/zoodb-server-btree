@@ -41,7 +41,7 @@ public abstract class BTreeNode {
 	 * @return
 	 */
 	public int findKeyPos(long key) {
-		// Todo make method package and add test to the same package
+		// ToDo compare keys and values
 		if (getNumKeys() == 0) {
 			return 0;
 		}

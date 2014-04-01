@@ -4,7 +4,6 @@ import org.junit.Test;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTree;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -16,7 +15,8 @@ public class TestUnique {
     @Test
     public void testInsertDuplicates() {
         int order = 5;
-        BTree tree = new PagedBTree(order, bufferManager);
+        BTree tree = factory(order).getTree();
+
         Map<Long, Long> entries = new LinkedHashMap<Long, Long>() {{
             put(1L, 1L);
             put(2L, 2L);
@@ -34,7 +34,20 @@ public class TestUnique {
         }
         System.out.println(tree.search(5L));
         System.out.println(tree);
+    }
 
+    @Test(expected = IllegalStateException.class)
+    public void testSameKeyPair() {
+        int order = 5;
+        BTree tree = factory(order).getTree();
+        tree.insert(1, 1);
+        tree.insert(1, 2);
+    }
+
+
+
+    private BTreeFactory factory(int order) {
+        return new BTreeFactory(order, bufferManager);
     }
 
 }
