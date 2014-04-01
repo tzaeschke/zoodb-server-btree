@@ -1,6 +1,8 @@
 package org.zoodb.internal.server.index.btree;
 
-public interface BTreeBufferManager {
+import java.util.Observer;
+
+public interface BTreeBufferManager extends Observer {
 
 	/*
 	 * returns null if pageId can not be found

@@ -2,6 +2,7 @@ package org.zoodb.test.index2.btree;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -88,6 +89,46 @@ public class TestBTreeStorageBufferManager {
 		assertEquals(0, storage.statsGetPageCount());
 		// assertEquals(null, bufferManager.read(pageId));
 		// does not work because data is still on the page
+	}
+	
+	@Test
+	public void bufferLocationTest() {
+        BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
+				storage);
+		PagedBTreeNode leafNode = getTestLeaf(bufferManager);
+		assertFalse(bufferManager.getCleanBuffer().containsKey(leafNode.getPageId()));
+		assertTrue(bufferManager.getDirtyBuffer().containsKey(leafNode.getPageId()));
+		
+		bufferManager.write(leafNode);
+		assertTrue(bufferManager.getCleanBuffer().containsKey(leafNode.getPageId()));
+		assertFalse(bufferManager.getDirtyBuffer().containsKey(leafNode.getPageId()));
+		
+		leafNode.put(2, 3);
+		assertFalse(bufferManager.getCleanBuffer().containsKey(leafNode.getPageId()));
+		assertTrue(bufferManager.getDirtyBuffer().containsKey(leafNode.getPageId()));
+
+		int pageId = bufferManager.write(leafNode);
+		
+        BTreeStorageBufferManager bufferManager2 = new BTreeStorageBufferManager(
+				storage);
+		PagedBTreeNode leafNode2 = bufferManager2.read(pageId);
+		assertTrue(bufferManager2.getCleanBuffer().containsKey(leafNode2.getPageId()));
+		assertFalse(bufferManager2.getDirtyBuffer().containsKey(leafNode2.getPageId()));
+		
+		leafNode.close();
+		assertFalse(bufferManager.getCleanBuffer().containsKey(leafNode.getPageId()));
+		assertFalse(bufferManager.getDirtyBuffer().containsKey(leafNode.getPageId()));
+		
+		leafNode = getTestLeaf(bufferManager);
+		leafNode.close();
+		assertFalse(bufferManager.getCleanBuffer().containsKey(leafNode.getPageId()));
+		assertFalse(bufferManager.getDirtyBuffer().containsKey(leafNode.getPageId()));
+		
+        leafNode = getTestLeaf(bufferManager);
+        bufferManager.write(leafNode);
+		leafNode.close();
+		assertFalse(bufferManager.getCleanBuffer().containsKey(leafNode.getPageId()));
+		assertFalse(bufferManager.getDirtyBuffer().containsKey(leafNode.getPageId()));
 	}
 
 	@Test

@@ -3,14 +3,14 @@ package org.zoodb.test.index2.btree;
 import org.junit.Test;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class TestUnique {
 
-    private BTreeBufferManager bufferManager = new BTreeHashBufferManager();
+    private BTreeBufferManager bufferManager = new BTreeMemoryBufferManager();
 
     @Test
     public void testInsertDuplicates() {

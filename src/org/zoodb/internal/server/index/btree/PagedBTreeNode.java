@@ -18,11 +18,12 @@ public class PagedBTreeNode extends BTreeNode {
 	public PagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {
 		super(order, isLeaf, isRoot);
 
+		markDirty();
 		this.bufferManager = bufferManager;
 		this.setPageId(bufferManager.save(this));
+		this.addObserver(bufferManager);
 
 		childrenPageIds = new int[order];
-		markDirty();
 	}
 	
 	/*
@@ -231,10 +232,16 @@ public class PagedBTreeNode extends BTreeNode {
 			return;
 		}
 		isDirty = true;
+
+		setChanged();
+		notifyObservers();
 	}
 
 	public void markClean() {
 		isDirty = false;
+
+		setChanged();
+		notifyObservers();
 	}
 
 	public int getPageId() {

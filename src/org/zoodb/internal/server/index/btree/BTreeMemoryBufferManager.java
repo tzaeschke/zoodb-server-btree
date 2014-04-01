@@ -2,12 +2,13 @@ package org.zoodb.internal.server.index.btree;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Observable;
 
-public class BTreeHashBufferManager implements BTreeBufferManager {
+public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	private Map<Integer, PagedBTreeNode> map;
 	private int pageId;
 
-	public BTreeHashBufferManager() {
+	public BTreeMemoryBufferManager() {
 		this.map = new HashMap<Integer, PagedBTreeNode>();
 		this.pageId = 0;
 	}
@@ -40,6 +41,10 @@ public class BTreeHashBufferManager implements BTreeBufferManager {
 	public void clear() {
 		pageId = 0;
 		map.clear();
+	}
+	@Override
+	public void update(Observable o, Object arg) {
+		return;
 	}
 
 }

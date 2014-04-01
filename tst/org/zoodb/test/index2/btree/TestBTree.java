@@ -17,7 +17,7 @@ import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeIterator;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
@@ -586,7 +586,7 @@ public class TestBTree {
 
 	@Test
 	public void closeTest() {
-		BTreeHashBufferManager bufferManager = new BTreeHashBufferManager();
+		BTreeMemoryBufferManager bufferManager = new BTreeMemoryBufferManager();
 
 		BTree tree = getTestTree(bufferManager);
 

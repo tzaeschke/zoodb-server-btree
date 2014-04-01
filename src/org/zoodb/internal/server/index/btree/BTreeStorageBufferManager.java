@@ -7,18 +7,25 @@ import org.zoodb.internal.server.StorageChannelOutput;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Observable;
 
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
-	private Map<Integer, PagedBTreeNode> memoryBuffer;
+	private Map<Integer, PagedBTreeNode> dirtyBuffer;
+	private Map<Integer, PagedBTreeNode> cleanBuffer;
+	private final int maxCleanBufferElements = 2000;
+
 	private int pageIdCounter;
+
 	private final StorageChannel storageFile;
 	private final StorageChannelInput storageIn;
 	private final StorageChannelOutput storageOut;
 	private DATA_TYPE dataType;
+	
 
 	public BTreeStorageBufferManager(StorageChannel storage) {
-		this.memoryBuffer = new HashMap<Integer, PagedBTreeNode>();
+		this.dirtyBuffer = new HashMap<Integer, PagedBTreeNode>();
+		this.cleanBuffer = new HashMap<Integer, PagedBTreeNode>();
 		this.pageIdCounter = 0;
 		this.storageFile = storage;
 		this.storageIn = storage.getReader(false);
@@ -48,7 +55,12 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	}
 
 	public PagedBTreeNode readNodeFromMemory(int pageId) {
-		return memoryBuffer.get(pageId);
+		PagedBTreeNode node = dirtyBuffer.get(pageId);
+		if(node != null) {
+			return node;
+		}
+
+		return cleanBuffer.get(pageId);
 	}
 
 	public PagedBTreeNode readNodeFromStorage(int pageId) {
@@ -84,6 +96,8 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 		// node in memory == node in storage
 		node.markClean();
+		putInCleanBuffer(node.getPageId(), node);
+
 		return node;
 	}
 
@@ -110,13 +124,21 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		int newPageId = writeNodeDataToStorage(node);
 
 		// update pageId in memory
-		memoryBuffer.remove(node.getPageId());
-		memoryBuffer.put(newPageId, node);
+		dirtyBuffer.remove(node.getPageId());
+		putInCleanBuffer(newPageId, node);
 
 		node.setPageId(newPageId);
 
 		node.markClean();
 		return newPageId;
+	}
+
+	private void putInCleanBuffer(int pageId, PagedBTreeNode node) {
+		if(cleanBuffer.size() < maxCleanBufferElements - 1) {
+			cleanBuffer.put(pageId, node);
+		} else {
+			cleanBuffer.clear();
+		}
 	}
 
 	/*
@@ -168,14 +190,20 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		 * "page id".
 		 */
 		pageIdCounter--;
-		memoryBuffer.put(pageIdCounter, node);
+		if(node.isDirty()) {
+            dirtyBuffer.put(pageIdCounter, node);
+		} else {
+            putInCleanBuffer(pageIdCounter, node);
+		}
 
 		return pageIdCounter;
 	}
 
 	@Override
 	public void remove(int id) {
-		memoryBuffer.remove(id);
+		if(dirtyBuffer.remove(id) == null) {
+			cleanBuffer.remove(id);
+		}
 		if(id > 0) {
 			// page has been written to storage
 			this.storageFile.reportFreePage(id);
@@ -185,16 +213,49 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	@Override
 	public void clear() {
 		pageIdCounter = 0;
-		for(int id : memoryBuffer.keySet()) {
+		for(int id : dirtyBuffer.keySet()) {
             if(id > 0) {
                 // page has been written to storage
                 this.storageFile.reportFreePage(id);
             }
 		}
-		memoryBuffer.clear();
+		dirtyBuffer.clear();
+		
+        for(int id : cleanBuffer.keySet()) {
+            if(id > 0) {
+                // page has been written to storage
+                this.storageFile.reportFreePage(id);
+            }
+		}
+		cleanBuffer.clear();
 	}
 
 	public Map<Integer, PagedBTreeNode> getMemoryBuffer() {
-		return memoryBuffer;
+        Map<Integer, PagedBTreeNode> ret = new HashMap<Integer, PagedBTreeNode>();
+        ret.putAll(cleanBuffer);
+        ret.putAll(dirtyBuffer);
+
+		return ret;
+	}
+
+	@Override
+	public void update(Observable o, Object arg) {
+		PagedBTreeNode node = (PagedBTreeNode) o;
+		int pageId = node.getPageId();
+		if(node.isDirty()) {
+			cleanBuffer.remove(pageId);
+			dirtyBuffer.put(pageId, node);
+		} else {
+			dirtyBuffer.remove(pageId);
+			putInCleanBuffer(pageId, node);
+		}
+	}
+
+	public Map<Integer, PagedBTreeNode> getDirtyBuffer() {
+		return dirtyBuffer;
+	}
+
+	public Map<Integer, PagedBTreeNode> getCleanBuffer() {
+		return cleanBuffer;
 	}
 }

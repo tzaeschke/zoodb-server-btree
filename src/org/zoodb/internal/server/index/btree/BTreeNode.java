@@ -1,5 +1,7 @@
 package org.zoodb.internal.server.index.btree;
 
+import java.util.Observable;
+
 import org.zoodb.internal.util.Pair;
 
 /**
@@ -7,7 +9,7 @@ import org.zoodb.internal.util.Pair;
  * 
  * Support for linked-lists of nodes on the leaf level is yet to be added.
  */
-public abstract class BTreeNode {
+public abstract class BTreeNode extends Observable {
 
 	private final boolean isLeaf;
 	private boolean isRoot;
