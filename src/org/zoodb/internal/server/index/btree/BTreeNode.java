@@ -145,9 +145,9 @@ public abstract class BTreeNode {
 	/**
 	 * Inner-node put. Places key to the left of the next bigger key k'.
 	 * 
-	 * Requires that key <= keys(newNode) all elements of the left child of k'
+	 * Requires that key <= keys(newUniqueNode) all elements of the left child of k'
 	 * are smaller than key node is not full. Assumes that leftOf(key') <=
-	 * keys(newNode)
+	 * keys(newUniqueNode)
 	 * 
 	 * @param key
 	 * @param newNode

@@ -9,15 +9,24 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory {
 	}
 
 	@Override
-	public BTreeNode newNode(int order, boolean isLeaf, boolean isRoot) {
-		return new PagedBTreeNode(bufferManager, order, isLeaf, isRoot);
+	public BTreeNode newUniqueNode(int order, boolean isLeaf, boolean isRoot) {
+		return new UniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot);
 	}
 
-	public static PagedBTreeNode constructLeaf(
-			BTreeBufferManager bufferManager, boolean isRoot, int order,
-			int pageId, int numKeys, long[] keys, long[] values) {
-		PagedBTreeNode node = new PagedBTreeNode(bufferManager, order,
-				true, isRoot, pageId);
+    @Override
+    public BTreeNode newNonUniqueNode(int order, boolean isLeaf, boolean isRoot) {
+        return new NonUniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot);
+    }
+
+    public static PagedBTreeNode constructLeaf( BTreeBufferManager bufferManager,
+                                                boolean isUnique,
+                                                boolean isRoot,
+                                                int order,
+                                                int pageId,
+                                                int numKeys,
+                                                long[] keys,
+                                                long[] values) {
+        PagedBTreeNode node = createNode(bufferManager, isUnique, isRoot, order, pageId);
 
 		node.setNumKeys(numKeys);
 		node.setKeys(keys);
@@ -25,16 +34,34 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory {
 		return node;
 	}
 	
-    public static PagedBTreeNode constructInnerNode(
-			BTreeBufferManager bufferManager, boolean isRoot, int order,
-			int pageId, int numKeys, long[] keys, int[] childrenPageIds) {
-		PagedBTreeNode node = new PagedBTreeNode(bufferManager, order,
-				false, isRoot, pageId);
+    public static PagedBTreeNode constructInnerNode( BTreeBufferManager bufferManager,
+                                                     boolean isUnique,
+                                                     boolean isRoot,
+                                                     int order,
+                                                     int pageId,
+                                                     int numKeys,
+                                                     long[] keys,
+                                                     int[] childrenPageIds) {
+		PagedBTreeNode node = createNode(bufferManager, isUnique, isRoot, order, pageId);
 
 		node.setNumKeys(numKeys);
 		node.setKeys(keys);
 		node.setChildrenPageIds(childrenPageIds);
 		return node;
 	}
+
+    private static PagedBTreeNode createNode(   BTreeBufferManager bufferManager,
+                                                boolean isUnique,
+                                                boolean isRoot,
+                                                int order,
+                                                int pageId) {
+        PagedBTreeNode node;
+        if (isUnique) {
+            node = new UniquePagedBTreeNode(bufferManager, order, false, isRoot, pageId);
+        } else {
+            node = new NonUniquePagedBTreeNode(bufferManager, order, false, isRoot, pageId);
+        }
+        return node;
+    }
 
 }

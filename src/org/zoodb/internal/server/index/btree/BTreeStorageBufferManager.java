@@ -57,6 +57,9 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		PagedBTreeNode node;
 
 		short orderIfInner = storageIn.readShort();
+        //ToDo save a boolean to distinguish between unique and non-unique nodes
+        boolean isUnique = true;
+
 		if (orderIfInner == 0) {
 			// leaf
 			short order = storageIn.readShort();
@@ -66,7 +69,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			storageIn.noCheckRead(keys);
 			storageIn.noCheckRead(values);
 
-			node = PagedBTreeNodeFactory.constructLeaf(this, true,
+			node = PagedBTreeNodeFactory.constructLeaf(this, isUnique, true,
 										order, pageId, numKeys, 
 										keys, values);
 		} else {
@@ -77,7 +80,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			int numKeys = storageIn.readShort();
 			storageIn.noCheckRead(keys);
 			
-			node = PagedBTreeNodeFactory.constructInnerNode(this, true,
+			node = PagedBTreeNodeFactory.constructInnerNode(this, isUnique, true,
 								orderIfInner, pageId, numKeys, keys, 
 								childrenPageIds);
 		}

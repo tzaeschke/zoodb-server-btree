@@ -5,15 +5,13 @@ import org.zoodb.internal.util.Pair;
 import java.util.ArrayList;
 import java.util.List;
 
-public class PagedBTreeNode extends BTreeNode {
+public abstract class PagedBTreeNode extends BTreeNode {
 
 	private int pageId;
-	private BTreeBufferManager bufferManager;
 	private boolean isDirty;
 	// isDirty: does the node in memory differ from the node in storage?
-
 	private int[] childrenPageIds;
-	private int parentPageId;
+    protected BTreeBufferManager bufferManager;
 
 	public PagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {
 		super(order, isLeaf, isRoot);
@@ -35,11 +33,6 @@ public class PagedBTreeNode extends BTreeNode {
 		this.setPageId(pageId);
 		
 		childrenPageIds = new int[order];
-    }
-
-
-    public void initBTreePagedBTreeNode() {
-
     }
 
 	public void put(long key, long value) {
@@ -117,11 +110,11 @@ public class PagedBTreeNode extends BTreeNode {
 			}
 		}
 	}
-
-	@Override
-	public BTreeNode newNode(int order, boolean isLeaf, boolean isRoot) {
-		return new PagedBTreeNode(bufferManager, order, isLeaf, isRoot);
-	}
+//
+//	@Override
+//	public BTreeNode newNode(int order, boolean isLeaf, boolean isRoot) {
+//		return new PagedBTreeNode(bufferManager, order, isLeaf, isRoot);
+//	}
 
 	@Override
 	protected BTreeNode leftSiblingOf(BTreeNode node) {
@@ -249,4 +242,6 @@ public class PagedBTreeNode extends BTreeNode {
 	public void setChildrenPageIds(int[] childrenPageIds) {
 		this.childrenPageIds = childrenPageIds;
 	}
+
+
 }
