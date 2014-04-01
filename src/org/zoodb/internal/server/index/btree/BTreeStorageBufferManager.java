@@ -22,6 +22,9 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	private final StorageChannelOutput storageOut;
 	private DATA_TYPE dataType;
 	
+	
+	private int statNWrittenPages = 0;
+	private int statNReadPages = 0;
 
 	public BTreeStorageBufferManager(StorageChannel storage) {
 		this.dirtyBuffer = new HashMap<Integer, PagedBTreeNode>();
@@ -97,6 +100,8 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		// node in memory == node in storage
 		node.markClean();
 		putInCleanBuffer(node.getPageId(), node);
+		
+		statNReadPages++;
 
 		return node;
 	}
@@ -128,8 +133,10 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		putInCleanBuffer(newPageId, node);
 
 		node.setPageId(newPageId);
-
 		node.markClean();
+		
+		statNWrittenPages++;
+
 		return newPageId;
 	}
 
@@ -257,5 +264,13 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	public Map<Integer, PagedBTreeNode> getCleanBuffer() {
 		return cleanBuffer;
+	}
+	
+    public int getStatNWrittenPages() {
+		return statNWrittenPages;
+	}
+
+	public int getStatNReadPages() {
+		return statNReadPages;
 	}
 }

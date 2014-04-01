@@ -263,6 +263,8 @@ public abstract class BTreeNode extends Observable {
 		System.arraycopy(tempNode.getValues(), keysInLeftNode,
 				rightNode.getValues(), 0, keysInRightNode);
 		rightNode.setNumKeys(keysInRightNode);
+		
+		tempNode.close();
 
 		return rightNode;
 	}
@@ -310,6 +312,8 @@ public abstract class BTreeNode extends Observable {
 		for (int i = keysInLeftNode + 1; i < order + 1; i++) {
 			tempNode.getChild(i).setParent(right);
 		}
+		
+		tempNode.close();
 
 		return new Pair<>(right, keyToMoveUp);
 	}

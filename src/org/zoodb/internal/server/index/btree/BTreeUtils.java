@@ -89,11 +89,9 @@ public class BTreeUtils {
 				BTreeUtils.copyNodeToAnother(left, current, 0);
 				current.increaseNumKeys(left.getNumKeys() + 1);
 			}
-
-			left.close();
-
 		}
 
+        left.close();
 		return parent;
 	}
 

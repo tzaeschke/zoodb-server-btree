@@ -132,8 +132,51 @@ public class TestBTreeStorageBufferManager {
 	}
 
 	@Test
-	public void dirtyCleanTest() {
-		// TODO: test number of writes
+	public void numWritesTest() {
+		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
+				storage);
+
+		int expectedNumWrites = 0;
+		BTree tree = TestBTree.getTestTree(bufferManager);
+		PagedBTreeNode root = (PagedBTreeNode) tree.getRoot();
+		assertEquals(expectedNumWrites, bufferManager.getStatNWrittenPages());
+
+		bufferManager.write((PagedBTreeNode) tree.getRoot());
+		assertEquals(0, bufferManager.getDirtyBuffer().size());
+		assertEquals(expectedNumWrites+=9, bufferManager.getStatNWrittenPages());
+
+		tree.insert(4, 4);
+		bufferManager.write(root);
+		assertEquals(0, bufferManager.getDirtyBuffer().size());
+		assertEquals(expectedNumWrites+=3, bufferManager.getStatNWrittenPages());
+
+		tree.insert(32, 32);
+		bufferManager.write(root);
+		assertEquals(0, bufferManager.getDirtyBuffer().size());
+		assertEquals(expectedNumWrites+=4, bufferManager.getStatNWrittenPages());
+
+		tree.delete(16);
+		bufferManager.write(root);
+		assertEquals(0, bufferManager.getDirtyBuffer().size());
+		assertEquals(expectedNumWrites+=4, bufferManager.getStatNWrittenPages());
+
+		System.out.println(tree);
+		tree.delete(14);
+		System.out.println(tree);
+		bufferManager.write(root);
+		System.out.println(bufferManager.getDirtyBuffer());
+		assertEquals(0, bufferManager.getDirtyBuffer().size());
+		assertEquals(expectedNumWrites+=5, bufferManager.getStatNWrittenPages());
+//		assertTrue(root.isDirty());
+//		assertTrue(lvl1child1.isDirty());
+//		assertTrue(lvl1child2.isDirty());
+//		assertFalse(lvl2child1.isDirty());
+//		assertTrue(lvl2child2.isDirty());
+//		assertTrue(lvl2child3.isDirty());
+//		assertFalse(lvl2child4.isDirty());
+//		assertFalse(lvl2child5.isDirty());
+//		assertFalse(lvl2child6.isDirty());
+//		assertFalse(lvl2child7.isDirty());
 	}
 
 	private PagedBTreeNode getTestLeaf(BTreeBufferManager bufferManager) {
