@@ -1,17 +1,14 @@
 package org.zoodb.test.index2.btree;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.*;
 import org.zoodb.tools.ZooConfig;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class TestBTreeStorageBufferManager {
 
@@ -97,16 +94,13 @@ public class TestBTreeStorageBufferManager {
 
 	private PagedBTreeNode getTestLeaf(BTreeBufferManager bufferManager) {
 		int order = 3;
-		PagedBTreeNode leafNode = new PagedBTreeNode(bufferManager, order,
-				true, true);
+		PagedBTreeNode leafNode = new UniquePagedBTreeNode(bufferManager, order, true, true);
 		leafNode.put(1, 2);
 		return leafNode;
 	}
 
-	private PagedBTreeNode getTestInnerNode(BTreeBufferManager bufferManager,
-			int order) {
-		PagedBTreeNode innerNode = new PagedBTreeNode(bufferManager, order,
-				false, true);
+	private PagedBTreeNode getTestInnerNode(BTreeBufferManager bufferManager,int order) {
+		PagedBTreeNode innerNode = new UniquePagedBTreeNode(bufferManager, order,false, true);
 		return innerNode;
 	}
 

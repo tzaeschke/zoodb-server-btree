@@ -45,7 +45,7 @@ public class BTreeFactory {
 	
 	public void addLayer(boolean isLeaf, List<List<Long>> nodeKeys) {
 		if(this.tree.isEmpty()) {
-			BTreeNode root = nodeFactory.newNode(this.tree.getOrder(), isLeaf, true);
+			BTreeNode root = nodeFactory.newUniqueNode(this.tree.getOrder(), isLeaf, true);
 			root.setNumKeys(nodeKeys.get(0).size());
 			List<Long> keys = nodeKeys.get(0);
 			root.setKeys(padLongArray(toPrimitives(
@@ -60,7 +60,7 @@ public class BTreeFactory {
 			for(BTreeNode parent : prevLayer) {
 				BTreeNode[] children = new BTreeNode[this.tree.getOrder()];
 				for(int ik = 0; ik < parent.getNumKeys()+1; ik++) {
-					BTreeNode node = nodeFactory.newNode(this.tree.getOrder(), isLeaf, false);
+					BTreeNode node = nodeFactory.newUniqueNode(this.tree.getOrder(), isLeaf, false);
 					List<Long> keys = nodeKeys.get(indexLayer);
 					node.setKeys(padLongArray(toPrimitives(
 									keys.toArray(new Long[keys.size()])), 
