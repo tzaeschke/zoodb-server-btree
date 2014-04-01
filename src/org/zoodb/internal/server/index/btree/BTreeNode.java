@@ -677,4 +677,7 @@ public abstract class BTreeNode {
 	public void setIsRoot(boolean isRoot) {
 		this.isRoot = isRoot;
 	}
+	
+	// closes (destroys) node
+	public abstract void close();
 }

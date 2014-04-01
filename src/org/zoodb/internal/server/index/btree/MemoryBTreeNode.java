@@ -77,4 +77,9 @@ public class MemoryBTreeNode extends BTreeNode {
 			BTreeNode dest, int destPos, int length) {
 		System.arraycopy(src.getChildren(), srcPos, dest.getChildren(), destPos, length);
 	}
+
+	@Override
+	public void close() {
+		return;
+	}
 }

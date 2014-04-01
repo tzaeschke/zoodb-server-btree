@@ -83,7 +83,7 @@ public class TestBTreeStorageBufferManager {
 		int pageId = bufferManager.write(leafNode);
 		assertEquals(2, storage.statsGetPageCount());
 
-		bufferManager.delete(pageId);
+		bufferManager.remove(pageId);
 		assertEquals(null, bufferManager.getMemoryBuffer().get(pageId));
 		assertEquals(0, storage.statsGetPageCount());
 		// assertEquals(null, bufferManager.read(pageId));

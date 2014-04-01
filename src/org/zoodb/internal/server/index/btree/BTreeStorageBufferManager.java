@@ -174,7 +174,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	}
 
 	@Override
-	public void delete(int id) {
+	public void remove(int id) {
 		memoryBuffer.remove(id);
 		if(id > 0) {
 			// page has been written to storage

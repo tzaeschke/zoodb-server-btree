@@ -231,12 +231,6 @@ public class PagedBTreeNode extends BTreeNode {
 			return;
 		}
 		isDirty = true;
-        //TODO mark parents as dirty as well
-//
-//		PagedBTreeNode parent = toPagedNode(getParent());
-//		if (parent != null) {
-//			parent.markDirty();
-//		}
 	}
 
 	public void markClean() {
@@ -268,4 +262,10 @@ public class PagedBTreeNode extends BTreeNode {
 	public void setChildrenPageIds(int[] childrenPageIds) {
 		this.childrenPageIds = childrenPageIds;
 	}
+
+	@Override
+	public void close() {
+		bufferManager.remove(getPageId());
+	}
+
 }

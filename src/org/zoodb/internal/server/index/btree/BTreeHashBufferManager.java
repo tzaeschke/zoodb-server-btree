@@ -31,7 +31,7 @@ public class BTreeHashBufferManager implements BTreeBufferManager {
 	}
 
 	@Override
-	public void delete(int id) {
+	public void remove(int id) {
 		map.remove(id);
 		return; 
 	}

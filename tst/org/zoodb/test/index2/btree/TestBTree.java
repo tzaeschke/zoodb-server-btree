@@ -1,19 +1,29 @@
 package org.zoodb.test.index2.btree;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeIterator;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.util.Pair;
 import org.zoodb.tools.ZooConfig;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.*;
 
 public class TestBTree {
 
@@ -30,7 +40,7 @@ public class TestBTree {
 	@Test
 	public void searchSingleNode() {
 		final int order = 10;
-        BTreeFactory factory = new BTreeFactory(order, bufferManager);
+		BTreeFactory factory = new BTreeFactory(order, bufferManager);
 		BTree tree = factory.getTree();
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
@@ -49,7 +59,7 @@ public class TestBTree {
 	@Test
 	public void searchAfterSplit() {
 		final int order = 10000;
-        BTreeFactory factory = new BTreeFactory(order, bufferManager);
+		BTreeFactory factory = new BTreeFactory(order, bufferManager);
 		BTree tree = factory.getTree();
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
@@ -68,7 +78,7 @@ public class TestBTree {
 	@Test
 	public void searchMissingSingleNode() {
 		final int order = 10000;
-        BTreeFactory factory = new BTreeFactory(order, bufferManager);
+		BTreeFactory factory = new BTreeFactory(order, bufferManager);
 		BTree tree = factory.getTree();
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
@@ -88,7 +98,7 @@ public class TestBTree {
 	@Test
 	public void searchMissingAfterSplit() {
 		final int order = 10000;
-        BTreeFactory factory = new BTreeFactory(order, bufferManager);
+		BTreeFactory factory = new BTreeFactory(order, bufferManager);
 		BTree tree = factory.getTree();
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
@@ -108,7 +118,7 @@ public class TestBTree {
 	@Test
 	public void insertWithSimpleSplit() {
 		int order = 5;
-        BTreeFactory factory = new BTreeFactory(order, bufferManager);
+		BTreeFactory factory = new BTreeFactory(order, bufferManager);
 		BTree tree = factory.getTree();
 		tree.insert(3, 1);
 		tree.insert(2, 5);
@@ -117,7 +127,7 @@ public class TestBTree {
 		tree.insert(1, -100);
 
 		// build expected tree
-        factory.clear();
+		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(3L)));
 		factory.addLeafLayer(Arrays.asList(
 				Arrays.asList(pair(0L, 5L), pair(1L, -100L), pair(2L, 5L)),
@@ -447,7 +457,7 @@ public class TestBTree {
 	public void deleteMassively() {
 		int order = 320;
 		int numEntries = 10000;
-        BTreeFactory factory = new BTreeFactory(order, bufferManager);
+		BTreeFactory factory = new BTreeFactory(order, bufferManager);
 		BTree tree = factory.getTree();
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries);
 
@@ -499,7 +509,7 @@ public class TestBTree {
 		}
 
 	}
-	
+
 	@Test
 	public void markDirtyTest() {
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
@@ -512,7 +522,6 @@ public class TestBTree {
 		assertFalse(root.isDirty());
 
 		tree.insert(4, 4);
-		
 
 		PagedBTreeNode lvl1child1 = (PagedBTreeNode) root.getChild(0);
 		PagedBTreeNode lvl2child1 = (PagedBTreeNode) lvl1child1.getChild(0);
@@ -532,9 +541,9 @@ public class TestBTree {
 		assertFalse(lvl2child4.isDirty());
 		assertFalse(lvl2child5.isDirty());
 		assertFalse(lvl2child6.isDirty());
-		
+
 		bufferManager.write(root);
-		
+
 		tree.insert(32, 32);
 		PagedBTreeNode lvl2child7 = (PagedBTreeNode) lvl1child2.getChild(3);
 		assertTrue(root.isDirty());
@@ -547,7 +556,7 @@ public class TestBTree {
 		assertFalse(lvl2child3.isDirty());
 		assertFalse(lvl2child4.isDirty());
 		assertFalse(lvl2child5.isDirty());
-		
+
 		bufferManager.write(root);
 		tree.delete(16);
 		assertTrue(root.isDirty());
@@ -560,7 +569,7 @@ public class TestBTree {
 		assertFalse(lvl2child5.isDirty());
 		assertFalse(lvl2child6.isDirty());
 		assertFalse(lvl2child7.isDirty());
-		
+
 		bufferManager.write(root);
 		tree.delete(14);
 		assertTrue(root.isDirty());
@@ -574,7 +583,62 @@ public class TestBTree {
 		assertFalse(lvl2child6.isDirty());
 		assertFalse(lvl2child7.isDirty());
 	}
-	
+
+	@Test
+	public void closeTest() {
+		BTreeHashBufferManager bufferManager = new BTreeHashBufferManager();
+
+		BTree tree = getTestTree(bufferManager);
+
+		// build list of initial nodes
+		ArrayList<PagedBTreeNode> nodeList = new ArrayList<PagedBTreeNode>();
+		BTreeIterator iterator = new BTreeIterator(tree);
+		while (iterator.hasNext()) {
+			nodeList.add((PagedBTreeNode) iterator.next());
+		}
+
+		tree.delete(2);
+		tree.delete(3);
+		closeTestHelper(tree, nodeList, bufferManager);
+
+		tree.delete(5);
+		tree.delete(7);
+		tree.delete(8);
+		closeTestHelper(tree, nodeList, bufferManager);
+
+		tree.delete(14);
+		tree.delete(16);
+		closeTestHelper(tree, nodeList, bufferManager);
+
+		tree.delete(19);
+		tree.delete(20);
+		tree.delete(22);
+		closeTestHelper(tree, nodeList, bufferManager);
+		
+        tree.delete(24);
+		tree.delete(27);
+		tree.delete(29);
+		tree.delete(33);
+		closeTestHelper(tree, nodeList, bufferManager);
+
+	}
+
+	// test whether all of the nodes that are not in the tree anymore are also
+	// not anymore present in the BufferManager
+	private void closeTestHelper(BTree tree,
+			ArrayList<PagedBTreeNode> nodeList, BTreeBufferManager bufferManager) {
+		ArrayList<PagedBTreeNode> removedNodeList = (ArrayList<PagedBTreeNode>) nodeList
+				.clone();
+
+		BTreeIterator iterator = new BTreeIterator(tree);
+		while (iterator.hasNext()) {
+			removedNodeList.remove(iterator.next());
+		}
+		for (PagedBTreeNode node : removedNodeList) {
+			assertEquals(null, bufferManager.read(node.getPageId()));
+		}
+	}
+
 	public static BTree getTestTree(BTreeBufferManager bufferManager) {
 		int order = 5;
 		BTreeFactory factory = new BTreeFactory(order, bufferManager);

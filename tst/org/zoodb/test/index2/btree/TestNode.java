@@ -80,9 +80,7 @@ public class TestNode {
 		BTreeNode child6 = nodeFactory.newNode(order, true, true);
 		child6.put(6, 6);
 
-		System.out.println(innerNode);
 		innerNode.put(3, child1, child4);
-		System.out.println(innerNode);
 		assertArrayEquals(new long[] { 3 }, getKeys(innerNode));
 		assertArrayEquals(new BTreeNode[] { child1, child4 },
 				getChildren(innerNode));
