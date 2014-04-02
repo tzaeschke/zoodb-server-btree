@@ -36,7 +36,7 @@ public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
         T leaf = result.getB();
 
         if (leaf.getNumKeys() < order - 1) {
-            UniqueBTreeUtils.put(leaf, key, value);
+            NonUniqueBTreeUtils.put(leaf, key, value);
             leaf.markChanged();
         } else {
             //split node

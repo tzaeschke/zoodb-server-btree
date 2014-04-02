@@ -1,7 +1,5 @@
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.server.index.btree.unique.UniqueBTree;
-
 /**
  * Shared behaviour of unique and non-unique B+ tree.
  */
@@ -10,6 +8,8 @@ public abstract class BTree<T extends BTreeNode> {
     protected int order;
     protected T root;
     protected BTreeNodeFactory nodeFactory;
+
+    public abstract void insert(long key, long value);
 
     public BTree(int order, BTreeNodeFactory nodeFactory) {
         this.order = order;
@@ -43,12 +43,12 @@ public abstract class BTree<T extends BTreeNode> {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof UniqueBTree)) return false;
+        if (!(o instanceof BTree)) return false;
 
-        UniqueBTree uniqueBTree = (UniqueBTree) o;
+        BTree tree = (BTree) o;
 
-        if (order != uniqueBTree.getOrder()) return false;
-        if (root != null ? !root.equals(uniqueBTree.getRoot()) : uniqueBTree.getRoot() != null) return false;
+        if (order != tree.getOrder()) return false;
+        if (root != null ? !root.equals(tree.getRoot()) : tree.getRoot() != null) return false;
 
         return true;
     }
@@ -66,5 +66,7 @@ public abstract class BTree<T extends BTreeNode> {
     public BTreeNodeFactory getNodeFactory() {
         return nodeFactory;
     }
+
+
 
 }

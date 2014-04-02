@@ -42,9 +42,9 @@ public class NonUniqueBTreeUtils {
         }
 
         int pos = findKeyValuePos(node, key, value);
-        if (pos > node.getNumKeys() && node.getKey(pos) == key) {
+        if (pos > 0 && (node.getKey(pos - 1) == key && node.getValue(pos - 1) == value)) {
             throw new IllegalStateException(
-                    "Tree is not allowed to have non-unique keys.");
+                    "Tree is not allowed to have non-unique values.");
         }
         node.shiftRecords(pos, pos + 1, node.getNumKeys() - pos);
         node.setKey(pos, key);
@@ -70,9 +70,8 @@ public class NonUniqueBTreeUtils {
             throw new IllegalStateException(
                     "Should only be called when node is non-empty.");
         }
-
         int pos = findKeyValuePos(node, key, value);
-        if (pos > node.getNumKeys() && (node.getKey(pos) == key && node.getValue(pos) == value)) {
+        if (pos > 0 && (node.getKey(pos - 1) == key && node.getValue(pos - 1) == value)) {
             throw new IllegalStateException(
                     "Tree is not allowed to have non-unique values.");
         }

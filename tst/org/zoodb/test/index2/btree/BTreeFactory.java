@@ -1,8 +1,11 @@
 package org.zoodb.test.index2.btree;
 
-import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
-import org.zoodb.internal.server.index.btree.unique.UniqueBTree;
 import org.zoodb.internal.util.Pair;
 
 import java.util.ArrayList;
@@ -13,16 +16,25 @@ import java.util.List;
  */
 public class BTreeFactory {
 	
-	private UniquePagedBTree tree;
+	private BTree tree;
 	private List<BTreeNode> prevLayer;
 	private BTreeNodeFactory nodeFactory;
+    private BTreeBufferManager bufferManager;
+    private boolean unique = true;
 
     public BTreeFactory(int order, BTreeBufferManager bufferManager)  {
         this.tree = new UniquePagedBTree(order, bufferManager);
         this.nodeFactory = tree.getNodeFactory();
+        this.bufferManager = bufferManager;
     }
-	
-	public void addInnerLayer(List<List<Long>> nodeKeys) {
+
+    public BTreeFactory(int order, BTreeBufferManager bufferManager, boolean unique)  {
+        createTree(order, bufferManager, unique);
+        this.nodeFactory = tree.getNodeFactory();
+        this.bufferManager = bufferManager;
+    }
+
+    public void addInnerLayer(List<List<Long>> nodeKeys) {
 		this.addLayer(false, nodeKeys);
 	}
 	
@@ -78,12 +90,12 @@ public class BTreeFactory {
 		}
 	}
 
-	public UniqueBTree getTree() {
+	public BTree getTree() {
 		return this.tree;
 	}
 	
 	public void clear() {
-		this.tree = new UniquePagedBTree(tree.getOrder(), tree.getBufferManager());
+        createTree(tree.getOrder(), bufferManager, unique);
 	}
 	
 	private static List<List<Pair<Long,Long>>> zip(List<List<Long>> l1, List<List<Long>> l2) {
@@ -141,5 +153,13 @@ public class BTreeFactory {
 
 	    return primitives;
 	}
+
+    private void createTree(int order, BTreeBufferManager bufferManager, boolean unique) {
+        if (unique) {
+            this.tree = new UniquePagedBTree(order, bufferManager);
+        } else {
+            this.tree = new NonUniquePagedBTree(order, bufferManager);
+        }
+    }
 
 }

@@ -5,8 +5,6 @@ import org.zoodb.internal.util.Pair;
 
 public class UniqueBTreeUtils {
 
-
-
     /**
      * Puts a new key into the node and splits accordingly. Returns the newly
      * created leaf, which is to the right.
@@ -180,7 +178,7 @@ public class UniqueBTreeUtils {
         }
 
         int pos = findKeyPos(node, key);
-        if (pos > node.getNumKeys() && node.getKey(pos) == key) {
+        if (pos > 0 && node.getKey(pos - 1) == key) {
             throw new IllegalStateException(
                     "Tree is not allowed to have non-unique keys.");
         }
@@ -210,7 +208,7 @@ public class UniqueBTreeUtils {
         }
 
         int pos = findKeyPos(node, key);
-        if (pos > node.getNumKeys() && node.getKey(pos) == key) {
+        if (pos > 0 && node.getKey(pos - 1) == key) {
             throw new IllegalStateException(
                     "Tree is not allowed to have non-unique keys.");
         }
