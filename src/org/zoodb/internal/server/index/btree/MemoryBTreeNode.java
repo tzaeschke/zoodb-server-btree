@@ -18,7 +18,12 @@ public class MemoryBTreeNode extends BTreeNode {
 		this.children = children;
 	}
 
-	public BTreeNode getParent() {
+    @Override
+    public void markChanged() {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    public BTreeNode getParent() {
 		return parent;
 	}
 

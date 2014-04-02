@@ -1,5 +1,6 @@
-package org.zoodb.internal.server.index.btree;
+package org.zoodb.internal.server.index.btree.unique;
 
+import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.util.Pair;
 
 public class UniqueBTreeUtils {
@@ -21,29 +22,24 @@ public class UniqueBTreeUtils {
         int order = current.getOrder();
         int numKeys = current.getNumKeys();
         T tempNode = (T) current.newNode(order + 1, true, false);
-        System.arraycopy(current.getKeys(), 0, tempNode.getKeys(), 0, numKeys);
-        System.arraycopy(current.getValues(), 0, tempNode.getValues(), 0, numKeys);
-        tempNode.setNumKeys(current.getNumKeys());
+        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, order);
+        tempNode.setNumKeys(numKeys);
         put(tempNode, newKey, value);
 
         int keysInLeftNode = (int) Math.ceil((order) / 2.0);
         int keysInRightNode = order - keysInLeftNode;
 
         // populate left node
-        System.arraycopy(tempNode.getKeys(), 0, current.getKeys(), 0, keysInLeftNode);
-        System.arraycopy(tempNode.getValues(), 0, current.getValues(), 0,
-                keysInLeftNode);
+        tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);
         current.setNumKeys(keysInLeftNode);
 
         // populate right node
-        T rightNode = (T) current.newNode(order, true, false);
-        System.arraycopy(tempNode.getKeys(), keysInLeftNode,
-                rightNode.getKeys(), 0, keysInRightNode);
-        System.arraycopy(tempNode.getValues(), keysInLeftNode,
-                rightNode.getValues(), 0, keysInRightNode);
-        rightNode.setNumKeys(keysInRightNode);
+        T right = (T) current.newNode(order, true, false);
+        tempNode.copyFromNodeToNode(keysInLeftNode, keysInLeftNode, right,
+                0, 0, keysInRightNode, keysInRightNode + 1);
+        right.setNumKeys(keysInRightNode);
 
-        return rightNode;
+        return right;
     }
 
     /**
@@ -62,8 +58,7 @@ public class UniqueBTreeUtils {
         int numKeys = current.getNumKeys();
         // create a temporary node to allow the insertion
         T tempNode = (T) current.newNode(order + 1, false, true);
-        System.arraycopy(current.getKeys(), 0, tempNode.getKeys(), 0, current.getNumKeys());
-        current.copyChildren(current, 0, tempNode, 0, order);
+        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, order);
         tempNode.setNumKeys(numKeys);
         put(tempNode, key, newNode);
 
@@ -71,16 +66,13 @@ public class UniqueBTreeUtils {
         T right = (T) current.newNode(order, false, false);
         int keysInLeftNode = (int) Math.floor(order / 2.0);
         // populate left node
-        System.arraycopy(tempNode.getKeys(), 0, current.getKeys(), 0, keysInLeftNode);
-        current.copyChildren(tempNode, 0, current, 0, keysInLeftNode + 1);
+        tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);
         current.setNumKeys(keysInLeftNode);
 
         // populate right node
         int keysInRightNode = order - keysInLeftNode - 1;
-        System.arraycopy(tempNode.getKeys(), keysInLeftNode + 1,
-                right.getKeys(), 0, keysInRightNode);
-        current.copyChildren(tempNode, keysInLeftNode + 1, right, 0,
-                keysInRightNode + 1);
+        tempNode.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
+                0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
 
         long keyToMoveUp = tempNode.getKeys()[keysInLeftNode];

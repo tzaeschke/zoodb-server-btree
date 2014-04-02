@@ -1,8 +1,5 @@
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
-import org.zoodb.internal.util.Pair;
-
 public class BTreeUtils {
     //Todo Move to an abstract node class
 

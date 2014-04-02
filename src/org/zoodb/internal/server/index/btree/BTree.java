@@ -16,8 +16,8 @@ public abstract class BTree<T extends BTreeNode> {
         this.nodeFactory = nodeFactory;
     }
 
-    public void setRoot(T root) {
-        this.root = root;
+    public void setRoot(BTreeNode root) {
+        this.root = (T) root;
     }
 
     public boolean isEmpty() {
@@ -62,8 +62,6 @@ public abstract class BTree<T extends BTreeNode> {
             newRoot.setIsRoot(true);
         }
     }
-
-    protected abstract void markChanged(BTreeNode node);
 
     public BTreeNodeFactory getNodeFactory() {
         return nodeFactory;

@@ -41,6 +41,7 @@ public abstract class BTreeNode {
     public abstract void setChild(int index, BTreeNode child);
     public abstract BTreeNode[] getChildren();
     public abstract void setChildren(BTreeNode[] children);
+    public abstract void markChanged();
 
     public <T extends BTreeNode> T leftSibling(BTreeNode parent) {
         return (parent == null) ? null : (T) parent.leftSiblingOf(this);
@@ -209,7 +210,7 @@ public abstract class BTreeNode {
         }
     }
 
-    protected void shiftRecords(int startIndex, int endIndex, int amount) {
+    public void shiftRecords(int startIndex, int endIndex, int amount) {
         shiftKeys(startIndex, endIndex, amount);
         if (isLeaf()) {
             shiftValues(startIndex, endIndex, amount);
@@ -241,7 +242,7 @@ public abstract class BTreeNode {
         shiftRecordsLeftWithIndex(0, amount);
     }
 
-    protected void shiftKeys(int startIndex, int endIndex, int amount) {
+    public void shiftKeys(int startIndex, int endIndex, int amount) {
         System.arraycopy(getKeys(), startIndex, getKeys(), endIndex, amount);
     }
 
@@ -249,7 +250,7 @@ public abstract class BTreeNode {
         System.arraycopy(getValues(), startIndex, getValues(), endIndex, amount);
     }
 
-    protected void shiftChildren(int startIndex, int endIndex, int amount) {
+    public void shiftChildren(int startIndex, int endIndex, int amount) {
         copyChildren(this, startIndex, this, endIndex, amount);
     }
 

@@ -10,7 +10,7 @@ import java.util.LinkedList;
  *
  * Also, adds the buffer manager that will be used by this type of node as an argument.
  */
-public class UniquePagedBTree extends UniqueBTree {
+public class UniquePagedBTree extends UniqueBTree<PagedBTreeNode> {
 
     private BTreeBufferManager bufferManager;
 
@@ -34,23 +34,17 @@ public class UniquePagedBTree extends UniqueBTree {
      * @return
      */
     @Override
-    protected Pair<LinkedList<BTreeNode>, BTreeNode> searchNodeWithHistory(long key) {
-        Pair<LinkedList<BTreeNode>, BTreeNode> result = super.searchNodeWithHistory(key);
+    protected Pair<LinkedList<PagedBTreeNode>, PagedBTreeNode> searchNodeWithHistory(long key) {
+        Pair<LinkedList<PagedBTreeNode>, PagedBTreeNode> result = super.searchNodeWithHistory(key);
         return new Pair<>(
                 markListAsDirty(result.getA()),
                 result.getB()
         );
     }
 
-    @Override
-    protected void markChanged(BTreeNode node) {
-        PagedBTreeNode pagedNode = (PagedBTreeNode) node;
-        pagedNode.markDirty();
-    }
-
-    private LinkedList<BTreeNode> markListAsDirty(LinkedList<BTreeNode> bTreeNodeList) {
-        for (BTreeNode bTreeNode : bTreeNodeList) {
-            PagedBTreeNode pagedBTreeNode = (PagedBTreeNode) bTreeNode;
+    private LinkedList<PagedBTreeNode> markListAsDirty(LinkedList<PagedBTreeNode> bTreeNodeList) {
+        for (PagedBTreeNode bTreeNode : bTreeNodeList) {
+            PagedBTreeNode pagedBTreeNode = bTreeNode;
             pagedBTreeNode.markDirty();
         }
         return bTreeNodeList;

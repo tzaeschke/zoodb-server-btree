@@ -78,11 +78,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
 			}
 		}
 	}
-//
-//	@Override
-//	public BTreeNode newNode(int order, boolean isLeaf, boolean isRoot) {
-//		return new PagedBTreeNode(bufferManager, order, isLeaf, isRoot);
-//	}
 
 	@Override
 	protected BTreeNode leftSiblingOf(BTreeNode node) {
@@ -168,10 +163,15 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		return isDirty;
 	}
 
-	/*
-	 * Mark this node dirty which must mark all parents up to the root dirty as
-	 * well because they depend on this node.
-	 */
+    @Override
+    public void markChanged() {
+        this.markDirty();
+    }
+
+    /*
+         * Mark this node dirty which must mark all parents up to the root dirty as
+         * well because they depend on this node.
+         */
 	public void markDirty() {
 		if (isDirty()) {
 			// this node is dirty, so parents must be already dirty
