@@ -2,20 +2,24 @@ package org.zoodb.internal.server.index;
 
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTree;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
 
 public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 	
 	private PagedBTree tree;
+	private BTreeStorageBufferManager bufferManager;
 
 	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
 		
-		// TODO Auto-generated constructor stub
-		final int order = 4;
-		tree = new PagedBTree(order, new BTreeStorageBufferManager(file));
+		bufferManager = new BTreeStorageBufferManager(file);
+		final int order = BTreeStorageBufferManager.computeOrder(file.getPageSize());
+
+		tree = new PagedBTree(order, bufferManager);
 	}
 
 	@Override
@@ -110,8 +114,7 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public int write() {
-		// TODO Auto-generated method stub
-		return 0;
+		return bufferManager.write((PagedBTreeNode) tree.getRoot());
 	}
 
 	@Override
@@ -125,4 +128,11 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
         return 0;
 	}
 
+	public PagedBTree getTree() {
+		return tree;
+	}
+	
+    public BTreeStorageBufferManager getBufferManager() {
+		return bufferManager;
+	}
 }

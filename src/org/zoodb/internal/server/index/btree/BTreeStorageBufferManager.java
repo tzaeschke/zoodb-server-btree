@@ -1,13 +1,15 @@
 package org.zoodb.internal.server.index.btree;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Observable;
+
+import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageChannelInput;
 import org.zoodb.internal.server.StorageChannelOutput;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Observable;
+import org.zoodb.internal.util.DBLogger;
 
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
@@ -158,7 +160,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	 * 
 	 * Inner node page 
 	 * 2 byte order 
-	 * 8 byte * order childrenPageIds 
+	 * 4 byte * order childrenPageIds 
 	 * 2 byte numKeys 
 	 * 8 byte * order-1 keys
 	 */
@@ -188,6 +190,25 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 		storageOut.flush();
 		return pageId;
+	}
+	
+    public static int computeOrder(int pageSize) {
+    	if(pageSize < 4+12) {
+			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
+    	}
+
+    	// compute for leafs because they take more space
+    	int order = 0;
+    	// store leafIndicator, order and numKeys
+    	pageSize -= (6 + DiskIO.PAGE_HEADER_SIZE);
+    	// how many key-value-pairs fit in
+    	order = (int)Math.round(Math.floor(pageSize/16.0));
+    	
+    	if(order < 2) {
+			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
+    	}
+
+		return order;
 	}
 
 	@Override
@@ -273,4 +294,6 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	public int getStatNReadPages() {
 		return statNReadPages;
 	}
+
+
 }

@@ -45,6 +45,7 @@ public abstract class AbstractPagedIndex extends AbstractIndex {
 	//TODO if we ensure that maxXXX is a multiple of 2, then we could scrap the minXXX values
 	/** minLeafN = maxLeafN >> 1 */
 	protected transient final int minLeafN;
+
 	/** minInnerN = maxInnerN >> 1 */
 	protected transient final int minInnerN;
 	protected final StorageChannelInput in;
@@ -273,5 +274,14 @@ public abstract class AbstractPagedIndex extends AbstractIndex {
 	DATA_TYPE getDataType() {
 		return dataType;
 	}
+
+	public int getMaxLeafN() {
+		return maxLeafN;
+	}
+
+	public int getMaxInnerN() {
+		return maxInnerN;
+	}
+
 
 }
