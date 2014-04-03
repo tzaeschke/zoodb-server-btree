@@ -22,13 +22,10 @@ public abstract class BTreeNode {
 		this.isLeaf = isLeaf;
 		this.isRoot = isRoot;
 
-		initKeys(order);
-		if (isLeaf) {
-			initValues(order);
-		} else {
-			initChildren(order);
-		}
+		initializeEntries(order);
 	}
+
+    public abstract void initializeEntries(int order);
 
     public abstract BTreeNode newNode(int order, boolean isLeaf, boolean isRoot);
     public abstract boolean equalChildren(BTreeNode other);
@@ -115,16 +112,16 @@ public abstract class BTreeNode {
 		return true;
 	}
 
-	private void initKeys(int order) {
+	protected void initKeys(int order) {
 		setKeys(new long[order - 1]);
 		setNumKeys(0);
 	}
 
-	private void initValues(int order) {
+    protected void initValues(int order) {
 		setValues(new long[order - 1]);
 	}
 
-	private void initChildren(int order) {
+    protected void initChildren(int order) {
 		setChildren(new BTreeNode[order]);
 	}
 
@@ -156,13 +153,13 @@ public abstract class BTreeNode {
 		return keys[numKeys - 1];
 	}
 
-	public long smallestKey() {
-		return keys[0];
-	}
+    public long getSmallestValue() {
+        return (values != null) ? values[0] : -1;
+    }
 
-	public long largestKey() {
-		return keys[numKeys - 1];
-	}
+    public long getLargestValue() {
+        return (values != null) ? values[numKeys -1] : -1;
+    }
 
 	public int getNumKeys() {
 		return numKeys;
@@ -199,44 +196,14 @@ public abstract class BTreeNode {
     /*
         Node modification operations
      */
+    //TODO change this
+    public abstract void migrateEntry(int destinationPos, BTreeNode source, int sourcePos);
 
-    public void copyFromNodeToNode(int srcStartK, int srcStartC, BTreeNode destination, int destStartK, int destStartC, int keys, int children) {
-        BTreeNode source = this;
-        System.arraycopy(source.getKeys(), srcStartK, destination.getKeys(), destStartK, keys);
-        if (destination.isLeaf()) {
-            System.arraycopy(source.getValues(), srcStartK, destination.getValues(), destStartK, keys);
-        } else {
-            source.copyChildren(source, srcStartC, destination, destStartC, children);
-        }
-    }
+    public abstract void copyFromNodeToNode(int srcStartK, int srcStartC, BTreeNode destination, int destStartK, int destStartC, int keys, int children);
+    public abstract void shiftRecords(int startIndex, int endIndex, int amount);
+    public abstract void shiftRecordsRight(int amount);
+    public abstract void shiftRecordsLeftWithIndex(int startIndex, int amount);
 
-    public void shiftRecords(int startIndex, int endIndex, int amount) {
-        shiftKeys(startIndex, endIndex, amount);
-        if (isLeaf()) {
-            shiftValues(startIndex, endIndex, amount);
-        } else {
-            shiftChildren(startIndex, endIndex, amount + 1);
-        }
-    }
-
-    public void shiftRecordsRight(int amount) {
-        shiftKeys(0, amount, getNumKeys());
-        if (isLeaf()) {
-            shiftValues(0, amount, getNumKeys());
-        } else {
-            shiftChildren(0, amount, getNumKeys() + 1);
-        }
-    }
-
-    public void shiftRecordsLeftWithIndex(int startIndex, int amount) {
-        int keysToMove = getNumKeys() - amount;
-        shiftKeys(startIndex + amount, startIndex, keysToMove);
-        if (isLeaf()) {
-            shiftValues(startIndex + amount, startIndex, keysToMove);
-        } else {
-            shiftChildren(startIndex + amount, startIndex, keysToMove + 1);
-        }
-    }
 
     protected void shiftRecordsLeft(int amount) {
         shiftRecordsLeftWithIndex(0, amount);
@@ -254,8 +221,6 @@ public abstract class BTreeNode {
         copyChildren(this, startIndex, this, endIndex, amount);
     }
 
-
-
     public String toString() {
         String ret = (isLeaf() ? "leaf" : "inner") + "-node: k:";
         ret += "[";
@@ -265,16 +230,16 @@ public abstract class BTreeNode {
                 ret += " ";
         }
         ret += "]";
-        if (isLeaf()) {
-            ret += ",   \tv:";
-            ret += "[";
-            for (int i = 0; i < this.getNumKeys(); i++) {
-                ret += Long.toString(values[i]);
-                if (i != this.getNumKeys() - 1)
-                    ret += " ";
-            }
-            ret += "]";
-        } else {
+        ret += ",   \tv:";
+        ret += "[";
+        for (int i = 0; i < this.getNumKeys(); i++) {
+            ret += Long.toString(values[i]);
+            if (i != this.getNumKeys() - 1)
+                ret += " ";
+        }
+        ret += "]";
+
+        if (!isLeaf()) {
             ret += "\n\tc:";
             if (this.getNumKeys() != 0) {
                 for (int i = 0; i < this.getNumKeys() + 1; i++) {

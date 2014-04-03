@@ -222,6 +222,31 @@ public class UniqueBTreeUtils {
     }
 
     /**
+     * Root-node put.
+     *
+     * Used when a non-leaf root is empty and will be populated by a single key
+     * and two nodes.
+     *
+     * @param key
+     *            The new key on the root.
+     * @param left
+     *            The left node.
+     * @param right
+     *            The right node.
+     */
+    public static <T extends BTreeNode> void put(T root, long key, T left, T right) {
+        if (!root.isRoot()) {
+            throw new IllegalStateException(
+                    "Should only be called on the root node.");
+        }
+        root.setKey(0, key);
+        root.setNumKeys(1);
+
+        root.setChild(0, left);
+        root.setChild(1, right);
+    }
+
+    /**
      * Delete the key from the node.
      *
      * @param key

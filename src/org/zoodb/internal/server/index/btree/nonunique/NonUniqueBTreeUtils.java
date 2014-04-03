@@ -9,6 +9,11 @@ public class NonUniqueBTreeUtils {
         return (T) node.getChild(findKeyValuePos(node, key, value));
     }
 
+    public static <T extends BTreeNode> boolean containsKeyValue(T node, long key, long value) {
+        Pair<Boolean, Integer> result = binarySearch(node, key, value);
+        return result.getA();
+    }
+
     private static <T extends BTreeNode> int findKeyValuePos(T node, long key, long value) {
         if (node.getNumKeys() == 0) {
             return 0;
@@ -81,7 +86,34 @@ public class NonUniqueBTreeUtils {
 
         node.shiftKeys(pos, pos + 1, recordsToMove);
         node.setKey(pos, key);
+        node.setValue(pos, value);
         node.incrementNumKyes();
+    }
+
+    /**
+     * Root-node put.
+     *
+     * Used when a non-leaf root is empty and will be populated by a single key
+     * and two nodes.
+     *
+     * @param key
+     *            The new key on the root.
+     * @param left
+     *            The left node.
+     * @param right
+     *            The right node.
+     */
+    public static <T extends BTreeNode> void put(T root, long key, long value,  T left, T right) {
+        if (!root.isRoot()) {
+            throw new IllegalStateException(
+                    "Should only be called on the root node.");
+        }
+        root.setKey(0, key);
+        root.setValue(0, value);
+        root.setNumKeys(1);
+
+        root.setChild(0, left);
+        root.setChild(1, right);
     }
 
     /**
@@ -142,7 +174,7 @@ public class NonUniqueBTreeUtils {
      * @param newNode
      * @return
      */
-    public static <T extends BTreeNode> Pair<T, Long> putAndSplit(T current, long key, long value, T newNode) {
+    public static <T extends BTreeNode> Pair<T, Pair<Long, Long> > putAndSplit(T current, long key, long value, T newNode) {
         if (current.isLeaf()) {
             throw new IllegalStateException(
                     "Should only be called on inner nodes.");
@@ -169,8 +201,8 @@ public class NonUniqueBTreeUtils {
         right.setNumKeys(keysInRightNode);
 
         long keyToMoveUp = tempNode.getKeys()[keysInLeftNode];
-
-        return new Pair<>(right, keyToMoveUp);
+        long valueToMoveUp = tempNode.getValues()[keysInLeftNode];
+        return new Pair<>(right, new Pair<>(keyToMoveUp, valueToMoveUp));
     }
 
     /**

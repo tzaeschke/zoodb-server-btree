@@ -450,7 +450,7 @@ public class TestBTree {
 	@Test
 	public void deleteMassively() {
 		int order = 320;
-		int numEntries = 10000;
+		int numEntries = 100000;
         BTreeFactory factory = factory(order);
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries);

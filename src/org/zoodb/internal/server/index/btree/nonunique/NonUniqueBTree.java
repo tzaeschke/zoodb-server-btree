@@ -15,6 +15,14 @@ public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
         super(order, nodeFactory);
     }
 
+    public boolean contains(long key, long value) {
+        T current = root;
+        while (!current.isLeaf()) {
+            current = NonUniqueBTreeUtils.findChild(current, key, value);
+        }
+        return NonUniqueBTreeUtils.containsKeyValue(current, key, value);
+    }
+
     /**
      * Insert a new key value pair to the B+ tree.
      *
@@ -29,7 +37,7 @@ public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
      */
     public void insert(long key, long value) {
         if (root == null) {
-            root = nodeFactory.newUniqueNode(order, true, true);
+            root = nodeFactory.newNonUniqueNode(order, true, true);
         }
         Pair<LinkedList<T>, T> result = searchNodeWithHistory(key, value);
         LinkedList<T> ancestorStack = result.getA();
@@ -42,7 +50,7 @@ public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
             //split node
             T rightNode = NonUniqueBTreeUtils.putAndSplit(leaf, key, value);
             rightNode.markChanged();
-            insertInInnerNode(leaf, rightNode.getSmallestKey(), value,  rightNode, ancestorStack);
+            insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
         }
     }
 
@@ -57,21 +65,23 @@ public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
      */
     private void insertInInnerNode(T left, long key, long value, T right, LinkedList<T> ancestorStack) {
         if (left.isRoot()) {
-            T newRoot = nodeFactory.newUniqueNode(order, false, true);
+            T newRoot = nodeFactory.newNonUniqueNode(order, false, true);
             swapRoot(newRoot);
-            BTreeUtils.put(root, key, left, right);
+            NonUniqueBTreeUtils.put(root, key, value, left, right);
             newRoot.markChanged();
         } else {
             T parent = ancestorStack.pop();
             parent.markChanged();
             //check if parent overflows
             if (parent.getNumKeys() < order - 1) {
-                UniqueBTreeUtils.put(parent, key, right);
+                NonUniqueBTreeUtils.put(parent, key, value, right);
             } else {
-                Pair<T, Long > pair = NonUniqueBTreeUtils.putAndSplit(parent, key, value, right);
+                Pair<T, Pair<Long, Long> > pair = NonUniqueBTreeUtils.putAndSplit(parent, key, value, right);
                 T newNode = pair.getA();
-                long keyToMoveUp = pair.getB();
-                insertInInnerNode(parent, keyToMoveUp, value, newNode, ancestorStack);
+                Pair<Long, Long> keyValuePair = pair.getB();
+                long keyToMoveUp = keyValuePair.getA();
+                long valueToMoveUp = keyValuePair.getB();
+                insertInInnerNode(parent, keyToMoveUp, valueToMoveUp, newNode, ancestorStack);
             }
         }
     }
@@ -102,7 +112,7 @@ public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
         if (leaf.isRoot()) {
             return;
         }
-        long replacementKey = leaf.smallestKey();
+        long replacementKey = leaf.getSmallestKey();
         T current = leaf;
         T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
         while (current != null && current.isUnderfull()) {

@@ -1,6 +1,9 @@
 package org.zoodb.internal.server.index.btree.unique;
 
-import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
+import org.zoodb.internal.server.index.btree.BTreeUtils;
 import org.zoodb.internal.util.Pair;
 
 import java.util.LinkedList;
@@ -77,7 +80,7 @@ public abstract class UniqueBTree<T extends BTreeNode> extends BTree<T> {
         if (left.isRoot()) {
             T newRoot = nodeFactory.newUniqueNode(order, false, true);
             swapRoot(newRoot);
-            BTreeUtils.put(root, key, left, right);
+            UniqueBTreeUtils.put(root, key, left, right);
             newRoot.markChanged();
         } else {
             T parent = ancestorStack.pop();
@@ -120,7 +123,7 @@ public abstract class UniqueBTree<T extends BTreeNode> extends BTree<T> {
         if (leaf.isRoot()) {
             return;
         }
-        long replacementKey = leaf.smallestKey();
+        long replacementKey = leaf.getSmallestKey();
         T current = leaf;
         T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
         while (current != null && current.isUnderfull()) {

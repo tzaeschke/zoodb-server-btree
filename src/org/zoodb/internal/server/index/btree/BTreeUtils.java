@@ -10,7 +10,8 @@ public class BTreeUtils {
         if (parent.isRoot() && parent.getNumKeys() == 1) {
             if (parent.getKey(0) != right.getKey(0)) {
                 right.shiftRecordsRight(parent.getNumKeys());
-                right.setKey(0, parent.getKey(0));
+                //right.setKey(0, parent.getKey(0));
+                right.migrateEntry(0, parent, 0);
                 right.increaseNumKeys(1);
             }
             right.shiftRecordsRight(current.getNumKeys());
@@ -30,7 +31,7 @@ public class BTreeUtils {
             } else {
                 //merge inner nodes
                 right.shiftRecordsRight(1);
-                right.setKey(0, parent.getKey(keyIndex));
+                right.migrateEntry(0, parent, keyIndex);
                 right.increaseNumKeys(1);
                 parent.shiftRecordsLeftWithIndex(keyIndex, 1);
                 parent.decreaseNumKeys(1);
@@ -49,7 +50,7 @@ public class BTreeUtils {
         //check if we need to merge with parent
         if (parent.isRoot() && parent.getNumKeys() == 1) {
             current.shiftRecordsRight(parent.getNumKeys());
-            current.setKey(0, parent.getKey(0));
+            current.migrateEntry(0, parent, 0);
             current.increaseNumKeys(parent.getNumKeys());
 
             current.shiftRecordsRight(left.getNumKeys());
@@ -71,7 +72,8 @@ public class BTreeUtils {
                 //inner node merge
                 //move key from parent
                 current.shiftRecordsRight(left.getNumKeys() + 1);
-                current.setKey(left.getNumKeys(), parent.getKey(keyIndex));
+                //current.setKey(left.getNumKeys(), parent.getKey(keyIndex));
+                current.migrateEntry(left.getNumKeys(), parent, keyIndex);
                 parent.shiftRecordsLeftWithIndex(keyIndex, 1);
                 parent.decreaseNumKeys(1);
 
@@ -105,10 +107,12 @@ public class BTreeUtils {
             right.decreaseNumKeys(keysToMove);
             current.increaseNumKeys(keysToMove);
 
-            parent.setKey(parentKeyIndex, right.getSmallestKey());
+            //parent.setKey(parentKeyIndex, right.getSmallestKey());
+            parent.migrateEntry(parentKeyIndex, right, 0);
         } else {
             //add key from parent
-            current.setKey(current.getNumKeys(), parent.getKey(parentKeyIndex));
+            //current.setKey(current.getNumKeys(), parent.getKey(parentKeyIndex));
+            current.migrateEntry(current.getNumKeys(), parent, parentKeyIndex);
             current.increaseNumKeys(1);
 
             int startIndexRight = 0;
@@ -121,7 +125,8 @@ public class BTreeUtils {
             //shift nodes in current node right
             right.shiftRecordsLeft(keysToMove);
             right.decreaseNumKeys(keysToMove);
-            parent.setKey(parentKeyIndex, right.getSmallestKey());
+            //parent.setKey(parentKeyIndex, right.getSmallestKey());
+            parent.migrateEntry(parentKeyIndex, right, 0);
             right.shiftRecordsLeft(1);
             right.decreaseNumKeys(1);
 
@@ -147,7 +152,8 @@ public class BTreeUtils {
             current.increaseNumKeys(keysToMove);
 
             //move key from parent to current node
-            parent.setKey(parentKeyIndex, current.getSmallestKey());
+            //parent.setKey(parentKeyIndex, current.getSmallestKey());
+            parent.migrateEntry(parentKeyIndex, current, 0);
         } else {
             keysToMove-=1;
             if (current.getNumKeys() == 0) {
@@ -158,8 +164,8 @@ public class BTreeUtils {
 
             current.shiftRecordsRight(1);
             current.increaseNumKeys(1);
-            current.setKey(0, parent.getKey(parentKeyIndex));
-
+            //current.setKey(0, parent.getKey(parentKeyIndex));
+            current.migrateEntry(0, parent, parentKeyIndex);
             //shift nodes in current node right
             current.shiftRecordsRight(keysToMove);
 
@@ -168,8 +174,8 @@ public class BTreeUtils {
             current.increaseNumKeys(keysToMove);
             left.decreaseNumKeys(keysToMove);
             //move the biggest key to parent
-            parent.setKey(parentKeyIndex, left.getLargestKey());
-
+            //parent.setKey(parentKeyIndex, left.getLargestKey());
+            parent.migrateEntry(parentKeyIndex, left, left.getNumKeys() - 1);
             left.decreaseNumKeys(1);
         }
     }
@@ -226,28 +232,5 @@ public class BTreeUtils {
         source.copyFromNodeToNode(0, 0, destination, destinationIndex, destinationIndex, source.getNumKeys(), source.getNumKeys() + 1);
     }
 
-    /**
-     * Root-node put.
-     *
-     * Used when a non-leaf root is empty and will be populated by a single key
-     * and two nodes.
-     *
-     * @param key
-     *            The new key on the root.
-     * @param left
-     *            The left node.
-     * @param right
-     *            The right node.
-     */
-    public static <T extends BTreeNode> void put(T root, long key, T left, T right) {
-        if (!root.isRoot()) {
-            throw new IllegalStateException(
-                    "Should only be called on the root node.");
-        }
-        root.setKey(0, key);
-        root.setNumKeys(1);
 
-        root.setChild(0, left);
-        root.setChild(1, right);
-    }
 }

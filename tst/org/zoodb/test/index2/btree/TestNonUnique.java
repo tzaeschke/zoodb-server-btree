@@ -1,14 +1,18 @@
 package org.zoodb.test.index2.btree;
 
 import org.junit.Test;
+import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniqueBTree;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 
 import java.util.Arrays;
+import java.util.List;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class TestNonUnique {
 
@@ -58,10 +62,10 @@ public class TestNonUnique {
         BTreeFactory factory = factory(order);
         NonUniquePagedBTree tree = (NonUniquePagedBTree) factory.getTree();
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 100; i++) {
             tree.insert(1, i);
         }
-        System.out.println(tree);
+        //System.out.println(tree);
     }
 
     @Test
@@ -86,6 +90,61 @@ public class TestNonUnique {
         );
         BTree expected = factory.getTree();
         assertEquals(expected, tree);
+    }
+
+    @Test
+    public void testInsertAndDelete() {
+        int order = 320;
+        int numEntries = 100000;
+        BTreeFactory factory = factory(order);
+        NonUniqueBTree tree = (NonUniqueBTree) factory.getTree();
+        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries);
+
+        for (LongLongIndex.LLEntry entry : entries) {
+            tree.insert(entry.getKey(), entry.getValue());
+        }
+
+        // check whether all entries are inserted
+        for (LongLongIndex.LLEntry entry : entries) {
+            assertTrue(tree.contains(entry.getKey(), entry.getValue()));
+        }
+
+        // delete every entry and check that there is indeed no entry anymore
+        for (LongLongIndex.LLEntry entry : entries) {
+            tree.delete(entry.getKey(), entry.getValue());
+        }
+        for (LongLongIndex.LLEntry entry : entries) {
+            assertFalse(tree.contains(entry.getKey(), entry.getValue()));
+        }
+
+        // root is empty and has no children
+        assertEquals(0, tree.getRoot().getNumKeys());
+        BTreeNode[] emptyChildren = new BTreeNode[order];
+        Arrays.fill(emptyChildren, null);
+        assertArrayEquals(emptyChildren, tree.getRoot().getChildren());
+
+        // add all entries, delete half of it, check that correct ones are
+        // deleted and still present respectively
+        int split = numEntries / 2;
+        for (LongLongIndex.LLEntry entry : entries) {
+            tree.insert(entry.getKey(), entry.getValue());
+        }
+        int i = 0;
+        for (LongLongIndex.LLEntry entry : entries) {
+            if (i < split) {
+                tree.delete(entry.getKey(), entry.getValue());
+            }
+            i++;
+        }
+        i = 0;
+        for (LongLongIndex.LLEntry entry : entries) {
+            if (i < split) {
+                assertFalse(tree.contains(entry.getKey(), entry.getValue()));
+            } else {
+                assertTrue(tree.contains(entry.getKey(), entry.getValue()));
+            }
+            i++;
+        }
     }
 
 

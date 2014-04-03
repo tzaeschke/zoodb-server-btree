@@ -15,6 +15,15 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
+    public void initializeEntries(int order) {
+        initKeys(order);
+        initValues(order);
+        if (!isLeaf()) {
+            initChildren(order);
+        }
+    }
+
+    @Override
     public BTreeNode newNode(int order, boolean isLeaf, boolean isRoot) {
         return new NonUniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot);
     }
@@ -24,5 +33,83 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         NonUniqueBTreeUtils.put(this, key, value);
     }
 
+    @Override
+    public void migrateEntry(int destinationPos, BTreeNode source, int sourcePos) {
+        long key = source.getKey(sourcePos);
+        long value = source.getValue(sourcePos);
+        setKey(destinationPos, key);
+        setValue(destinationPos, value);
+    }
 
+    @Override
+    public void copyFromNodeToNode(int srcStartK, int srcStartC, BTreeNode destination, int destStartK, int destStartC, int keys, int children) {
+        BTreeNode source = this;
+        System.arraycopy(source.getKeys(), srcStartK, destination.getKeys(), destStartK, keys);
+        System.arraycopy(source.getValues(), srcStartK, destination.getValues(), destStartK, keys);
+        if (!destination.isLeaf()) {
+            source.copyChildren(source, srcStartC, destination, destStartC, children);
+        }
+    }
+
+    @Override
+    public void shiftRecords(int startIndex, int endIndex, int amount) {
+        shiftKeys(startIndex, endIndex, amount);
+        shiftValues(startIndex, endIndex, amount);
+        if (!isLeaf()) {
+            shiftChildren(startIndex, endIndex, amount + 1);
+        }
+    }
+
+    @Override
+    public void shiftRecordsRight(int amount) {
+        shiftKeys(0, amount, getNumKeys());
+        shiftValues(0, amount, getNumKeys());
+        if (!isLeaf()) {
+            shiftChildren(0, amount, getNumKeys() + 1);
+        }
+    }
+
+    @Override
+    public void shiftRecordsLeftWithIndex(int startIndex, int amount) {
+        int keysToMove = getNumKeys() - amount;
+        shiftKeys(startIndex + amount, startIndex, keysToMove);
+        shiftValues(startIndex + amount, startIndex, keysToMove);
+        if (!isLeaf()) {
+            shiftChildren(startIndex + amount, startIndex, keysToMove + 1);
+        }
+    }
+
+    @Override
+    public String toString() {
+        String ret = (isLeaf() ? "leaf" : "inner") + "-node: k:";
+        ret += "[";
+        for (int i = 0; i < this.getNumKeys(); i++) {
+            ret += Long.toString(getKey(i));
+            if (i != this.getNumKeys() - 1)
+                ret += " ";
+        }
+        ret += "]";
+        ret += ",   \tv:";
+        ret += "[";
+        for (int i = 0; i < this.getNumKeys(); i++) {
+            ret += Long.toString(getValue(i));
+            if (i != this.getNumKeys() - 1)
+                ret += " ";
+        }
+        ret += "]";
+
+        if (!isLeaf()) {
+            ret += "\n\tc:";
+            if (this.getNumKeys() != 0) {
+                for (int i = 0; i < this.getNumKeys() + 1; i++) {
+                    String[] lines = this.getChild(i).toString()
+                            .split("\r\n|\r|\n");
+                    for (String l : lines) {
+                        ret += "\n\t" + l;
+                    }
+                }
+            }
+        }
+        return ret;
+    }
 }

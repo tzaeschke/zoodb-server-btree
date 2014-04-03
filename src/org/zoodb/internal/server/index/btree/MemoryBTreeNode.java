@@ -10,7 +10,12 @@ public class MemoryBTreeNode extends BTreeNode {
 		// TODO Auto-generated constructor stub
 	}
 
-	public BTreeNode[] getChildren() {
+    @Override
+    public void initializeEntries(int order) {
+        initChildren(order);
+    }
+
+    public BTreeNode[] getChildren() {
 		return children;
 	}
 
@@ -20,6 +25,31 @@ public class MemoryBTreeNode extends BTreeNode {
 
     @Override
     public void markChanged() {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public void migrateEntry(int destinationPos, BTreeNode source, int sourcePos) {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public void copyFromNodeToNode(int srcStartK, int srcStartC, BTreeNode destination, int destStartK, int destStartC, int keys, int children) {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public void shiftRecords(int startIndex, int endIndex, int amount) {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public void shiftRecordsRight(int amount) {
+        //To change body of implemented methods use File | Settings | File Templates.
+    }
+
+    @Override
+    public void shiftRecordsLeftWithIndex(int startIndex, int amount) {
         //To change body of implemented methods use File | Settings | File Templates.
     }
 
