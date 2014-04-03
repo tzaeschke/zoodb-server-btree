@@ -10,6 +10,13 @@ import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeIterator;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.util.Pair;
 import org.zoodb.tools.ZooConfig;
 
@@ -121,7 +128,7 @@ public class TestBTree {
 		tree.insert(1, -100);
 
 		// build expected tree
-        factory.clear();
+		factory.clear();
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(3L)));
 		factory.addLeafLayer(Arrays.asList(
 				Arrays.asList(pair(0L, 5L), pair(1L, -100L), pair(2L, 5L)),
@@ -503,7 +510,7 @@ public class TestBTree {
 		}
 
 	}
-	
+
 	@Test
 	public void markDirtyTest() {
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
@@ -516,7 +523,6 @@ public class TestBTree {
 		assertFalse(root.isDirty());
 
 		tree.insert(4, 4);
-		
 
 		PagedBTreeNode lvl1child1 = (PagedBTreeNode) root.getChild(0);
 		PagedBTreeNode lvl2child1 = (PagedBTreeNode) lvl1child1.getChild(0);
@@ -536,9 +542,9 @@ public class TestBTree {
 		assertFalse(lvl2child4.isDirty());
 		assertFalse(lvl2child5.isDirty());
 		assertFalse(lvl2child6.isDirty());
-		
+
 		bufferManager.write(root);
-		
+
 		tree.insert(32, 32);
 		PagedBTreeNode lvl2child7 = (PagedBTreeNode) lvl1child2.getChild(3);
 		assertTrue(root.isDirty());
@@ -551,7 +557,7 @@ public class TestBTree {
 		assertFalse(lvl2child3.isDirty());
 		assertFalse(lvl2child4.isDirty());
 		assertFalse(lvl2child5.isDirty());
-		
+
 		bufferManager.write(root);
 		tree.delete(16);
 		assertTrue(root.isDirty());
@@ -564,7 +570,7 @@ public class TestBTree {
 		assertFalse(lvl2child5.isDirty());
 		assertFalse(lvl2child6.isDirty());
 		assertFalse(lvl2child7.isDirty());
-		
+
 		bufferManager.write(root);
 		tree.delete(14);
 		assertTrue(root.isDirty());
@@ -578,8 +584,79 @@ public class TestBTree {
 		assertFalse(lvl2child6.isDirty());
 		assertFalse(lvl2child7.isDirty());
 	}
+
+	@Test
+	public void closeTest() {
+		BTreeMemoryBufferManager bufferManager = new BTreeMemoryBufferManager();
+
+		BTree tree = getTestTree(bufferManager);
+
+		// build list of initial nodes
+		ArrayList<PagedBTreeNode> nodeList = new ArrayList<PagedBTreeNode>();
+		BTreeIterator iterator = new BTreeIterator(tree);
+		while (iterator.hasNext()) {
+			nodeList.add((PagedBTreeNode) iterator.next());
+		}
+
+		tree.delete(2);
+		tree.delete(3);
+		closeTestHelper(tree, nodeList, bufferManager);
+
+		tree.delete(5);
+		tree.delete(7);
+		tree.delete(8);
+		closeTestHelper(tree, nodeList, bufferManager);
+
+		tree.delete(14);
+		tree.delete(16);
+		closeTestHelper(tree, nodeList, bufferManager);
+
+		tree.delete(19);
+		tree.delete(20);
+		tree.delete(22);
+		closeTestHelper(tree, nodeList, bufferManager);
+		
+        tree.delete(24);
+		tree.delete(27);
+		tree.delete(29);
+		tree.delete(33);
+		closeTestHelper(tree, nodeList, bufferManager);
+
+	}
+
+	// test whether all of the nodes that are not in the tree anymore are also
+	// not anymore present in the BufferManager
+	private void closeTestHelper(BTree tree,
+			ArrayList<PagedBTreeNode> nodeList, BTreeBufferManager bufferManager) {
+		ArrayList<PagedBTreeNode> removedNodeList = (ArrayList<PagedBTreeNode>) nodeList
+				.clone();
+
+		BTreeIterator iterator = new BTreeIterator(tree);
+		while (iterator.hasNext()) {
+			removedNodeList.remove(iterator.next());
+		}
+		for (PagedBTreeNode node : removedNodeList) {
+			assertEquals(null, bufferManager.read(node.getPageId()));
+		}
+	}
 	
 	public static UniquePagedBTree getTestTree(BTreeBufferManager bufferManager) {
+	@Test
+	public void anotherDeleteTest() {
+		BTree tree = getTestTree(bufferManager);
+		tree.delete(2);
+		tree.delete(3);
+		tree.delete(33);
+		tree.delete(34);
+		tree.delete(39);
+		tree.delete(24);
+		tree.delete(14);
+		System.out.println(tree);
+		// deleting any key >= 19 fails
+		tree.delete(19);
+	}
+
+	public static BTree getTestTree(BTreeBufferManager bufferManager) {
 		int order = 5;
 		BTreeFactory factory = factory(order);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));

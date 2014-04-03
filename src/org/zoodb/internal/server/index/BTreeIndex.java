@@ -9,12 +9,14 @@ import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 	
 	private UniquePagedBTree tree;
-
+    private BTreeStorageBufferManager bufferManager;
+    
 	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
 		
 		// TODO Auto-generated constructor stub
-		final int order = 4;
+        bufferManager = new BTreeStorageBufferManager(file);
+        final int order = BTreeStorageBufferManager.computeOrder(file.getPageSize());
 		tree = new UniquePagedBTree(order, new BTreeStorageBufferManager(file));
 	}
 
@@ -110,8 +112,7 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public int write() {
-		// TODO Auto-generated method stub
-		return 0;
+		return bufferManager.write(tree.getRoot());
 	}
 
 	@Override
@@ -125,4 +126,11 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
         return 0;
 	}
 
+	public UniquePagedBTree getTree() {
+		return tree;
+	}
+	
+    public BTreeStorageBufferManager getBufferManager() {
+		return bufferManager;
+	}
 }

@@ -3,11 +3,11 @@ package org.zoodb.test.index2.btree;
 import org.junit.Test;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
 
 public class TestUnique {
 
-    private BTreeBufferManager bufferManager = new BTreeHashBufferManager();
+    private BTreeBufferManager bufferManager = new BTreeMemoryBufferManager();
 
     @Test(expected = IllegalStateException.class)
     public void testSameKeyPair() {

@@ -1,17 +1,17 @@
 package org.zoodb.test.index2.btree;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.btree.*;
-import org.zoodb.internal.server.index.btree.unique.UniqueBTree;
 import org.zoodb.internal.server.index.btree.unique.UniqueBTreeUtils;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 import org.zoodb.tools.ZooConfig;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 public class TestBTreeStorageBufferManager {
 
@@ -63,7 +63,7 @@ public class TestBTreeStorageBufferManager {
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
 				storage);
 
-		UniqueBTree tree = TestBTree.getTestTree(bufferManager);
+		BTree tree = TestBTree.getTestTree(bufferManager);
 		int pageId = bufferManager.write((PagedBTreeNode) tree.getRoot());
 
 		assertEquals(10, storage.statsGetPageCount());
@@ -89,10 +89,93 @@ public class TestBTreeStorageBufferManager {
 		// assertEquals(null, bufferManager.read(pageId));
 		// does not work because data is still on the page
 	}
+	
+	@Test
+	public void bufferLocationTest() {
+        BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
+				storage);
+		PagedBTreeNode leafNode = getTestLeaf(bufferManager);
+		assertFalse(bufferManager.getCleanBuffer().containsKey(leafNode.getPageId()));
+		assertTrue(bufferManager.getDirtyBuffer().containsKey(leafNode.getPageId()));
+		
+		bufferManager.write(leafNode);
+		assertTrue(bufferManager.getCleanBuffer().containsKey(leafNode.getPageId()));
+		assertFalse(bufferManager.getDirtyBuffer().containsKey(leafNode.getPageId()));
+		
+		leafNode.put(2, 3);
+		assertFalse(bufferManager.getCleanBuffer().containsKey(leafNode.getPageId()));
+		assertTrue(bufferManager.getDirtyBuffer().containsKey(leafNode.getPageId()));
+
+		int pageId = bufferManager.write(leafNode);
+		
+        BTreeStorageBufferManager bufferManager2 = new BTreeStorageBufferManager(
+				storage);
+		PagedBTreeNode leafNode2 = bufferManager2.read(pageId);
+		assertTrue(bufferManager2.getCleanBuffer().containsKey(leafNode2.getPageId()));
+		assertFalse(bufferManager2.getDirtyBuffer().containsKey(leafNode2.getPageId()));
+		
+		leafNode.close();
+		assertFalse(bufferManager.getCleanBuffer().containsKey(leafNode.getPageId()));
+		assertFalse(bufferManager.getDirtyBuffer().containsKey(leafNode.getPageId()));
+		
+		leafNode = getTestLeaf(bufferManager);
+		leafNode.close();
+		assertFalse(bufferManager.getCleanBuffer().containsKey(leafNode.getPageId()));
+		assertFalse(bufferManager.getDirtyBuffer().containsKey(leafNode.getPageId()));
+		
+        leafNode = getTestLeaf(bufferManager);
+        bufferManager.write(leafNode);
+		leafNode.close();
+		assertFalse(bufferManager.getCleanBuffer().containsKey(leafNode.getPageId()));
+		assertFalse(bufferManager.getDirtyBuffer().containsKey(leafNode.getPageId()));
+	}
 
 	@Test
-	public void dirtyCleanTest() {
-		// TODO: test number of writes
+	public void numWritesTest() {
+		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
+				storage);
+
+		int expectedNumWrites = 0;
+		BTree tree = TestBTree.getTestTree(bufferManager);
+		PagedBTreeNode root = (PagedBTreeNode) tree.getRoot();
+		assertEquals(expectedNumWrites, bufferManager.getStatNWrittenPages());
+
+		bufferManager.write((PagedBTreeNode) tree.getRoot());
+		assertEquals(0, bufferManager.getDirtyBuffer().size());
+		assertEquals(expectedNumWrites+=9, bufferManager.getStatNWrittenPages());
+
+		tree.insert(4, 4);
+		bufferManager.write(root);
+		assertEquals(0, bufferManager.getDirtyBuffer().size());
+		assertEquals(expectedNumWrites+=3, bufferManager.getStatNWrittenPages());
+
+		tree.insert(32, 32);
+		bufferManager.write(root);
+		assertEquals(0, bufferManager.getDirtyBuffer().size());
+		assertEquals(expectedNumWrites+=4, bufferManager.getStatNWrittenPages());
+
+		tree.delete(16);
+		bufferManager.write(root);
+		assertEquals(0, bufferManager.getDirtyBuffer().size());
+		assertEquals(expectedNumWrites+=4, bufferManager.getStatNWrittenPages());
+
+		System.out.println(tree);
+		tree.delete(14);
+		System.out.println(tree);
+		bufferManager.write(root);
+		System.out.println(bufferManager.getDirtyBuffer());
+		assertEquals(0, bufferManager.getDirtyBuffer().size());
+		assertEquals(expectedNumWrites+=5, bufferManager.getStatNWrittenPages());
+//		assertTrue(root.isDirty());
+//		assertTrue(lvl1child1.isDirty());
+//		assertTrue(lvl1child2.isDirty());
+//		assertFalse(lvl2child1.isDirty());
+//		assertTrue(lvl2child2.isDirty());
+//		assertTrue(lvl2child3.isDirty());
+//		assertFalse(lvl2child4.isDirty());
+//		assertFalse(lvl2child5.isDirty());
+//		assertFalse(lvl2child6.isDirty());
+//		assertFalse(lvl2child7.isDirty());
 	}
 
 	private PagedBTreeNode getTestLeaf(BTreeBufferManager bufferManager) {

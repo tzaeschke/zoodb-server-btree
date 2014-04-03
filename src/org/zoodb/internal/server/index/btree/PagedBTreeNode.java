@@ -14,11 +14,12 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	public PagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {
 		super(order, isLeaf, isRoot);
 
+		markDirty();
 		this.bufferManager = bufferManager;
 		this.setPageId(bufferManager.save(this));
+		this.addObserver(bufferManager);
 
 		childrenPageIds = new int[order];
-		markDirty();
 	}
 	
 	/*
@@ -179,10 +180,16 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		}
 		isDirty = true;
         //TODO mark parents as dirty as well
+
+		setChanged();
+		notifyObservers();
 	}
 
 	public void markClean() {
 		isDirty = false;
+
+		setChanged();
+		notifyObservers();
 	}
 
 	public int getPageId() {
@@ -210,5 +217,11 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		this.childrenPageIds = childrenPageIds;
 	}
 
+
+
+	@Override
+	public void close() {
+		bufferManager.remove(getPageId());
+	}
 
 }

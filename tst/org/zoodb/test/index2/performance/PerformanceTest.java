@@ -125,7 +125,7 @@ public class PerformanceTest {
 		}
 	}
 
-	private long insertList(LongLongUIndex index, List<LLEntry> list) {
+	public static long insertList(LongLongUIndex index, List<LLEntry> list) {
 		long startTime = System.nanoTime();
 		for (LLEntry entry : list) {
 			index.insertLong(entry.getKey(), entry.getValue());
@@ -137,7 +137,7 @@ public class PerformanceTest {
 	 * Searches every element from the list in the index and returns its
 	 * duration.
 	 */
-	private long searchList(LongLongUIndex index, List<LLEntry> list) {
+	public static long searchList(LongLongUIndex index, List<LLEntry> list) {
 		long startTime = System.nanoTime();
 		for (LLEntry entry : list) {
 			index.findValue(entry.getKey());
@@ -148,7 +148,7 @@ public class PerformanceTest {
 	/*
 	 * Removes every element from the list in the index and returns its duration
 	 */
-	private long removeList(LongLongUIndex index, List<LLEntry> list) {
+	public static long removeList(LongLongUIndex index, List<LLEntry> list) {
 		long startTime = System.nanoTime();
 		for (LLEntry entry : list) {
 			index.removeLong(entry.getKey());
@@ -156,7 +156,7 @@ public class PerformanceTest {
 		return (System.nanoTime() - startTime) / 1000000;
 	}
 
-	private static ArrayList<LLEntry> randomEntriesUnique(int numElements) {
+	public static ArrayList<LLEntry> randomEntriesUnique(int numElements) {
 		// ensure that entries with equal keys can not exists in the set
 		Set<LLEntry> randomEntryList = new TreeSet<LLEntry>(
 				new Comparator<LLEntry>() {
@@ -174,7 +174,7 @@ public class PerformanceTest {
 	/*
 	 * generates a list of increasing integers beginning with a random element
 	 */
-	private static ArrayList<LLEntry> increasingEntriesUnique(int numElements) {
+	public static ArrayList<LLEntry> increasingEntriesUnique(int numElements) {
 		// ensure that entries with equal keys can not exists in the set
 		Random prng = new Random(System.nanoTime());
 		int startElement = Math.abs(prng.nextInt());
@@ -185,7 +185,7 @@ public class PerformanceTest {
 		return entryList;
 	}
 
-	private static ArrayList<LLEntry> decreasingEntriesUnique(int numElements) {
+	public static ArrayList<LLEntry> decreasingEntriesUnique(int numElements) {
 		// ensure that entries with equal keys can not exists in the set
 		Random prng = new Random(System.nanoTime());
 		long startElement = 0;

@@ -4,10 +4,10 @@ import org.junit.Test;
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeHashBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniqueBTree;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
+import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
 
 import java.util.Arrays;
 import java.util.List;
@@ -16,7 +16,7 @@ import static org.junit.Assert.*;
 
 public class TestNonUnique {
 
-    private BTreeBufferManager bufferManager = new BTreeHashBufferManager();
+    private BTreeBufferManager bufferManager = new BTreeMemoryBufferManager();
 
     @Test
     public void testSameKey() {

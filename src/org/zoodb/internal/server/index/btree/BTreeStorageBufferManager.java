@@ -1,24 +1,36 @@
 package org.zoodb.internal.server.index.btree;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Observable;
+
+import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageChannelInput;
 import org.zoodb.internal.server.StorageChannelOutput;
-
-import java.util.HashMap;
-import java.util.Map;
+import org.zoodb.internal.util.DBLogger;
 
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
-	private Map<Integer, PagedBTreeNode> memoryBuffer;
+	private Map<Integer, PagedBTreeNode> dirtyBuffer;
+	private Map<Integer, PagedBTreeNode> cleanBuffer;
+	private final int maxCleanBufferElements = 2000;
+
 	private int pageIdCounter;
+
 	private final StorageChannel storageFile;
 	private final StorageChannelInput storageIn;
 	private final StorageChannelOutput storageOut;
 	private DATA_TYPE dataType;
+	
+	
+	private int statNWrittenPages = 0;
+	private int statNReadPages = 0;
 
 	public BTreeStorageBufferManager(StorageChannel storage) {
-		this.memoryBuffer = new HashMap<Integer, PagedBTreeNode>();
+		this.dirtyBuffer = new HashMap<Integer, PagedBTreeNode>();
+		this.cleanBuffer = new HashMap<Integer, PagedBTreeNode>();
 		this.pageIdCounter = 0;
 		this.storageFile = storage;
 		this.storageIn = storage.getReader(false);
@@ -48,7 +60,12 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	}
 
 	public PagedBTreeNode readNodeFromMemory(int pageId) {
-		return memoryBuffer.get(pageId);
+		PagedBTreeNode node = dirtyBuffer.get(pageId);
+		if(node != null) {
+			return node;
+		}
+
+		return cleanBuffer.get(pageId);
 	}
 
 	public PagedBTreeNode readNodeFromStorage(int pageId) {
@@ -87,6 +104,10 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 		// node in memory == node in storage
 		node.markClean();
+		putInCleanBuffer(node.getPageId(), node);
+		
+		statNReadPages++;
+
 		return node;
 	}
 
@@ -113,13 +134,23 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		int newPageId = writeNodeDataToStorage(node);
 
 		// update pageId in memory
-		memoryBuffer.remove(node.getPageId());
-		memoryBuffer.put(newPageId, node);
+		dirtyBuffer.remove(node.getPageId());
+		putInCleanBuffer(newPageId, node);
 
 		node.setPageId(newPageId);
-
 		node.markClean();
+		
+		statNWrittenPages++;
+
 		return newPageId;
+	}
+
+	private void putInCleanBuffer(int pageId, PagedBTreeNode node) {
+		if(cleanBuffer.size() < maxCleanBufferElements - 1) {
+			cleanBuffer.put(pageId, node);
+		} else {
+			cleanBuffer.clear();
+		}
 	}
 
 	/*
@@ -132,7 +163,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	 * 
 	 * Inner node page 
 	 * 2 byte order 
-	 * 8 byte * order childrenPageIds 
+	 * 4 byte * order childrenPageIds 
 	 * 2 byte numKeys 
 	 * 8 byte * order-1 keys
 	 */
@@ -163,6 +194,25 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		storageOut.flush();
 		return pageId;
 	}
+	
+    public static int computeOrder(int pageSize) {
+    	if(pageSize < 4+12) {
+			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
+    	}
+
+    	// compute for leafs because they take more space
+    	int order = 0;
+    	// store leafIndicator, order and numKeys
+    	pageSize -= (6 + DiskIO.PAGE_HEADER_SIZE);
+    	// how many key-value-pairs fit in
+    	order = (int)Math.round(Math.floor(pageSize/16.0));
+    	
+    	if(order < 2) {
+			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
+    	}
+
+		return order;
+	}
 
 	@Override
 	public int save(PagedBTreeNode node) {
@@ -171,14 +221,20 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		 * "page id".
 		 */
 		pageIdCounter--;
-		memoryBuffer.put(pageIdCounter, node);
+		if(node.isDirty()) {
+            dirtyBuffer.put(pageIdCounter, node);
+		} else {
+            putInCleanBuffer(pageIdCounter, node);
+		}
 
 		return pageIdCounter;
 	}
 
 	@Override
-	public void delete(int id) {
-		memoryBuffer.remove(id);
+	public void remove(int id) {
+		if(dirtyBuffer.remove(id) == null) {
+			cleanBuffer.remove(id);
+		}
 		if(id > 0) {
 			// page has been written to storage
 			this.storageFile.reportFreePage(id);
@@ -188,16 +244,59 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	@Override
 	public void clear() {
 		pageIdCounter = 0;
-		for(int id : memoryBuffer.keySet()) {
+		for(int id : dirtyBuffer.keySet()) {
             if(id > 0) {
                 // page has been written to storage
                 this.storageFile.reportFreePage(id);
             }
 		}
-		memoryBuffer.clear();
+		dirtyBuffer.clear();
+		
+        for(int id : cleanBuffer.keySet()) {
+            if(id > 0) {
+                // page has been written to storage
+                this.storageFile.reportFreePage(id);
+            }
+		}
+		cleanBuffer.clear();
 	}
 
 	public Map<Integer, PagedBTreeNode> getMemoryBuffer() {
-		return memoryBuffer;
+        Map<Integer, PagedBTreeNode> ret = new HashMap<Integer, PagedBTreeNode>();
+        ret.putAll(cleanBuffer);
+        ret.putAll(dirtyBuffer);
+
+		return ret;
 	}
+
+	@Override
+	public void update(Observable o, Object arg) {
+		PagedBTreeNode node = (PagedBTreeNode) o;
+		int pageId = node.getPageId();
+		if(node.isDirty()) {
+			cleanBuffer.remove(pageId);
+			dirtyBuffer.put(pageId, node);
+		} else {
+			dirtyBuffer.remove(pageId);
+			putInCleanBuffer(pageId, node);
+		}
+	}
+
+	public Map<Integer, PagedBTreeNode> getDirtyBuffer() {
+		return dirtyBuffer;
+	}
+
+	public Map<Integer, PagedBTreeNode> getCleanBuffer() {
+		return cleanBuffer;
+	}
+	
+    public int getStatNWrittenPages() {
+		return statNWrittenPages;
+	}
+
+	public int getStatNReadPages() {
+		return statNReadPages;
+	}
+
+
 }

@@ -1,6 +1,8 @@
 package org.zoodb.internal.server.index.btree;
 
-public interface BTreeBufferManager {
+import java.util.Observer;
+
+public interface BTreeBufferManager extends Observer {
 
 	/*
 	 * returns null if pageId can not be found
@@ -15,7 +17,7 @@ public interface BTreeBufferManager {
     /*
 	 * deletes a node from the buffer manager
 	 */
-	public void delete(int pageId);
+	public void remove(int pageId);
 	
     /*
 	 * writes the node to the storage channel

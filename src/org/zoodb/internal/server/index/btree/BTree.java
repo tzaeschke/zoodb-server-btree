@@ -66,7 +66,19 @@ public abstract class BTree<T extends BTreeNode> {
     public BTreeNodeFactory getNodeFactory() {
         return nodeFactory;
     }
+    
+    /*
+     * Counts number of nodes in the tree.
+     * WARNING: SLOW! has to iterate over whole tree
+     */
+    public int size() {
+    	BTreeIterator it = new BTreeIterator(this);
+    	int counter = 0;
+    	while(it.hasNext()) {
+    		it.next();
+    		counter++;
+    	}
 
-
-
+    	return counter;
+    }
 }
