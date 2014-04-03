@@ -5,21 +5,12 @@ import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeNode;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.*;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeIterator;
-import org.zoodb.internal.server.index.btree.BTreeNode;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.util.Pair;
 import org.zoodb.tools.ZooConfig;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -508,7 +499,6 @@ public class TestBTree {
 			}
 			i++;
 		}
-
 	}
 
 	@Test
@@ -516,7 +506,7 @@ public class TestBTree {
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
 				storage);
 
-		UniquePagedBTree tree = getTestTree(bufferManager);
+		UniquePagedBTree tree = (UniquePagedBTree) getTestTree(bufferManager);
 		PagedBTreeNode root = tree.getRoot();
 		assertTrue(root.isDirty());
 		bufferManager.write( tree.getRoot());
@@ -589,10 +579,10 @@ public class TestBTree {
 	public void closeTest() {
 		BTreeMemoryBufferManager bufferManager = new BTreeMemoryBufferManager();
 
-		BTree tree = getTestTree(bufferManager);
+		UniquePagedBTree tree = (UniquePagedBTree) getTestTree(bufferManager);
 
 		// build list of initial nodes
-		ArrayList<PagedBTreeNode> nodeList = new ArrayList<PagedBTreeNode>();
+		ArrayList<PagedBTreeNode> nodeList = new ArrayList<>();
 		BTreeIterator iterator = new BTreeIterator(tree);
 		while (iterator.hasNext()) {
 			nodeList.add((PagedBTreeNode) iterator.next());
@@ -639,11 +629,10 @@ public class TestBTree {
 			assertEquals(null, bufferManager.read(node.getPageId()));
 		}
 	}
-	
-	public static UniquePagedBTree getTestTree(BTreeBufferManager bufferManager) {
+
 	@Test
 	public void anotherDeleteTest() {
-		BTree tree = getTestTree(bufferManager);
+		UniquePagedBTree tree = (UniquePagedBTree) getTestTree(bufferManager);
 		tree.delete(2);
 		tree.delete(3);
 		tree.delete(33);

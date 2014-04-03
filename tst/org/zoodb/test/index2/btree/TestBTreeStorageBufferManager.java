@@ -1,17 +1,19 @@
 package org.zoodb.test.index2.btree;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.server.index.btree.unique.UniqueBTreeUtils;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 import org.zoodb.tools.ZooConfig;
+
+import static org.junit.Assert.*;
 
 public class TestBTreeStorageBufferManager {
 
@@ -83,7 +85,7 @@ public class TestBTreeStorageBufferManager {
 		int pageId = bufferManager.write(leafNode);
 		assertEquals(2, storage.statsGetPageCount());
 
-		bufferManager.delete(pageId);
+		bufferManager.remove(pageId);
 		assertEquals(null, bufferManager.getMemoryBuffer().get(pageId));
 		assertEquals(0, storage.statsGetPageCount());
 		// assertEquals(null, bufferManager.read(pageId));
@@ -136,11 +138,11 @@ public class TestBTreeStorageBufferManager {
 				storage);
 
 		int expectedNumWrites = 0;
-		BTree tree = TestBTree.getTestTree(bufferManager);
-		PagedBTreeNode root = (PagedBTreeNode) tree.getRoot();
+		UniquePagedBTree tree = (UniquePagedBTree) TestBTree.getTestTree(bufferManager);
+		PagedBTreeNode root = tree.getRoot();
 		assertEquals(expectedNumWrites, bufferManager.getStatNWrittenPages());
 
-		bufferManager.write((PagedBTreeNode) tree.getRoot());
+		bufferManager.write(tree.getRoot());
 		assertEquals(0, bufferManager.getDirtyBuffer().size());
 		assertEquals(expectedNumWrites+=9, bufferManager.getStatNWrittenPages());
 
