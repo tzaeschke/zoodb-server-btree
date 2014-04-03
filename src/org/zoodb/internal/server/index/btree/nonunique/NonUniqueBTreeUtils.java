@@ -3,6 +3,11 @@ package org.zoodb.internal.server.index.btree.nonunique;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.util.Pair;
 
+/**
+ * Utility class containing methods applicable to non-unique trees. Similar to UniqueBTreeUtils,
+ * but decision/updates done on keys/values for inner nodes.
+ *
+ */
 public class NonUniqueBTreeUtils {
 
     public static <T extends BTreeNode> T findChild(T node, long key, long value) {

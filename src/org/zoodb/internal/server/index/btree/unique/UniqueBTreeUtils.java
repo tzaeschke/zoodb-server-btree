@@ -3,6 +3,12 @@ package org.zoodb.internal.server.index.btree.unique;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.util.Pair;
 
+/**
+ * Utility class containing methods applicable to unique trees. Similar to NonUniqueBTreeUtils,
+ * but decision/updates only done on keys for inner nodes.
+ *
+ * TODO find a way to avoid duplication
+ */
 public class UniqueBTreeUtils {
 
     /**

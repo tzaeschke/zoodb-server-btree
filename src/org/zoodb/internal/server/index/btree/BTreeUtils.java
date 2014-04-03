@@ -1,8 +1,11 @@
 package org.zoodb.internal.server.index.btree;
 
+/**
+ * Utility class that contains methods that can be applied to all types of nodes.
+ *
+ * TODO This could be moved to the tree class.
+ */
 public class BTreeUtils {
-    //Todo Move to an abstract node class
-
     public static <T extends BTreeNode> T mergeWithRight(BTree<T> tree, T current, T right, T parent) {
         int keyIndex = parent.keyIndexOf(current, right);
 
@@ -10,7 +13,6 @@ public class BTreeUtils {
         if (parent.isRoot() && parent.getNumKeys() == 1) {
             if (parent.getKey(0) != right.getKey(0)) {
                 right.shiftRecordsRight(parent.getNumKeys());
-                //right.setKey(0, parent.getKey(0));
                 right.migrateEntry(0, parent, 0);
                 right.increaseNumKeys(1);
             }
@@ -20,7 +22,6 @@ public class BTreeUtils {
             tree.swapRoot(right);
             parent = right;
         } else {
-
             if (right.isLeaf()) {
                 //merge leaves
                 parent.shiftRecordsLeftWithIndex(keyIndex, 1);
@@ -72,7 +73,6 @@ public class BTreeUtils {
                 //inner node merge
                 //move key from parent
                 current.shiftRecordsRight(left.getNumKeys() + 1);
-                //current.setKey(left.getNumKeys(), parent.getKey(keyIndex));
                 current.migrateEntry(left.getNumKeys(), parent, keyIndex);
                 parent.shiftRecordsLeftWithIndex(keyIndex, 1);
                 parent.decreaseNumKeys(1);
@@ -81,10 +81,7 @@ public class BTreeUtils {
                 copyNodeToAnother(left, current, 0);
                 current.increaseNumKeys(left.getNumKeys() + 1);
             }
-
         }
-
-
         return parent;
     }
 
@@ -107,11 +104,9 @@ public class BTreeUtils {
             right.decreaseNumKeys(keysToMove);
             current.increaseNumKeys(keysToMove);
 
-            //parent.setKey(parentKeyIndex, right.getSmallestKey());
             parent.migrateEntry(parentKeyIndex, right, 0);
         } else {
             //add key from parent
-            //current.setKey(current.getNumKeys(), parent.getKey(parentKeyIndex));
             current.migrateEntry(current.getNumKeys(), parent, parentKeyIndex);
             current.increaseNumKeys(1);
 
@@ -125,7 +120,6 @@ public class BTreeUtils {
             //shift nodes in current node right
             right.shiftRecordsLeft(keysToMove);
             right.decreaseNumKeys(keysToMove);
-            //parent.setKey(parentKeyIndex, right.getSmallestKey());
             parent.migrateEntry(parentKeyIndex, right, 0);
             right.shiftRecordsLeft(1);
             right.decreaseNumKeys(1);
@@ -141,7 +135,6 @@ public class BTreeUtils {
             //shift nodes in current node right
             current.shiftRecordsRight(keysToMove);
 
-            //int startIndexLeft = (totalKeys + 1) / 2;
             int startIndexLeft = left.getNumKeys() - keysToMove;
             int startIndexRight = 0;
             //copy from left to current
@@ -152,7 +145,6 @@ public class BTreeUtils {
             current.increaseNumKeys(keysToMove);
 
             //move key from parent to current node
-            //parent.setKey(parentKeyIndex, current.getSmallestKey());
             parent.migrateEntry(parentKeyIndex, current, 0);
         } else {
             keysToMove-=1;
@@ -164,7 +156,6 @@ public class BTreeUtils {
 
             current.shiftRecordsRight(1);
             current.increaseNumKeys(1);
-            //current.setKey(0, parent.getKey(parentKeyIndex));
             current.migrateEntry(0, parent, parentKeyIndex);
             //shift nodes in current node right
             current.shiftRecordsRight(keysToMove);
@@ -174,7 +165,6 @@ public class BTreeUtils {
             current.increaseNumKeys(keysToMove);
             left.decreaseNumKeys(keysToMove);
             //move the biggest key to parent
-            //parent.setKey(parentKeyIndex, left.getLargestKey());
             parent.migrateEntry(parentKeyIndex, left, left.getNumKeys() - 1);
             left.decreaseNumKeys(1);
         }
@@ -231,6 +221,4 @@ public class BTreeUtils {
     public static <T extends BTreeNode> void copyNodeToAnother(T source, T destination, int destinationIndex) {
         source.copyFromNodeToNode(0, 0, destination, destinationIndex, destinationIndex, source.getNumKeys(), source.getNumKeys() + 1);
     }
-
-
 }
