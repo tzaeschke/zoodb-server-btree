@@ -58,11 +58,9 @@ public abstract class UniqueBTree<T extends BTreeNode> extends BTree<T> {
 
         if (leaf.getNumKeys() < order - 1) {
             UniqueBTreeUtils.put(leaf, key, value);
-            leaf.markChanged();
         } else {
             //split node
             T rightNode = UniqueBTreeUtils.putAndSplit(leaf, key, value);
-            rightNode.markChanged();
             insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode, ancestorStack);
         }
     }
@@ -81,10 +79,8 @@ public abstract class UniqueBTree<T extends BTreeNode> extends BTree<T> {
             T newRoot = nodeFactory.newUniqueNode(order, false, true);
             swapRoot(newRoot);
             UniqueBTreeUtils.put(root, key, left, right);
-            newRoot.markChanged();
         } else {
             T parent = ancestorStack.pop();
-            parent.markChanged();
             //check if parent overflows
             if (parent.getNumKeys() < order - 1) {
                 UniqueBTreeUtils.put(parent, key, right);
@@ -118,7 +114,6 @@ public abstract class UniqueBTree<T extends BTreeNode> extends BTree<T> {
         T leaf = pair.getB();
         LinkedList<T> ancestorStack = pair.getA();
         deleteFromLeaf(leaf, key);
-        leaf.markChanged();
 
         if (leaf.isRoot()) {
             return;
@@ -132,20 +127,16 @@ public abstract class UniqueBTree<T extends BTreeNode> extends BTree<T> {
             T leftSibling = current.leftSibling(parent);
             if (leftSibling != null && leftSibling.hasExtraKeys()) {
                 BTreeUtils.redistributeKeysFromLeft(current, leftSibling, parent);
-                leftSibling.markChanged();
             } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
                 BTreeUtils.redistributeKeysFromRight(current, rightSibling, parent);
-                rightSibling.markChanged();
             } else {
                 //at this point, both left and right sibling have the minimum number of keys
                 if (leftSibling!= null) {
                     //merge with left sibling
                     parent = BTreeUtils.mergeWithLeft(this, current, leftSibling, parent);
-                    leftSibling.markChanged();
                 } else {
                     //merge with right sibling
                     parent = BTreeUtils.mergeWithRight(this, current, rightSibling, parent);
-                    rightSibling.markChanged();
                 }
             }
             if (UniqueBTreeUtils.containsKey(current, key)) {
