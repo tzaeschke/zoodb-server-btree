@@ -18,7 +18,7 @@ public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
     public boolean contains(long key, long value) {
         T current = root;
         while (!current.isLeaf()) {
-            current = (T) current.findChild(key, value);
+            current = current.findChild(key, value);
         }
         return current.containsKeyValue(key, value);
     }

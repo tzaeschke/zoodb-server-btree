@@ -35,7 +35,7 @@ public abstract class UniqueBTree<T extends BTreeNode> extends BTree<T> {
     public long search(long key) {
         T current = root;
         while (!current.isLeaf()) {
-            current = (T) current.findChild(key, NO_VALUE);
+            current = current.findChild(key, NO_VALUE);
         }
         return findValue(current, key);
     }
