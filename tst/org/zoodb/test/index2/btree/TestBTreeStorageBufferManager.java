@@ -83,7 +83,7 @@ public class TestBTreeStorageBufferManager {
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
 				storage);
 
-		BTree tree = TestBTree.getTestTree();
+		BTree tree = TestBTree.getTestTree(bufferManager);
 		int pageId = bufferManager.write((PagedBTreeNode) tree.getRoot());
 
 		assertEquals(10, storage.statsGetPageCount());
@@ -156,7 +156,7 @@ public class TestBTreeStorageBufferManager {
 				storage);
 
 		int expectedNumWrites = 0;
-		UniquePagedBTree tree = (UniquePagedBTree) TestBTree.getTestTree();
+		UniquePagedBTree tree = (UniquePagedBTree) TestBTree.getTestTree(bufferManager);
 		PagedBTreeNode root = tree.getRoot();
 		assertEquals(expectedNumWrites, bufferManager.getStatNWrittenPages());
 
