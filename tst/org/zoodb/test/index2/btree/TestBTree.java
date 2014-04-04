@@ -1,21 +1,29 @@
 package org.zoodb.test.index2.btree;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.btree.*;
-import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
-import org.zoodb.internal.util.Pair;
-import org.zoodb.tools.ZooConfig;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
+import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeIterator;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
+import org.zoodb.internal.util.Pair;
+import org.zoodb.tools.ZooConfig;
 
 public class TestBTree {
 
@@ -431,6 +439,20 @@ public class TestBTree {
 		tree1.delete(10L);
 		assertEquals(tree2, tree1);
 	}
+	
+	@Test
+	public void anotherDeleteTest() {
+		UniquePagedBTree tree = (UniquePagedBTree) getTestTree(newBufferManager());
+		tree.delete(2);
+		tree.delete(3);
+		tree.delete(33);
+		tree.delete(34);
+		tree.delete(39);
+		tree.delete(24);
+		tree.delete(14);
+		tree.delete(19);
+	}
+
 
 	/*
 	 * Tests whether the state of the tree is correct after doing a lot of
@@ -524,11 +546,7 @@ public class TestBTree {
 
 		bufferManager.write(root);
 
-		System.out.println(tree);
-		System.out.println(lvl2child6);
 		tree.insert(32, 32);
-		System.out.println(tree);
-		System.out.println(lvl2child6);
 		PagedBTreeNode lvl2child7 = (PagedBTreeNode) lvl1child2.getChild(3);
 		assertTrue(root.isDirty());
 		assertTrue(lvl1child2.isDirty());
@@ -570,17 +588,17 @@ public class TestBTree {
 
 	@Test
 	public void closeTest() {
-		BTreeBufferManager bufferManager = newBufferManager();
+		BTreeStorageBufferManager bufferManager = (BTreeStorageBufferManager) newBufferManager();
 
 		UniquePagedBTree tree = (UniquePagedBTree) getTestTree(bufferManager);
 
 		// build list of initial nodes
-		ArrayList<PagedBTreeNode> nodeList = new ArrayList<>();
+		ArrayList<Integer> nodeList = new ArrayList<Integer>();
 		BTreeIterator iterator = new BTreeIterator(tree);
 		while (iterator.hasNext()) {
-			nodeList.add((PagedBTreeNode) iterator.next());
+			nodeList.add(((PagedBTreeNode) iterator.next()).getPageId());
 		}
-
+		
 		tree.delete(2);
 		tree.delete(3);
 		closeTestHelper(tree, nodeList, bufferManager);
@@ -589,15 +607,6 @@ public class TestBTree {
 		tree.delete(7);
 		tree.delete(8);
 		closeTestHelper(tree, nodeList, bufferManager);
-
-		tree.delete(14);
-		tree.delete(16);
-		closeTestHelper(tree, nodeList, bufferManager);
-
-		tree.delete(19);
-		tree.delete(20);
-		tree.delete(22);
-		closeTestHelper(tree, nodeList, bufferManager);
 		
         tree.delete(24);
 		tree.delete(27);
@@ -605,36 +614,34 @@ public class TestBTree {
 		tree.delete(33);
 		closeTestHelper(tree, nodeList, bufferManager);
 
+		tree.delete(14);
+		tree.delete(16);
+		closeTestHelper(tree, nodeList, bufferManager);
+		
+		tree.delete(19);
+		tree.delete(20);
+		tree.delete(22);
+		closeTestHelper(tree, nodeList, bufferManager);
+
 	}
 
 	// test whether all of the nodes that are not in the tree anymore are also
 	// not anymore present in the BufferManager
-	private void closeTestHelper(BTree tree,
-			ArrayList<PagedBTreeNode> nodeList, BTreeBufferManager bufferManager) {
-		ArrayList<PagedBTreeNode> removedNodeList = (ArrayList<PagedBTreeNode>) nodeList
-				.clone();
+	private void closeTestHelper(UniquePagedBTree tree,
+			ArrayList<Integer> nodeList, BTreeStorageBufferManager bufferManager) {
 
+		ArrayList<Integer> removedNodeList = new ArrayList<Integer>(nodeList);
+		
 		BTreeIterator iterator = new BTreeIterator(tree);
 		while (iterator.hasNext()) {
-			removedNodeList.remove(iterator.next());
+			Integer nodeId = ((PagedBTreeNode) iterator.next()).getPageId();
+			removedNodeList.remove(nodeId);
 		}
-		for (PagedBTreeNode node : removedNodeList) {
-			assertEquals(null, bufferManager.read(node.getPageId()));
+		for (int nodeId : removedNodeList) {
+			assertEquals(null, bufferManager.readNodeFromMemory(nodeId));
 		}
 	}
 
-	@Test
-	public void anotherDeleteTest() {
-		UniquePagedBTree tree = (UniquePagedBTree) getTestTree(newBufferManager());
-		tree.delete(2);
-		tree.delete(3);
-		tree.delete(33);
-		tree.delete(34);
-		tree.delete(39);
-		tree.delete(24);
-		tree.delete(14);
-		tree.delete(19);
-	}
 
 	public static BTree<PagedBTreeNode> getTestTree(BTreeBufferManager bufferManager) {
 		int order = 5;
