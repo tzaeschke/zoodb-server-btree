@@ -43,15 +43,10 @@ public class BTreeUtils {
                 copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
                 right.increaseNumKeys(current.getNumKeys());
             }
-
-            //mark
-            right.markChanged();
         }
 
         //this node will not be used anymore
         current.close();
-
-        parent.markChanged();
         return parent;
     }
 
@@ -95,8 +90,6 @@ public class BTreeUtils {
 
         //left wont be used anymore
         left.close();
-
-        parent.markChanged();
         return parent;
     }
 
@@ -139,7 +132,6 @@ public class BTreeUtils {
             right.shiftRecordsLeft(1);
             right.decreaseNumKeys(1);
         }
-        right.markChanged();
     }
 
     public static <T extends BTreeNode> void redistributeKeysFromLeft(T current, T left, T parent) {
@@ -183,7 +175,6 @@ public class BTreeUtils {
             parent.migrateEntry(parentKeyIndex, left, left.getNumKeys() - 1);
             left.decreaseNumKeys(1);
         }
-        left.markChanged();
     }
 
     public static <T extends BTreeNode> void copyMergeFromLeftNodeToRightNode(T source,
