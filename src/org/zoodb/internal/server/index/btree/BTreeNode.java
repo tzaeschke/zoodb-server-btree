@@ -1,8 +1,8 @@
 package org.zoodb.internal.server.index.btree;
 
-import java.util.Observable;
-
 import org.zoodb.internal.util.Pair;
+
+import java.util.Observable;
 
 /**
  * Represents the node of a B+ tree.
@@ -37,12 +37,48 @@ public abstract class BTreeNode extends Observable {
                                       BTreeNode dest, int destIndex, int size);
     protected abstract <T extends BTreeNode> T  leftSiblingOf(BTreeNode node);
     protected abstract <T extends BTreeNode> T  rightSiblingOf(BTreeNode node);
-    public abstract <T extends BTreeNode> void put(long key, long value);
     public abstract BTreeNode getChild(int index);
     public abstract void setChild(int index, BTreeNode child);
     public abstract BTreeNode[] getChildren();
     public abstract void setChildren(BTreeNode[] children);
     public abstract void markChanged();
+
+    // closes (destroys) node
+    public abstract void close();
+    /*
+        Node modification operations
+     */
+    //TODO change this
+    public abstract void migrateEntry(int destinationPos, BTreeNode source, int sourcePos);
+    public abstract void setEntry(int pos, long key, long value);
+
+    public abstract void copyFromNodeToNode(int srcStartK, int srcStartC, BTreeNode destination, int destStartK, int destStartC, int keys, int children);
+    public abstract void shiftRecords(int startIndex, int endIndex, int amount);
+    public abstract void shiftRecordsRight(int amount);
+    public abstract void shiftRecordsLeftWithIndex(int startIndex, int amount);
+    protected abstract boolean containsAtPosition(int position, long key, long value);
+    protected abstract boolean smallerThanKeyValue(int position, long key, long value);
+    protected abstract boolean checkIllegalInsert(int position, long key, long value);
+
+    public void put(long key, long value) {
+        if (!isLeaf()) {
+            throw new IllegalStateException(
+                    "Should only be called on leaf nodes.");
+        }
+
+        int pos = BTreeUtils.findKeyValuePos(this, key, value);
+        if (checkIllegalInsert(pos, key, value)) {
+            throw new IllegalStateException(
+                    "Tree is not allowed to have non-unique values.");
+        }
+        shiftRecords(pos, pos + 1, getNumKeys() - pos);
+        setKey(pos, key);
+        setValue(pos, value);
+        incrementNumKyes();
+
+        //signal change
+        markChanged();
+    }
 
     public <T extends BTreeNode> T leftSibling(BTreeNode parent) {
         return (parent == null) ? null : (T) parent.leftSiblingOf(this);
@@ -54,10 +90,16 @@ public abstract class BTreeNode extends Observable {
 
 	public void setKey(int index, long key) {
 		getKeys()[index] = key;
+
+        //signal change
+        markChanged();
 	}
 
 	public void setValue(int index, long value) {
 		getValues()[index] = value;
+
+        //signal change
+        markChanged();
 	}
 
 	public int keyIndexOf(BTreeNode left, BTreeNode right) {
@@ -91,14 +133,17 @@ public abstract class BTreeNode extends Observable {
 	}
 
 	public boolean incrementNumKyes() {
+        markChanged();
 		return increaseNumKeys(1);
 	}
 
 	public boolean decrementNumKeys() {
+        markChanged();
 		return decreaseNumKeys(1);
 	}
 
 	public boolean increaseNumKeys(int amount) {
+        markChanged();
 		int newNumKeys = getNumKeys() + amount;
 		if (newNumKeys > getKeys().length) {
 			return false;
@@ -108,6 +153,7 @@ public abstract class BTreeNode extends Observable {
 	}
 
 	public boolean decreaseNumKeys(int amount) {
+        markChanged();
 		int newNumKeys = getNumKeys() - amount;
 		if (newNumKeys < 0) {
 			return false;
@@ -178,14 +224,17 @@ public abstract class BTreeNode extends Observable {
 	}
 
 	public void setNumKeys(int numKeys) {
+        markChanged();
 		this.numKeys = numKeys;
 	}
 
 	public void setKeys(long[] keys) {
+        markChanged();
 		this.keys = keys;
 	}
 
 	public void setValues(long[] values) {
+        markChanged();
 		this.values = values;
 	}
 
@@ -194,37 +243,61 @@ public abstract class BTreeNode extends Observable {
 	}
 
 	public void setIsRoot(boolean isRoot) {
+        markChanged();
 		this.isRoot = isRoot;
 	}
-	
-	// closes (destroys) node
-	public abstract void close();
 
-    /*
-        Node modification operations
+    public Pair<Long, Long> getKeyValue(int position) {
+        Long key = getKey(position);
+        Long value = (getValues() != null) ? getValue(position) : -1;
+        return new Pair<>(key, value);
+    }
+
+    /**
+     * Perform binary search on the key array for a certain key/value pair.
+     *
+     *
+     * @param key   The key received as an argument.
+     * @param value The value received as argument. Not used for decisions for unique trees.
+
      */
-    //TODO change this
-    public abstract void migrateEntry(int destinationPos, BTreeNode source, int sourcePos);
-
-    public abstract void copyFromNodeToNode(int srcStartK, int srcStartC, BTreeNode destination, int destStartK, int destStartC, int keys, int children);
-    public abstract void shiftRecords(int startIndex, int endIndex, int amount);
-    public abstract void shiftRecordsRight(int amount);
-    public abstract void shiftRecordsLeftWithIndex(int startIndex, int amount);
-
+    public Pair<Boolean, Integer> binarySearch(long key, long value) {
+        int low = 0;
+        int high = this.getNumKeys() - 1;
+        int mid = 0;
+        boolean found = false;
+        while (!found && low <= high) {
+            mid = low + (high - low) / 2;
+            if (containsAtPosition(mid, key, value)) {
+                found = true;
+            } else {
+                if (smallerThanKeyValue(mid, key, value)) {
+                    high = mid - 1;
+                } else {
+                    low = mid + 1;
+                }
+            }
+        }
+        return new Pair<>(found, mid);
+    }
 
     protected void shiftRecordsLeft(int amount) {
+        markChanged();
         shiftRecordsLeftWithIndex(0, amount);
     }
 
     public void shiftKeys(int startIndex, int endIndex, int amount) {
+        markChanged();
         System.arraycopy(getKeys(), startIndex, getKeys(), endIndex, amount);
     }
 
     protected void shiftValues(int startIndex, int endIndex, int amount) {
+        markChanged();
         System.arraycopy(getValues(), startIndex, getValues(), endIndex, amount);
     }
 
     public void shiftChildren(int startIndex, int endIndex, int amount) {
+        markChanged();
         copyChildren(this, startIndex, this, endIndex, amount);
     }
 

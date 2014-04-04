@@ -3,11 +3,7 @@ package org.zoodb.test.index2.btree;
 import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.btree.BTreeNode;
-import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
-import org.zoodb.internal.server.index.btree.unique.UniqueBTreeUtils;
+import org.zoodb.internal.server.index.btree.*;
 import org.zoodb.internal.util.Pair;
 import org.zoodb.tools.ZooConfig;
 
@@ -17,6 +13,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 public class TestNode {
+
+    private static final int NO_VALUE = -1;
 
 	StorageChannel storage = new StorageRootInMemory(
 			ZooConfig.getFilePageSize());
@@ -81,27 +79,27 @@ public class TestNode {
 		BTreeNode child6 = nodeFactory.newUniqueNode(order, true, true);
 		child6.put(6, 6);
 
-        UniqueBTreeUtils.put(innerNode, 3, child1, child4);
+        BTreeUtils.put(innerNode, 3, NO_VALUE, child1, child4);
 		assertArrayEquals(new long[] { 3 }, getKeys(innerNode));
 		assertArrayEquals(new BTreeNode[] { child1, child4 },
 				getChildren(innerNode));
 
-        UniqueBTreeUtils.put(innerNode, 1, child2);
+        BTreeUtils.put(innerNode, 1, NO_VALUE, child2);
 		assertArrayEquals(new long[] { 1, 3 }, getKeys(innerNode));
 		assertArrayEquals(new BTreeNode[] { child1, child2, child4 },
 				getChildren(innerNode));
 
-        UniqueBTreeUtils.put(innerNode, 5, child6);
+        BTreeUtils.put(innerNode, 5, NO_VALUE, child6);
 		assertArrayEquals(new long[] { 1, 3, 5 }, getKeys(innerNode));
 		assertArrayEquals(new BTreeNode[] { child1, child2, child4, child6 },
 				getChildren(innerNode));
 
-        UniqueBTreeUtils.put(innerNode, 2, child3);
+        BTreeUtils.put(innerNode, 2, NO_VALUE, child3);
 		assertArrayEquals(new long[] { 1, 2, 3, 5 }, getKeys(innerNode));
 		assertArrayEquals(new BTreeNode[] { child1, child2, child3, child4,
 				child6 }, getChildren(innerNode));
 
-        UniqueBTreeUtils.put(innerNode, 4, child5);
+        BTreeUtils.put(innerNode, 4, NO_VALUE, child5);
 		assertArrayEquals(new long[] { 1, 2, 3, 4, 5 }, getKeys(innerNode));
 		assertArrayEquals(new BTreeNode[] { child1, child2, child3, child4,
 				child5, child6 }, getChildren(innerNode));
@@ -114,7 +112,7 @@ public class TestNode {
 		unevenKeysLeaf.put(2, 2);
 		unevenKeysLeaf.put(4, 4);
 
-		BTreeNode right = UniqueBTreeUtils.putAndSplit(unevenKeysLeaf, 3, 3);
+		BTreeNode right = BTreeUtils.putAndSplit(unevenKeysLeaf, 3, 3);
 		assertArrayEquals(new long[] { 1, 2 }, getValues(unevenKeysLeaf));
 		assertArrayEquals(new long[] { 1, 2 }, getKeys(unevenKeysLeaf));
 		assertArrayEquals(new long[] { 3, 4 }, getValues(right));
@@ -124,7 +122,7 @@ public class TestNode {
 		unevenKeysLeaf.put(1, 1);
 		unevenKeysLeaf.put(3, 3);
 		unevenKeysLeaf.put(4, 4);
-		right = UniqueBTreeUtils.putAndSplit(unevenKeysLeaf, 2,2);
+		right = BTreeUtils.putAndSplit(unevenKeysLeaf, 2,2);
 		assertArrayEquals(new long[] { 1, 2 }, getValues(unevenKeysLeaf));
 		assertArrayEquals(new long[] { 1, 2 }, getKeys(unevenKeysLeaf));
 		assertArrayEquals(new long[] { 3, 4 }, getValues(right));
@@ -135,7 +133,7 @@ public class TestNode {
 		evenKeysLeaf.put(2, 2);
 		evenKeysLeaf.put(3, 3);
 		evenKeysLeaf.put(4, 4);
-		BTreeNode right2 = UniqueBTreeUtils.putAndSplit(evenKeysLeaf, 5,5 );
+		BTreeNode right2 = BTreeUtils.putAndSplit(evenKeysLeaf, 5,5 );
 		assertArrayEquals(new long[] { 1, 2, 3 }, getValues(evenKeysLeaf));
 		assertArrayEquals(new long[] { 1, 2, 3 }, getKeys(evenKeysLeaf));
 		assertArrayEquals(new long[] { 4, 5 }, getValues(right2));
@@ -146,7 +144,7 @@ public class TestNode {
 		evenKeysLeaf.put(2, 2);
 		evenKeysLeaf.put(4, 4);
 		evenKeysLeaf.put(5, 5);
-		right2 = UniqueBTreeUtils.putAndSplit(evenKeysLeaf, 3, 3);
+		right2 = BTreeUtils.putAndSplit(evenKeysLeaf, 3, 3);
 		assertArrayEquals(new long[] { 1, 2, 3 }, getValues(evenKeysLeaf));
 		assertArrayEquals(new long[] { 1, 2, 3 }, getKeys(evenKeysLeaf));
 		assertArrayEquals(new long[] { 4, 5 }, getValues(right2));
@@ -157,7 +155,7 @@ public class TestNode {
 		evenKeysLeaf.put(3, 3);
 		evenKeysLeaf.put(5, 5);
 		evenKeysLeaf.put(7, 7);
-		right2 = UniqueBTreeUtils.putAndSplit(evenKeysLeaf, 8, 8);
+		right2 = BTreeUtils.putAndSplit(evenKeysLeaf, 8, 8);
 		assertArrayEquals(new long[] { 2, 3, 5 }, getValues(evenKeysLeaf));
 		assertArrayEquals(new long[] { 2, 3, 5 }, getKeys(evenKeysLeaf));
 		assertArrayEquals(new long[] { 7, 8 }, getValues(right2));
@@ -168,7 +166,7 @@ public class TestNode {
 		evenKeysLeaf.put(3, 3);
 		evenKeysLeaf.put(5, 5);
 		evenKeysLeaf.put(7, 7);
-		right2 = UniqueBTreeUtils.putAndSplit(evenKeysLeaf, 1, 1);
+		right2 = BTreeUtils.putAndSplit(evenKeysLeaf, 1, 1);
 		assertArrayEquals(new long[] { 1, 2, 3 }, getValues(evenKeysLeaf));
 		assertArrayEquals(new long[] { 1, 2, 3 }, getKeys(evenKeysLeaf));
 		assertArrayEquals(new long[] { 5, 7 }, getValues(right2));
@@ -187,23 +185,23 @@ public class TestNode {
 		BTreeNode[] childArray = new BTreeNode[] { child1, child2, child3,
 				child4 };
 
-        UniqueBTreeUtils.put(node, 3, child1, child3);
-        UniqueBTreeUtils.put(node, 4, child4);
-		Pair<BTreeNode, Long> p = UniqueBTreeUtils.putAndSplit(node, 2, child2);
-		checkEvenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+        BTreeUtils.put(node, 3, NO_VALUE, child1, child3);
+        BTreeUtils.put(node, 4, NO_VALUE, child4);
+		Pair<BTreeNode, Pair<Long, Long>> p = BTreeUtils.putAndSplit(node, 2, NO_VALUE, child2);
+		checkEvenInnerNodeSplit(node, p.getA(), p.getB().getA(), childArray);
 
 		node = nodeFactory.newUniqueNode(order, false, true);
-		UniqueBTreeUtils.put(node, 2, child1, child2);
-		UniqueBTreeUtils.put(node, 3, child3);
-		p = UniqueBTreeUtils.putAndSplit(node, 4, child4);
-		checkEvenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+		BTreeUtils.put(node, 2, NO_VALUE, child1, child2);
+		BTreeUtils.put(node, 3, NO_VALUE, child3);
+		p = BTreeUtils.putAndSplit(node, 4, NO_VALUE, child4);
+		checkEvenInnerNodeSplit(node, p.getA(), p.getB().getA(), childArray);
 
 		node = nodeFactory.newUniqueNode(order, false, true);
-        UniqueBTreeUtils.put(node, 3, child1, child3);
-        UniqueBTreeUtils.put(node, 4, child4);
-		p = UniqueBTreeUtils.putAndSplit(node, 2, child2);
+        BTreeUtils.put(node, 3, NO_VALUE, child1, child3);
+        BTreeUtils.put(node, 4, NO_VALUE, child4);
+		p = BTreeUtils.putAndSplit(node, 2, NO_VALUE, child2);
 
-		checkEvenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+		checkEvenInnerNodeSplit(node, p.getA(), p.getB().getA(), childArray);
 
 		// even order
 		order = 4;
@@ -211,26 +209,26 @@ public class TestNode {
 		BTreeNode child5 = nodeFactory.newUniqueNode(order, true, true);
 		childArray = new BTreeNode[] { child1, child2, child3, child4, child5 };
 
-        UniqueBTreeUtils.put(node, 3, child1, child4);
-        UniqueBTreeUtils.put(node, 1, child2);
-        UniqueBTreeUtils.put(node, 4, child5);
+        BTreeUtils.put(node, 3, NO_VALUE, child1, child4);
+        BTreeUtils.put(node, 1, NO_VALUE, child2);
+        BTreeUtils.put(node, 4, NO_VALUE, child5);
 
-		p = UniqueBTreeUtils.putAndSplit(node, 2, child3);
-		checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
-
-		node = nodeFactory.newUniqueNode(order, false, true);
-        UniqueBTreeUtils.put(node, 3, child1, child4);
-        UniqueBTreeUtils.put(node, 1, child2);
-        UniqueBTreeUtils.put(node, 2, child3);
-        UniqueBTreeUtils.putAndSplit(node, 4, child5);
-		checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+		p = BTreeUtils.putAndSplit(node, 2, NO_VALUE, child3);
+		checkUnevenInnerNodeSplit(node, p.getA(), p.getB().getA(), childArray);
 
 		node = nodeFactory.newUniqueNode(order, false, true);
-        UniqueBTreeUtils.put(node, 3, child1, child3);
-        UniqueBTreeUtils.put(node, 2, child3);
-        UniqueBTreeUtils.put(node, 4, child5);
-        UniqueBTreeUtils.putAndSplit(node, 1, child2);
-		checkUnevenInnerNodeSplit(node, p.getA(), p.getB(), childArray);
+        BTreeUtils.put(node, 3, NO_VALUE,child1, child4);
+        BTreeUtils.put(node, 1, NO_VALUE,child2);
+        BTreeUtils.put(node, 2, NO_VALUE,child3);
+        BTreeUtils.putAndSplit(node, 4, NO_VALUE, child5);
+		checkUnevenInnerNodeSplit(node, p.getA(), p.getB().getA(), childArray);
+
+		node = nodeFactory.newUniqueNode(order, false, true);
+        BTreeUtils.put(node, 3, NO_VALUE, child1, child3);
+        BTreeUtils.put(node, 2, NO_VALUE, child3);
+        BTreeUtils.put(node, 4, NO_VALUE, child5);
+        BTreeUtils.putAndSplit(node, 1, NO_VALUE, child2);
+		checkUnevenInnerNodeSplit(node, p.getA(), p.getB().getA(), childArray);
 	}
 
     //TODO cleanup the calls to parent
@@ -240,13 +238,9 @@ public class TestNode {
 		assertArrayEquals(new long[] { 2 }, getKeys(node));
 		assertArrayEquals(new BTreeNode[] { childArray[0], childArray[1] },
 				getChildren(node));
-//		assertTrue(childArray[0].getParent() == node
-//				&& childArray[1].getParent() == node);
 		assertArrayEquals(new long[] { 4 }, getKeys(right));
 		assertArrayEquals(new BTreeNode[] { childArray[2], childArray[3] },
 				getChildren(right));
-//		assertTrue(childArray[2].getParent() == right
-//				&& childArray[3].getParent() == right);
 	}
 
 	private void checkUnevenInnerNodeSplit(BTreeNode node, BTreeNode right,
@@ -255,14 +249,9 @@ public class TestNode {
 		assertArrayEquals(new long[] { 1, 2 }, getKeys(node));
 		assertArrayEquals(new BTreeNode[] { childArray[0], childArray[1],
 				childArray[2] }, getChildren(node));
-//		assertTrue(childArray[0].getParent() == node
-//				&& childArray[1].getParent() == node
-//				&& childArray[2].getParent() == node);
 		assertArrayEquals(new long[] { 4 }, getKeys(right));
 		assertArrayEquals(new BTreeNode[] { childArray[3], childArray[4] },
 				getChildren(right));
-//		assertTrue(childArray[3].getParent() == right
-//				&& childArray[4].getParent() == right);
 	}
 
 }

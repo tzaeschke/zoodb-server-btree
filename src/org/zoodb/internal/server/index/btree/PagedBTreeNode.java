@@ -37,22 +37,18 @@ public abstract class PagedBTreeNode extends BTreeNode {
     }
 
 	public void setKey(int index, long key) {
-		markDirty();
 		super.setKey(index, key);
 	}
 
 	public void setValue(int index, long value) {
-		markDirty();
 		super.setValue(index, value);
 	}
 
 	public void setKeys(long[] keys) {
-		// markDirty(); would be called before buffer manager is ready
 		super.setKeys(keys);
 	}
 
 	public void setValues(long[] values) {
-		// markDirty(); would be called before buffer manager is ready
 		super.setValues(values);
 	}
 
@@ -151,10 +147,10 @@ public abstract class PagedBTreeNode extends BTreeNode {
 
 	public List<Integer> getChildrenPageIdList() {
 		if(getNumKeys() == 0) {
-			return new ArrayList<Integer>(0);
+			return new ArrayList<>(0);
 		}
 
-		List<Integer> childrenPageIdList = new ArrayList<Integer>(getNumKeys()+1);
+		List<Integer> childrenPageIdList = new ArrayList<>(getNumKeys()+1);
 
 		for(int i=0; i<getNumKeys()+1; i++) {
 			childrenPageIdList.add(childrenPageIds[i]);

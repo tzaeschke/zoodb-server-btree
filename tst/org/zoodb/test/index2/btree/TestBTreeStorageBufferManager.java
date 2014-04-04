@@ -10,12 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeIterator;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
-import org.zoodb.internal.server.index.btree.unique.UniqueBTreeUtils;
+import org.zoodb.internal.server.index.btree.*;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 import org.zoodb.tools.ZooConfig;
@@ -193,7 +188,7 @@ public class TestBTreeStorageBufferManager {
 	private PagedBTreeNode getTestLeaf(BTreeStorageBufferManager bufferManager) {
 		int order = bufferManager.computeOrder();
 		PagedBTreeNode leafNode = new UniquePagedBTreeNode(bufferManager, order, true, true);
-		UniqueBTreeUtils.put(leafNode, 1, 2);
+		leafNode.put(1, 2);
 		return leafNode;
 	}
 

@@ -3,7 +3,7 @@ package org.zoodb.internal.server.index.btree;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTreeNode;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 
-public class PagedBTreeNodeFactory implements BTreeNodeFactory {
+public class PagedBTreeNodeFactory implements BTreeNodeFactory<PagedBTreeNode> {
 
 	private BTreeBufferManager bufferManager;
 
@@ -12,13 +12,22 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory {
 	}
 
 	@Override
-	public BTreeNode newUniqueNode(int order, boolean isLeaf, boolean isRoot) {
+	public PagedBTreeNode newUniqueNode(int order, boolean isLeaf, boolean isRoot) {
 		return new UniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot);
 	}
 
     @Override
-    public BTreeNode newNonUniqueNode(int order, boolean isLeaf, boolean isRoot) {
+    public PagedBTreeNode newNonUniqueNode(int order, boolean isLeaf, boolean isRoot) {
         return new NonUniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot);
+    }
+
+    @Override
+    public PagedBTreeNode newNode(boolean isUnique, int order, boolean isLeaf, boolean isRoot) {
+        if (isUnique) {
+            return newUniqueNode(order, isLeaf, isRoot);
+        } else {
+            return newNonUniqueNode(order, isLeaf, isRoot);
+        }
     }
 
     public static PagedBTreeNode constructLeaf( BTreeBufferManager bufferManager,
@@ -69,5 +78,4 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory {
         }
         return node;
     }
-
 }

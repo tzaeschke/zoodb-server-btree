@@ -40,31 +40,9 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
         markDirty();
     }
 
-    /**
-     * Leaf put.
-     *
-     * Requires that node is not full.
-     *
-     * @param key
-     * @param value
-     */
-    public void put(long key, long value) {
-        if (!isLeaf()) {
-            throw new IllegalStateException(
-                    "Should only be called on leaf nodes.");
-        }
-
-        int pos = UniqueBTreeUtils.findKeyPos(this, key);
-        if (pos > numKeys && getKey(pos) == key) {
-            throw new IllegalStateException(
-                    "Tree is not allowed to have non-unique keys.");
-        }
-        shiftRecords(pos, pos + 1, getNumKeys() - pos);
+    @Override
+    public void setEntry(int pos, long key, long value) {
         setKey(pos, key);
-        setValue(pos, value);
-        incrementNumKyes();
-        
-        markDirty();
     }
 
     @Override
@@ -115,6 +93,21 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
         }
         
         markDirty();
+    }
+
+    @Override
+    protected boolean containsAtPosition(int position, long key, long value) {
+        return this.getKey(position) == key;
+    }
+
+    @Override
+    protected boolean smallerThanKeyValue(int position, long key, long value) {
+        return (key < getKey(position));
+    }
+
+    @Override
+    protected boolean checkIllegalInsert(int position, long key, long value) {
+        return position > 0 && (getKey(position - 1) == key);
     }
 
     @Override

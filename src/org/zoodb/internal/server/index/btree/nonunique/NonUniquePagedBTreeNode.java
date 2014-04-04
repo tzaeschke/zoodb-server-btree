@@ -29,11 +29,6 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    public <T extends BTreeNode> void put(long key, long value) {
-        NonUniqueBTreeUtils.put(this, key, value);
-    }
-
-    @Override
     public void migrateEntry(int destinationPos, BTreeNode source, int sourcePos) {
         long key = source.getKey(sourcePos);
         long value = source.getValue(sourcePos);
@@ -41,6 +36,12 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         setValue(destinationPos, value);
         
         markDirty();
+    }
+
+    @Override
+    public void setEntry(int pos, long key, long value) {
+        setKey(pos, key);
+        setValue(pos, value);
     }
 
     @Override
@@ -87,6 +88,22 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         }
         
         markDirty();
+    }
+
+    @Override
+    protected boolean containsAtPosition(int position, long key, long value) {
+        return this.getKey(position) == key && getValue(position) == value;
+    }
+
+    @Override
+    protected boolean smallerThanKeyValue(int position, long key, long value) {
+        return (key < getKey(position) ||
+                (key == getKey(position) && value < getValue(position)));
+    }
+
+    @Override
+    protected boolean checkIllegalInsert(int position, long key, long value) {
+        return position > 0 && (getKey(position - 1) == key && getValue(position - 1) == value);
     }
 
     @Override
