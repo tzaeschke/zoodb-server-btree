@@ -13,13 +13,11 @@ public abstract class PagedBTreeNode extends BTreeNode {
 
 	public PagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {
 		super(order, isLeaf, isRoot);
-
+		
         markDirty();
 		this.bufferManager = bufferManager;
 		this.setPageId(bufferManager.save(this));
-		this.addObserver(bufferManager);
-
-		childrenPageIds = new int[order];
+		init();
 	}
 	
 	/*
@@ -30,8 +28,12 @@ public abstract class PagedBTreeNode extends BTreeNode {
 
 		this.bufferManager = bufferManager;
 		this.setPageId(pageId);
-		
-		childrenPageIds = new int[order];
+		init();
+    }
+    
+    private void init() {
+		this.addObserver(bufferManager);
+		this.childrenPageIds = new int[order];
     }
 
 	public void setKey(int index, long key) {
