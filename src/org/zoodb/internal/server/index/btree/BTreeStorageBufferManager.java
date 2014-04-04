@@ -29,8 +29,8 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	private int statNReadPages = 0;
 
 	public BTreeStorageBufferManager(StorageChannel storage) {
-		this.dirtyBuffer = new HashMap<Integer, PagedBTreeNode>();
-		this.cleanBuffer = new HashMap<Integer, PagedBTreeNode>();
+		this.dirtyBuffer = new HashMap<>();
+		this.cleanBuffer = new HashMap<>();
 		this.pageIdCounter = 0;
 		this.storageFile = storage;
 		this.storageIn = storage.getReader(false);

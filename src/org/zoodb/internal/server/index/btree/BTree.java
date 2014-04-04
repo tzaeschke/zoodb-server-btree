@@ -443,52 +443,18 @@ public abstract class BTree<T extends BTreeNode> {
         }
     }
 
-    public void copyMergeFromLeftNodeToRightNode(T source,
-                                                                              int sourceStartIndex,
-                                                                              T destination,
-                                                                              int destinationStartIndex,
-                                                                              int keys,
-                                                                              int children) {
-        source.copyFromNodeToNode(
-                sourceStartIndex,
-                sourceStartIndex,
-                destination,
-                destinationStartIndex,
-                destinationStartIndex,
-                keys,
-                children + 1);
+    public void copyMergeFromLeftNodeToRightNode(T src, int srcStart, T dest, int destStart, int keys, int children) {
+        src.copyFromNodeToNode(srcStart, srcStart, dest, destStart, destStart, keys, children + 1);
     }
 
-    public void copyRedistributeFromLeftNodeToRightNode(T source,
-                                                                                     int sourceStartIndex,
-                                                                                     T destination,
-                                                                                     int destinationStartIndex,
-                                                                                     int keys,
-                                                                                     int children) {
-        source.copyFromNodeToNode(
-                sourceStartIndex,
-                sourceStartIndex + 1,
-                destination,
-                destinationStartIndex,
-                destinationStartIndex,
-                keys,
-                children);
+    public void copyRedistributeFromLeftNodeToRightNode(T src, int srcStart, T dest, int destStart,
+                                                        int keys, int children) {
+        src.copyFromNodeToNode( srcStart, srcStart + 1, dest, destStart, destStart, keys, children);
     }
 
-    private void copyFromRightNodeToLeftNode(T source,
-                                                                         int sourceStartIndex,
-                                                                         T destination,
-                                                                         int destinationStartIndex,
-                                                                         int keys,
-                                                                         int children) {
-        source.copyFromNodeToNode(
-                sourceStartIndex,
-                sourceStartIndex,
-                destination,
-                destinationStartIndex,
-                destinationStartIndex,
-                keys,
-                children);
+    private void copyFromRightNodeToLeftNode(T src,  int srcStart, T dest, int destStart,
+                                             int keys, int children) {
+        src.copyFromNodeToNode(srcStart, srcStart, dest, destStart, destStart, keys, children);
     }
 
     private void copyNodeToAnother(T source, T destination, int destinationIndex) {
