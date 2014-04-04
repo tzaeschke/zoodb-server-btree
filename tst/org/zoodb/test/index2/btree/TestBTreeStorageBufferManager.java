@@ -185,17 +185,7 @@ public class TestBTreeStorageBufferManager {
 		bufferManager.write(root);
 		System.out.println(bufferManager.getDirtyBuffer());
 		assertEquals(0, bufferManager.getDirtyBuffer().size());
-		assertEquals(expectedNumWrites+=5, bufferManager.getStatNWrittenPages());
-//		assertTrue(root.isDirty());
-//		assertTrue(lvl1child1.isDirty());
-//		assertTrue(lvl1child2.isDirty());
-//		assertFalse(lvl2child1.isDirty());
-//		assertTrue(lvl2child2.isDirty());
-//		assertTrue(lvl2child3.isDirty());
-//		assertFalse(lvl2child4.isDirty());
-//		assertFalse(lvl2child5.isDirty());
-//		assertFalse(lvl2child6.isDirty());
-//		assertFalse(lvl2child7.isDirty());
+		assertEquals(expectedNumWrites+=4, bufferManager.getStatNWrittenPages());
 	}
 
 	private PagedBTreeNode getTestLeaf(BTreeBufferManager bufferManager) {
