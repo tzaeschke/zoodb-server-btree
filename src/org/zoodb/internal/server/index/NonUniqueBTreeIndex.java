@@ -22,6 +22,7 @@ public class NonUniqueBTreeIndex extends AbstractIndex implements LongLongIndex 
 
     @Override
     public long removeLong(long key, long value) {
+        //TODO implement return value
         tree.delete(key, value);
         return 0;
     }

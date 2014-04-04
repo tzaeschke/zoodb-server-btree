@@ -3,7 +3,6 @@ package org.zoodb.internal.server.index.btree.unique;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
-import org.zoodb.internal.server.index.btree.BTreeUtils;
 import org.zoodb.internal.util.Pair;
 
 /**
@@ -36,7 +35,7 @@ public abstract class UniqueBTree<T extends BTreeNode> extends BTree<T> {
     public long search(long key) {
         T current = root;
         while (!current.isLeaf()) {
-            current = BTreeUtils.findChild(current, key, NO_VALUE);
+            current = (T) current.findChild(key, NO_VALUE);
         }
         return findValue(current, key);
     }

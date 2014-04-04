@@ -44,7 +44,7 @@ public abstract class BTree<T extends BTreeNode> {
             leaf.put(key, value);
         } else {
             //split node
-            T rightNode = BTreeUtils.putAndSplit(leaf, key, value);
+            T rightNode = putAndSplit(leaf, key, value);
             insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
         }
     }
@@ -64,8 +64,8 @@ public abstract class BTree<T extends BTreeNode> {
         T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
         while (current != null && current.isUnderfull()) {
             //check if can borrow 1 value from the left or right siblings
-            T rightSibling = current.rightSibling(parent);
-            T leftSibling = current.leftSibling(parent);
+            T rightSibling = (T) current.rightSibling(parent);
+            T leftSibling = (T) current.leftSibling(parent);
             if (leftSibling != null && leftSibling.hasExtraKeys()) {
                 redistributeKeysFromLeft(current, leftSibling, parent);
             } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
@@ -80,8 +80,8 @@ public abstract class BTree<T extends BTreeNode> {
                     parent = mergeWithRight(this, current, rightSibling, parent);
                 }
             }
-            if (BTreeUtils.containsKeyValue(current, key, value)) {
-                BTreeUtils.replaceEntry(current, key, value, replacementKey, replacementValue);
+            if (current.containsKeyValue(key, value)) {
+                current.replaceEntry(key, value, replacementKey, replacementValue);
             }
             current = parent;
             parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
@@ -101,14 +101,14 @@ public abstract class BTree<T extends BTreeNode> {
         if (left.isRoot()) {
             T newRoot = (T) nodeFactory.newNode(isUnique(), order, false, true);
             swapRoot(newRoot);
-            BTreeUtils.put(root, key, value, left, right);
+            root.put(key, value, left, right);
         } else {
             T parent = ancestorStack.pop();
             //check if parent overflows
             if (parent.getNumKeys() < order - 1) {
-                BTreeUtils.put(parent, key, value, right);
+                parent.put(key, value, right);
             } else {
-                Pair<T, Pair<Long, Long> > pair = BTreeUtils.putAndSplit(parent, key, value, right);
+                Pair<T, Pair<Long, Long> > pair = putAndSplit(parent, key, value, right);
                 T newNode = pair.getA();
                 Pair<Long, Long> keyValuePair = pair.getB();
                 long keyToMoveUp = keyValuePair.getA();
@@ -124,13 +124,13 @@ public abstract class BTree<T extends BTreeNode> {
         while (!current.isLeaf()) {
             current.markChanged();
             stack.push(current);
-            current = BTreeUtils.findChild(current, key, value);
+            current = (T) current.findChild(key, value);
         }
         return new Pair<>(stack, current);
     }
 
     protected void deleteFromLeaf(T leaf, long key, long value) {
-        BTreeUtils.delete(leaf, key, value);
+        leaf.delete(key, value);
     }
 
     public void setRoot(BTreeNode root) {
@@ -198,6 +198,80 @@ public abstract class BTree<T extends BTreeNode> {
 
     	return counter;
     }
+
+    /**
+     * Puts a new key into the node and splits accordingly. Returns the newly
+     * created leaf, which is to the right.
+     *
+     * @param newKey
+     * @return
+     */
+    public static <T extends BTreeNode> T putAndSplit(T current, long newKey, long value) {
+        if (!current.isLeaf()) {
+            throw new IllegalStateException(
+                    "Should only be called on leaf nodes.");
+        }
+        int order = current.getOrder();
+        int numKeys = current.getNumKeys();
+        T tempNode = (T) current.newNode(order + 1, true, false);
+        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, order);
+        tempNode.setNumKeys(numKeys);
+        tempNode.put(newKey, value);
+
+        int keysInLeftNode = (int) Math.ceil((order) / 2.0);
+        int keysInRightNode = order - keysInLeftNode;
+
+        // populate left node
+        tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);
+        current.setNumKeys(keysInLeftNode);
+
+        // populate right node
+        T right = (T) current.newNode(order, true, false);
+        tempNode.copyFromNodeToNode(keysInLeftNode, keysInLeftNode, right,
+                0, 0, keysInRightNode, keysInRightNode + 1);
+        right.setNumKeys(keysInRightNode);
+        tempNode.close();
+
+        return right;
+    }
+
+    /**
+     * Puts a key and a new node to the inner structure of the tree.
+     *
+     * @param key
+     * @param newNode
+     * @return
+     */
+    public static <T extends BTreeNode> Pair<T, Pair<Long, Long> > putAndSplit(T current, long key, long value, T newNode) {
+        if (current.isLeaf()) {
+            throw new IllegalStateException(
+                    "Should only be called on inner nodes.");
+        }
+        int order = current.getOrder();
+        int numKeys = current.getNumKeys();
+        // create a temporary node to allow the insertion
+        T tempNode = (T) current.newNode(order + 1, false, true);
+        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, order);
+        tempNode.setNumKeys(numKeys);
+        tempNode.put(key, value, newNode);
+
+        // split
+        T right = (T) current.newNode(order, false, false);
+        int keysInLeftNode = (int) Math.floor(order / 2.0);
+        // populate left node
+        tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);
+        current.setNumKeys(keysInLeftNode);
+
+        // populate right node
+        int keysInRightNode = order - keysInLeftNode - 1;
+        tempNode.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
+                0, 0, keysInRightNode, keysInRightNode + 1);
+        right.setNumKeys(keysInRightNode);
+        tempNode.close();
+
+        return new Pair<>(right, tempNode.getKeyValue(keysInLeftNode));
+    }
+
 
     public T mergeWithRight(BTree<T> tree, T current, T right, T parent) {
         int keyIndex = parent.keyIndexOf(current, right);

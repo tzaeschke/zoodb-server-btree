@@ -3,7 +3,6 @@ package org.zoodb.internal.server.index.btree.nonunique;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
-import org.zoodb.internal.server.index.btree.BTreeUtils;
 
 public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
 
@@ -19,9 +18,9 @@ public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
     public boolean contains(long key, long value) {
         T current = root;
         while (!current.isLeaf()) {
-            current = BTreeUtils.findChild(current, key, value);
+            current = (T) current.findChild(key, value);
         }
-        return BTreeUtils.containsKeyValue(current, key, value);
+        return current.containsKeyValue(key, value);
     }
 
     /**

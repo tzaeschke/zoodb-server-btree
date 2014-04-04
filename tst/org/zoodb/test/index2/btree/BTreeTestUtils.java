@@ -23,8 +23,8 @@ public class BTreeTestUtils {
 						return Long.compare(e1.getKey(), e2.getKey());
 					}
 				});
-		//Random prng = new Random(System.nanoTime());
-        Random prng = new Random(42);
+		Random prng = new Random(System.nanoTime());
+        //Random prng = new Random(42);
 		while (randomEntryList.size() < numElements) {
 			randomEntryList.add(new LLEntry(prng.nextInt(Integer.MAX_VALUE), prng.nextInt(Integer.MAX_VALUE)));
 		}
