@@ -217,8 +217,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		this.childrenPageIds = childrenPageIds;
 	}
 
-
-
 	@Override
 	public void close() {
 		bufferManager.remove(getPageId());
