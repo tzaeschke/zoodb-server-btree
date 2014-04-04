@@ -122,6 +122,7 @@ public abstract class BTree<T extends BTreeNode> {
         LinkedList<T> stack = new LinkedList<>();
         T current = root;
         while (!current.isLeaf()) {
+            current.markChanged();
             stack.push(current);
             current = BTreeUtils.findChild(current, key, value);
         }

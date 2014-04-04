@@ -75,6 +75,9 @@ public abstract class BTreeNode extends Observable {
         setKey(pos, key);
         setValue(pos, value);
         incrementNumKyes();
+
+        //signal change
+        markChanged();
     }
 
     public <T extends BTreeNode> T leftSibling(BTreeNode parent) {
@@ -87,10 +90,16 @@ public abstract class BTreeNode extends Observable {
 
 	public void setKey(int index, long key) {
 		getKeys()[index] = key;
+
+        //signal change
+        markChanged();
 	}
 
 	public void setValue(int index, long value) {
 		getValues()[index] = value;
+
+        //signal change
+        markChanged();
 	}
 
 	public int keyIndexOf(BTreeNode left, BTreeNode right) {
@@ -124,14 +133,17 @@ public abstract class BTreeNode extends Observable {
 	}
 
 	public boolean incrementNumKyes() {
+        markChanged();
 		return increaseNumKeys(1);
 	}
 
 	public boolean decrementNumKeys() {
+        markChanged();
 		return decreaseNumKeys(1);
 	}
 
 	public boolean increaseNumKeys(int amount) {
+        markChanged();
 		int newNumKeys = getNumKeys() + amount;
 		if (newNumKeys > getKeys().length) {
 			return false;
@@ -141,6 +153,7 @@ public abstract class BTreeNode extends Observable {
 	}
 
 	public boolean decreaseNumKeys(int amount) {
+        markChanged();
 		int newNumKeys = getNumKeys() - amount;
 		if (newNumKeys < 0) {
 			return false;
@@ -211,14 +224,17 @@ public abstract class BTreeNode extends Observable {
 	}
 
 	public void setNumKeys(int numKeys) {
+        markChanged();
 		this.numKeys = numKeys;
 	}
 
 	public void setKeys(long[] keys) {
+        markChanged();
 		this.keys = keys;
 	}
 
 	public void setValues(long[] values) {
+        markChanged();
 		this.values = values;
 	}
 
@@ -227,6 +243,7 @@ public abstract class BTreeNode extends Observable {
 	}
 
 	public void setIsRoot(boolean isRoot) {
+        markChanged();
 		this.isRoot = isRoot;
 	}
 
@@ -265,18 +282,22 @@ public abstract class BTreeNode extends Observable {
     }
 
     protected void shiftRecordsLeft(int amount) {
+        markChanged();
         shiftRecordsLeftWithIndex(0, amount);
     }
 
     public void shiftKeys(int startIndex, int endIndex, int amount) {
+        markChanged();
         System.arraycopy(getKeys(), startIndex, getKeys(), endIndex, amount);
     }
 
     protected void shiftValues(int startIndex, int endIndex, int amount) {
+        markChanged();
         System.arraycopy(getValues(), startIndex, getValues(), endIndex, amount);
     }
 
     public void shiftChildren(int startIndex, int endIndex, int amount) {
+        markChanged();
         copyChildren(this, startIndex, this, endIndex, amount);
     }
 
