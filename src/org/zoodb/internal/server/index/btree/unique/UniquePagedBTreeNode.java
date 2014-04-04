@@ -36,6 +36,8 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     public void migrateEntry(int destinationPos, BTreeNode source, int sourcePos) {
         long key = source.getKey(sourcePos);
         setKey(destinationPos, key);
+        
+        markDirty();
     }
 
     /**
@@ -61,6 +63,8 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
         setKey(pos, key);
         setValue(pos, value);
         incrementNumKyes();
+        
+        markDirty();
     }
 
     @Override
@@ -72,6 +76,8 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
         } else {
             source.copyChildren(source, srcStartC, destination, destStartC, children);
         }
+        
+        markDirty();
     }
 
     @Override
@@ -82,6 +88,8 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
         } else {
             shiftChildren(startIndex, endIndex, amount + 1);
         }
+        
+        markDirty();
     }
 
     @Override
@@ -92,6 +100,8 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
         } else {
             shiftChildren(0, amount, getNumKeys() + 1);
         }
+        
+        markDirty();
     }
 
     @Override
@@ -103,6 +113,8 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
         } else {
             shiftChildren(startIndex + amount, startIndex, keysToMove + 1);
         }
+        
+        markDirty();
     }
 
     @Override

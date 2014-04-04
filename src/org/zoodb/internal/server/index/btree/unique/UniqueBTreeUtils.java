@@ -42,7 +42,7 @@ public class UniqueBTreeUtils {
         tempNode.copyFromNodeToNode(keysInLeftNode, keysInLeftNode, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
-
+        
         return right;
     }
 

@@ -39,6 +39,8 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         long value = source.getValue(sourcePos);
         setKey(destinationPos, key);
         setValue(destinationPos, value);
+        
+        markDirty();
     }
 
     @Override
@@ -49,6 +51,8 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         if (!destination.isLeaf()) {
             source.copyChildren(source, srcStartC, destination, destStartC, children);
         }
+        
+        markDirty();
     }
 
     @Override
@@ -58,6 +62,8 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         if (!isLeaf()) {
             shiftChildren(startIndex, endIndex, amount + 1);
         }
+        
+        markDirty();
     }
 
     @Override
@@ -67,6 +73,8 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         if (!isLeaf()) {
             shiftChildren(0, amount, getNumKeys() + 1);
         }
+        
+        markDirty();
     }
 
     @Override
@@ -77,6 +85,8 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         if (!isLeaf()) {
             shiftChildren(startIndex + amount, startIndex, keysToMove + 1);
         }
+        
+        markDirty();
     }
 
     @Override
