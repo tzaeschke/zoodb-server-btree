@@ -168,6 +168,7 @@ public class NonUniqueBTreeUtils {
         tempNode.copyFromNodeToNode(keysInLeftNode, keysInLeftNode, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
+        tempNode.close();
 
         return right;
     }
@@ -204,6 +205,7 @@ public class NonUniqueBTreeUtils {
         tempNode.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
+        tempNode.close();
 
         long keyToMoveUp = tempNode.getKeys()[keysInLeftNode];
         long valueToMoveUp = tempNode.getValues()[keysInLeftNode];

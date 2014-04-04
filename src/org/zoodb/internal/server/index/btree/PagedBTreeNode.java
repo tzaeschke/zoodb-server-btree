@@ -14,7 +14,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	public PagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {
 		super(order, isLeaf, isRoot);
 
-		markDirty();
+        markDirty();
 		this.bufferManager = bufferManager;
 		this.setPageId(bufferManager.save(this));
 		this.addObserver(bufferManager);

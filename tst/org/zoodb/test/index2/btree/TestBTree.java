@@ -503,10 +503,7 @@ public class TestBTree {
 
 	@Test
 	public void markDirtyTest() {
-		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(
-				storage);
-
-		UniquePagedBTree tree = (UniquePagedBTree) getTestTree(bufferManager);
+		UniquePagedBTree tree = (UniquePagedBTree) getTestTree();
 		PagedBTreeNode root = tree.getRoot();
 		assertTrue(root.isDirty());
 		bufferManager.write( tree.getRoot());
@@ -577,9 +574,7 @@ public class TestBTree {
 
 	@Test
 	public void closeTest() {
-		BTreeMemoryBufferManager bufferManager = new BTreeMemoryBufferManager();
-
-		UniquePagedBTree tree = (UniquePagedBTree) getTestTree(bufferManager);
+		UniquePagedBTree tree = (UniquePagedBTree) getTestTree();
 
 		// build list of initial nodes
 		ArrayList<PagedBTreeNode> nodeList = new ArrayList<>();
@@ -632,7 +627,7 @@ public class TestBTree {
 
 	@Test
 	public void anotherDeleteTest() {
-		UniquePagedBTree tree = (UniquePagedBTree) getTestTree(bufferManager);
+		UniquePagedBTree tree = (UniquePagedBTree) getTestTree();
 		tree.delete(2);
 		tree.delete(3);
 		tree.delete(33);
@@ -645,7 +640,7 @@ public class TestBTree {
 		tree.delete(19);
 	}
 
-	public static BTree getTestTree(BTreeBufferManager bufferManager) {
+	public static BTree getTestTree() {
 		int order = 5;
 		BTreeFactory factory = factory(order);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
@@ -660,7 +655,7 @@ public class TestBTree {
 	}
 
 	public static Pair<Long, Long> pair(long x, long y) {
-		return new Pair<Long, Long>(x, y);
+		return new Pair<>(x, y);
 	}
 
     private static BTreeFactory factory(int order) {

@@ -43,6 +43,7 @@ public class UniqueBTreeUtils {
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
 
+        tempNode.close();
         return right;
     }
 
@@ -78,6 +79,7 @@ public class UniqueBTreeUtils {
         tempNode.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
+        tempNode.close();
 
         long keyToMoveUp = tempNode.getKeys()[keysInLeftNode];
 

@@ -6,6 +6,7 @@ package org.zoodb.internal.server.index.btree;
  * TODO This could be moved to the tree class.
  */
 public class BTreeUtils {
+
     public static <T extends BTreeNode> T mergeWithRight(BTree<T> tree, T current, T right, T parent) {
         int keyIndex = parent.keyIndexOf(current, right);
 
@@ -20,7 +21,8 @@ public class BTreeUtils {
             copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
             right.increaseNumKeys(current.getNumKeys());
             tree.swapRoot(right);
-            parent = right;
+
+            parent.close();
         } else {
             if (right.isLeaf()) {
                 //merge leaves
@@ -41,7 +43,14 @@ public class BTreeUtils {
                 copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
                 right.increaseNumKeys(current.getNumKeys());
             }
+
+            //mark
+            right.markChanged();
         }
+
+        //this node will not be used anymore
+        current.close();
+
         return parent;
     }
 
@@ -58,7 +67,8 @@ public class BTreeUtils {
             copyNodeToAnother(left, current, 0);
             current.increaseNumKeys(left.getNumKeys());
             tree.swapRoot(current);
-            parent = current;
+
+            parent.close();
         } else {
             if (current.isLeaf()) {
                 //leaf node merge
@@ -68,7 +78,6 @@ public class BTreeUtils {
                 current.shiftRecordsRight(left.getNumKeys());
                 copyNodeToAnother(left, current, 0);
                 current.increaseNumKeys(left.getNumKeys());
-
             } else {
                 //inner node merge
                 //move key from parent
@@ -82,6 +91,9 @@ public class BTreeUtils {
                 current.increaseNumKeys(left.getNumKeys() + 1);
             }
         }
+
+        //left wont be used anymore
+        left.close();
         return parent;
     }
 
@@ -123,8 +135,8 @@ public class BTreeUtils {
             parent.migrateEntry(parentKeyIndex, right, 0);
             right.shiftRecordsLeft(1);
             right.decreaseNumKeys(1);
-
         }
+        right.markChanged();
     }
 
     public static <T extends BTreeNode> void redistributeKeysFromLeft(T current, T left, T parent) {
@@ -168,6 +180,7 @@ public class BTreeUtils {
             parent.migrateEntry(parentKeyIndex, left, left.getNumKeys() - 1);
             left.decreaseNumKeys(1);
         }
+        left.markChanged();
     }
 
     public static <T extends BTreeNode> void copyMergeFromLeftNodeToRightNode(T source,
