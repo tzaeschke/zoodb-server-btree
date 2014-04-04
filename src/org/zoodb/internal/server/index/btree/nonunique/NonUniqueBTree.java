@@ -4,10 +4,6 @@ import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
 import org.zoodb.internal.server.index.btree.BTreeUtils;
-import org.zoodb.internal.server.index.btree.unique.UniqueBTreeUtils;
-import org.zoodb.internal.util.Pair;
-
-import java.util.LinkedList;
 
 public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
 
@@ -15,71 +11,17 @@ public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
         super(order, nodeFactory);
     }
 
+    @Override
+    public boolean isUnique() {
+        return false;
+    }
+
     public boolean contains(long key, long value) {
         T current = root;
         while (!current.isLeaf()) {
-            current = NonUniqueBTreeUtils.findChild(current, key, value);
+            current = BTreeUtils.findChild(current, key, value);
         }
-        return NonUniqueBTreeUtils.containsKeyValue(current, key, value);
-    }
-
-    /**
-     * Insert a new key value pair to the B+ tree.
-     *
-     * Algorithm performs as follows:
-     *  - a reference to the leaf node on which the value for the key received as argument is first retrieved
-     *  - if the leaf will not overflow after adding the new (key, value) pair, the pair is inserted in the leaf.
-     *  - if the leaf will overflow after the addition of the new (key, value) pair, the leaf is split into 2 leaves.
-     *    The keys/values in the original leaf are split as evenly as possible between the 2 leaves.
-     *    The references to the parent node are then fixed.
-     * @param key               The new key to be inserted
-     * @param value         The new value to be inserted
-     */
-    public void insert(long key, long value) {
-        if (root == null) {
-            root = nodeFactory.newNonUniqueNode(order, true, true);
-        }
-        Pair<LinkedList<T>, T> result = searchNodeWithHistory(key, value);
-        LinkedList<T> ancestorStack = result.getA();
-        T leaf = result.getB();
-
-        if (leaf.getNumKeys() < order - 1) {
-            NonUniqueBTreeUtils.put(leaf, key, value);
-        } else {
-            //split node
-            T rightNode = NonUniqueBTreeUtils.putAndSplit(leaf, key, value);
-            insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
-        }
-    }
-
-    /**
-     * Inserts the nodes left and right into the parent node. The right node is a new node, created
-     * as a result of a split.
-     *
-     * @param left              The left node.
-     * @param key               The key that should separate them in the parent.
-     * @param right             The right node.
-     * @param ancestorStack     The ancestor stack that should be traversed.
-     */
-    private void insertInInnerNode(T left, long key, long value, T right, LinkedList<T> ancestorStack) {
-        if (left.isRoot()) {
-            T newRoot = nodeFactory.newNonUniqueNode(order, false, true);
-            swapRoot(newRoot);
-            NonUniqueBTreeUtils.put(root, key, value, left, right);
-        } else {
-            T parent = ancestorStack.pop();
-            //check if parent overflows
-            if (parent.getNumKeys() < order - 1) {
-                NonUniqueBTreeUtils.put(parent, key, value, right);
-            } else {
-                Pair<T, Pair<Long, Long> > pair = NonUniqueBTreeUtils.putAndSplit(parent, key, value, right);
-                T newNode = pair.getA();
-                Pair<Long, Long> keyValuePair = pair.getB();
-                long keyToMoveUp = keyValuePair.getA();
-                long valueToMoveUp = keyValuePair.getB();
-                insertInInnerNode(parent, keyToMoveUp, valueToMoveUp, newNode, ancestorStack);
-            }
-        }
+        return BTreeUtils.containsKeyValue(current, key, value);
     }
 
     /**
@@ -99,55 +41,7 @@ public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
      * @param key               The key to be deleted.
      */
     public void delete(long key, long value) {
-        Pair<LinkedList<T>,T> pair = searchNodeWithHistory(key, value);
-        T leaf = pair.getB();
-        LinkedList<T> ancestorStack = pair.getA();
-        deleteFromLeaf(leaf, key, value);
-
-        if (leaf.isRoot()) {
-            return;
-        }
-        long replacementKey = leaf.getSmallestKey();
-        T current = leaf;
-        T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
-        while (current != null && current.isUnderfull()) {
-            //check if can borrow 1 value from the left or right siblings
-            T rightSibling = current.rightSibling(parent);
-            T leftSibling = current.leftSibling(parent);
-            if (leftSibling != null && leftSibling.hasExtraKeys()) {
-                BTreeUtils.redistributeKeysFromLeft(current, leftSibling, parent);
-            } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
-                BTreeUtils.redistributeKeysFromRight(current, rightSibling, parent);
-            } else {
-                //at this point, both left and right sibling have the minimum number of keys
-                if (leftSibling!= null) {
-                    //merge with left sibling
-                    parent = BTreeUtils.mergeWithLeft(this, current, leftSibling, parent);
-                } else {
-                    //merge with right sibling
-                    parent = BTreeUtils.mergeWithRight(this, current, rightSibling, parent);
-                }
-            }
-            if (UniqueBTreeUtils.containsKey(current, key)) {
-                UniqueBTreeUtils.replaceKey(current, key, replacementKey);
-            }
-            current = parent;
-            parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
-        }
-    }
-
-    protected Pair<LinkedList<T>, T> searchNodeWithHistory(long key, long value) {
-        LinkedList<T> stack = new LinkedList<>();
-        T current = root;
-        while (!current.isLeaf()) {
-            stack.push(current);
-            current = NonUniqueBTreeUtils.findChild(current, key, value);
-        }
-        return new Pair<>(stack, current);
-    }
-
-    private void deleteFromLeaf(T leaf, long key, long value) {
-        NonUniqueBTreeUtils.delete(leaf, key, value);
+        deleteEntry(key, value);
     }
 
 }
