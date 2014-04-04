@@ -21,8 +21,8 @@ public class BTreeUtils {
             copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
             right.increaseNumKeys(current.getNumKeys());
             tree.swapRoot(right);
-
             parent.close();
+            parent = right;
         } else {
             if (right.isLeaf()) {
                 //merge leaves
@@ -51,6 +51,7 @@ public class BTreeUtils {
         //this node will not be used anymore
         current.close();
 
+        parent.markChanged();
         return parent;
     }
 
@@ -67,8 +68,8 @@ public class BTreeUtils {
             copyNodeToAnother(left, current, 0);
             current.increaseNumKeys(left.getNumKeys());
             tree.swapRoot(current);
-
             parent.close();
+            parent = current;
         } else {
             if (current.isLeaf()) {
                 //leaf node merge
@@ -94,6 +95,8 @@ public class BTreeUtils {
 
         //left wont be used anymore
         left.close();
+
+        parent.markChanged();
         return parent;
     }
 
