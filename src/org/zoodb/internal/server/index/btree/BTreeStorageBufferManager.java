@@ -1,5 +1,6 @@
 package org.zoodb.internal.server.index.btree;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Observable;
@@ -9,7 +10,9 @@ import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageChannelInput;
 import org.zoodb.internal.server.StorageChannelOutput;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.util.DBLogger;
+import org.zoodb.test.index2.btree.BTreeFactory;
 
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
@@ -72,33 +75,36 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
         storageIn.seekPageForRead(dataType, pageId);
 
 		PagedBTreeNode node;
+		int order = computeOrder();
 
-		short orderIfInner = storageIn.readShort();
+		short isInner = storageIn.readShort();
+		int numKeys;
+		if(isInner > -1) {
+			numKeys = isInner;
+		} else { 
+			numKeys = storageIn.readShort();
+		}
+		long[] keys = new long[order - 1];
+		storageIn.noCheckRead(keys);
+		
         //ToDo save a boolean to distinguish between unique and non-unique nodes
         boolean isUnique = true;
-
-		if (orderIfInner == 0) {
+		
+		if (isInner == -1) {
 			// leaf
-			short order = storageIn.readShort();
-			int numKeys = storageIn.readShort();
-			long[] keys = new long[order - 1];
 			long[] values = new long[order - 1];
-			storageIn.noCheckRead(keys);
 			storageIn.noCheckRead(values);
 
 			node = PagedBTreeNodeFactory.constructLeaf(this, isUnique, true,
 										order, pageId, numKeys, 
 										keys, values);
 		} else {
-			int[] childrenPageIds = new int[orderIfInner];
-			long[] keys = new long[orderIfInner - 1];
+			int[] childrenPageIds = new int[order];
 
 			storageIn.noCheckRead(childrenPageIds);
-			int numKeys = storageIn.readShort();
-			storageIn.noCheckRead(keys);
 			
 			node = PagedBTreeNodeFactory.constructInnerNode(this, isUnique, true,
-								orderIfInner, pageId, numKeys, keys, 
+								order, pageId, numKeys, keys, 
 								childrenPageIds);
 		}
 
@@ -155,19 +161,16 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	/*
 	 * Leaf node page: 
-	 * 2 byte 0 
-	 * 2 byte order
+	 * 2 byte -1 
 	 * 2 byte numKeys 
 	 * 8 byte * order-1 keys 
 	 * 8 byte * order-1 values
 	 * 
 	 * Inner node page 
-	 * 2 byte order 
-	 * 4 byte * order childrenPageIds 
 	 * 2 byte numKeys 
 	 * 8 byte * order-1 keys
+	 * 4 byte * order childrenPageIds 
 	 */
-	// TODO: rework file format
 
 	int writeNodeDataToStorage(PagedBTreeNode node) {
 
@@ -177,25 +180,25 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		int pageId = storageOut.allocateAndSeek(dataType, previousPageId);
 
 		if (node.isLeaf()) {
-			storageOut.writeShort((short) 0);
-			storageOut.writeShort((short) node.getOrder());
+			storageOut.writeShort((short) -1);
 			storageOut.writeShort((short) node.getNumKeys());
 			storageOut.noCheckWrite(node.getKeys());
 			storageOut.noCheckWrite(node.getValues());
 
 		} else {
 			int[] childrenPageIds = node.getChildrenPageIds();
-			storageOut.writeShort((short) node.getOrder());
-			storageOut.noCheckWrite(childrenPageIds);
 			storageOut.writeShort((short) node.getNumKeys());
 			storageOut.noCheckWrite(node.getKeys());
+			storageOut.noCheckWrite(childrenPageIds);
 		}
 
 		storageOut.flush();
 		return pageId;
 	}
 	
-    public static int computeOrder(int pageSize) {
+    public int computeOrder() {
+    	int pageSize = this.storageFile.getPageSize();
+    	
     	if(pageSize < 4+12) {
 			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
     	}
@@ -296,6 +299,20 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	public int getStatNReadPages() {
 		return statNReadPages;
+	}
+	
+	public static BTree<PagedBTreeNode> getTestTree(BTreeStorageBufferManager bufferManager) {
+		int order = bufferManager.computeOrder();
+		BTreeFactory factory = new BTreeFactory(order, bufferManager, true);
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 13L),
+				Arrays.asList(24L, 30L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L, 3L),
+				Arrays.asList(5L, 7L, 8L), Arrays.asList(14L, 16L),
+				Arrays.asList(19L, 20L, 22L), Arrays.asList(24L, 27L, 29L),
+				Arrays.asList(33L, 34L, 38L, 39L)));
+		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
+		return tree;
 	}
 
 
