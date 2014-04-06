@@ -27,4 +27,8 @@ public class UniquePagedBTree extends UniqueBTree<PagedBTreeNode> {
     public BTreeBufferManager getBufferManager() {
         return bufferManager;
     }
+    
+    public void write() {
+    	bufferManager.write(getRoot());
+    }
 }

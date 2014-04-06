@@ -14,6 +14,7 @@ import java.util.Observable;
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	private final int leafOrder;
+	private final int innerNodeOrder;
 	
 	private Map<Integer, PagedBTreeNode> dirtyBuffer;
 	private Map<Integer, PagedBTreeNode> cleanBuffer;
@@ -41,6 +42,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		
     	int pageSize = this.storageFile.getPageSize();
     	this.leafOrder = computeLeafOrder(pageSize);
+    	this.innerNodeOrder = computeInnerNodeOrder(pageSize);
 	}
 
 	public BTreeStorageBufferManager(StorageChannel storage, boolean isUnique, DATA_TYPE dataType) {
@@ -196,17 +198,45 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return pageId;
 	}
 	
-    private static int computeLeafOrder(int pageSize) {
-    	if(pageSize < 4+12) {
+    public static int computeLeafOrder(int pageSize) {
+    	int headerSize = DiskIO.PAGE_HEADER_SIZE;
+    	int leafIndicatorSize = 2;
+    	int numKeysSize = 2;
+    	
+    	int keySize = 8;
+    	int valueSize = 8;
+    	
+    	if(pageSize < headerSize + leafIndicatorSize + numKeysSize) {
 			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
     	}
 
-    	// compute for leafs because they take more space
     	int order = 0;
-    	// store leafIndicator, order and numKeys
-    	pageSize -= (6 + DiskIO.PAGE_HEADER_SIZE);
-    	// how many key-value-pairs fit in
-    	order = (int)Math.round(Math.floor(pageSize/16.0));
+    	pageSize -= (headerSize + leafIndicatorSize + numKeysSize);
+    	order = (int)Math.round(Math.floor(pageSize/(keySize + valueSize)));
+    	
+    	if(order < 2) {
+			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
+    	}
+
+		return order+1;
+	}
+    
+    public static int computeInnerNodeOrder(int pageSize) {
+    	int headerSize = DiskIO.PAGE_HEADER_SIZE;
+    	int numKeysSize = 2;
+    	
+    	int keySize = 8;
+    	int childrenSize = 4;
+    	
+    	if(pageSize < headerSize + numKeysSize) {
+			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
+    	}
+
+    	int order = 0;
+    	pageSize -= (headerSize + numKeysSize);
+    	
+    	pageSize -= childrenSize;
+    	order = (int)Math.round(Math.floor(pageSize/(keySize + childrenSize))) + 1;
     	
     	if(order < 2) {
 			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
@@ -285,6 +315,10 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	
 	public int getLeafOrder() {
 		return leafOrder;
+	}
+
+	public int getInnerNodeOrder() {
+		return innerNodeOrder;
 	}
 
 	public Map<Integer, PagedBTreeNode> getDirtyBuffer() {
