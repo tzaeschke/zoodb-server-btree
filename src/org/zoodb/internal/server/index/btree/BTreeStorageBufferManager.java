@@ -13,33 +13,38 @@ import java.util.Observable;
 
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
+	private final int leafOrder;
+	
 	private Map<Integer, PagedBTreeNode> dirtyBuffer;
 	private Map<Integer, PagedBTreeNode> cleanBuffer;
 	private final int maxCleanBufferElements = 2000;
 
 	private int pageIdCounter;
+	private final boolean isUnique;
 
 	private final StorageChannel storageFile;
 	private final StorageChannelInput storageIn;
 	private final StorageChannelOutput storageOut;
-	private DATA_TYPE dataType;
-	
+	private DATA_TYPE dataType = DATA_TYPE.GENERIC_INDEX;;
 	
 	private int statNWrittenPages = 0;
 	private int statNReadPages = 0;
 
-	public BTreeStorageBufferManager(StorageChannel storage) {
+	public BTreeStorageBufferManager(StorageChannel storage, boolean isUnique) {
 		this.dirtyBuffer = new HashMap<>();
 		this.cleanBuffer = new HashMap<>();
 		this.pageIdCounter = 0;
+		this.isUnique = isUnique;
 		this.storageFile = storage;
 		this.storageIn = storage.getReader(false);
 		this.storageOut = storage.getWriter(false);
-        this.dataType = DATA_TYPE.GENERIC_INDEX;
+		
+    	int pageSize = this.storageFile.getPageSize();
+    	this.leafOrder = computeLeafOrder(pageSize);
 	}
 
-	public BTreeStorageBufferManager(StorageChannel storage, DATA_TYPE dataType) {
-		this(storage);
+	public BTreeStorageBufferManager(StorageChannel storage, boolean isUnique, DATA_TYPE dataType) {
+		this(storage, isUnique);
 		this.dataType = dataType;
 	}
 
@@ -72,7 +77,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
         storageIn.seekPageForRead(dataType, pageId);
 
 		PagedBTreeNode node;
-		int order = computeOrder();
+		int order = leafOrder;
 
 		short isInner = storageIn.readShort();
 		int numKeys;
@@ -83,9 +88,6 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		}
 		long[] keys = new long[order - 1];
 		storageIn.noCheckRead(keys);
-		
-        //ToDo save a boolean to distinguish between unique and non-unique nodes
-        boolean isUnique = true;
 		
 		if (isInner == -1) {
 			// leaf
@@ -113,6 +115,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 		return node;
 	}
+
 
 	@Override
 	public int write(PagedBTreeNode node) {
@@ -193,9 +196,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return pageId;
 	}
 	
-    public int computeOrder() {
-    	int pageSize = this.storageFile.getPageSize();
-    	
+    private static int computeLeafOrder(int pageSize) {
     	if(pageSize < 4+12) {
 			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
     	}
@@ -280,6 +281,10 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			dirtyBuffer.remove(pageId);
 			putInCleanBuffer(pageId, node);
 		}
+	}
+	
+	public int getLeafOrder() {
+		return leafOrder;
 	}
 
 	public Map<Integer, PagedBTreeNode> getDirtyBuffer() {

@@ -10,13 +10,14 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 	
 	private UniquePagedBTree tree;
     private BTreeStorageBufferManager bufferManager;
+    private boolean isUnique;
     
 	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
 		
 		// TODO Auto-generated constructor stub
-        bufferManager = new BTreeStorageBufferManager(file);
-        final int order = bufferManager.computeOrder();
+        bufferManager = new BTreeStorageBufferManager(file, isUnique);
+        final int order = bufferManager.getLeafOrder();
 		tree = new UniquePagedBTree(order, bufferManager);
 	}
 
@@ -58,7 +59,7 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public void clear() {
-		tree = new UniquePagedBTree(tree.getOrder(),  new BTreeStorageBufferManager(file));
+		tree = new UniquePagedBTree(tree.getOrder(),  new BTreeStorageBufferManager(file, isUnique));
 
 	}
 

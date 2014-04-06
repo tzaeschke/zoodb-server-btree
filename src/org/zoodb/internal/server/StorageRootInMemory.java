@@ -57,6 +57,10 @@ public class StorageRootInMemory implements StorageChannel {
 		buffers = DataStoreManagerInMemory.getInternalData(dbPath);
 	}
 	
+	public FreeSpaceManager getFsm() {
+		return fsm;
+	}
+
 	/**
 	 * SPecial constructor for testing only.
 	 * @param pageSize

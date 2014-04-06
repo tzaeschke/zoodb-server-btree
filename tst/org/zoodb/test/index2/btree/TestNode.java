@@ -19,7 +19,7 @@ public class TestNode {
 	StorageChannel storage = new StorageRootInMemory(
 			ZooConfig.getFilePageSize());
 	private BTreeNodeFactory nodeFactory = new PagedBTreeNodeFactory(
-			new BTreeStorageBufferManager(storage));
+			new BTreeStorageBufferManager(storage, true));
 
 	public static long[] getKeys(BTreeNode node) {
 		return Arrays.copyOfRange(node.getKeys(), 0, node.getNumKeys());

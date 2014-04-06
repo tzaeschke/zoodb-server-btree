@@ -12,7 +12,7 @@ public class NonUniqueBTreeIndex extends AbstractIndex implements LongLongIndex 
         super(file, isNew, isUnique);
 
         final int order = 4;
-        tree = new NonUniquePagedBTree(order, new BTreeStorageBufferManager(file));
+        tree = new NonUniquePagedBTree(order, new BTreeStorageBufferManager(file, isUnique));
     }
 
     @Override
