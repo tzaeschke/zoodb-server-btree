@@ -10,6 +10,10 @@ public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
         super(order, nodeFactory);
     }
 
+    public NonUniqueBTree(int innerNodeOrder, int leafOrder, BTreeNodeFactory nodeFactory) {
+        super(innerNodeOrder, leafOrder, nodeFactory);
+    }
+
     @Override
     public boolean isUnique() {
         return false;

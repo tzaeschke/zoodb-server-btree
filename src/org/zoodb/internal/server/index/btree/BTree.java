@@ -9,12 +9,20 @@ import java.util.LinkedList;
  */
 public abstract class BTree<T extends BTreeNode> {
 
-    protected int order;
+    protected int innerNodeOrder;
+    protected int leafOrder;
     protected T root;
     protected BTreeNodeFactory nodeFactory;
 
+    public BTree(int innerNodeOrder, int leafOrder, BTreeNodeFactory nodeFactory) {
+        this.innerNodeOrder = innerNodeOrder;
+        this.leafOrder = leafOrder;
+        this.nodeFactory = nodeFactory;
+    }
+
     public BTree(int order, BTreeNodeFactory nodeFactory) {
-        this.order = order;
+        this.innerNodeOrder = order;
+        this.leafOrder = order;
         this.nodeFactory = nodeFactory;
     }
 
@@ -34,18 +42,18 @@ public abstract class BTree<T extends BTreeNode> {
      */
     public void insert(long key, long value) {
         if (root == null) {
-            root = (T) nodeFactory.newNode(isUnique(), order, true, true);
+            root = (T) nodeFactory.newNode(isUnique(), leafOrder, true, true);
         }
         Pair<LinkedList<T>, T> result = searchNodeWithHistory(key, value);
         LinkedList<T> ancestorStack = result.getA();
         T leaf = result.getB();
 
-        if (leaf.getNumKeys() < order - 1) {
-            leaf.put(key, value);
-        } else {
+        if (leaf.isFull()) {
             //split node
             T rightNode = putAndSplit(leaf, key, value);
             insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
+        } else {
+            leaf.put(key, value);
         }
     }
 
@@ -99,21 +107,21 @@ public abstract class BTree<T extends BTreeNode> {
      */
     private void insertInInnerNode(T left, long key, long value, T right, LinkedList<T> ancestorStack) {
         if (left.isRoot()) {
-            T newRoot = (T) nodeFactory.newNode(isUnique(), order, false, true);
+            T newRoot = (T) nodeFactory.newNode(isUnique(), innerNodeOrder, false, true);
             swapRoot(newRoot);
             root.put(key, value, left, right);
         } else {
             T parent = ancestorStack.pop();
             //check if parent overflows
-            if (parent.getNumKeys() < order - 1) {
-                parent.put(key, value, right);
-            } else {
+            if (parent.isFull()) {
                 Pair<T, Pair<Long, Long> > pair = putAndSplit(parent, key, value, right);
                 T newNode = pair.getA();
                 Pair<Long, Long> keyValuePair = pair.getB();
                 long keyToMoveUp = keyValuePair.getA();
                 long valueToMoveUp = keyValuePair.getB();
                 insertInInnerNode(parent, keyToMoveUp, valueToMoveUp, newNode, ancestorStack);
+            } else {
+                parent.put(key, value, right);
             }
         }
     }
@@ -141,12 +149,16 @@ public abstract class BTree<T extends BTreeNode> {
         return root==null;
     }
 
-    public int getOrder() {
-        return this.order;
-    }
-
     public T getRoot() {
         return this.root;
+    }
+
+    public int getInnerNodeOrder() {
+        return innerNodeOrder;
+    }
+
+    public int getLeafOrder() {
+        return leafOrder;
     }
 
     public String toString() {
@@ -164,7 +176,8 @@ public abstract class BTree<T extends BTreeNode> {
 
         BTree tree = (BTree) o;
 
-        if (order != tree.getOrder()) return false;
+        if (leafOrder != tree.getLeafOrder()) return false;
+        if (innerNodeOrder != tree.getInnerNodeOrder()) return false;
         if (root != null ? !root.equals(tree.getRoot()) : tree.getRoot() != null) return false;
 
         return true;
@@ -206,14 +219,14 @@ public abstract class BTree<T extends BTreeNode> {
      * @param newKey
      * @return
      */
-    public static <T extends BTreeNode> T putAndSplit(T current, long newKey, long value) {
+    public <T extends BTreeNode> T putAndSplit(T current, long newKey, long value) {
         if (!current.isLeaf()) {
             throw new IllegalStateException(
                     "Should only be called on leaf nodes.");
         }
         int order = current.getOrder();
         int numKeys = current.getNumKeys();
-        T tempNode = (T) current.newNode(order + 1, true, false);
+        T tempNode = (T) nodeFactory.newNode(isUnique(), leafOrder + 1, true, false);
         current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, order);
         tempNode.setNumKeys(numKeys);
         tempNode.put(newKey, value);
@@ -226,7 +239,7 @@ public abstract class BTree<T extends BTreeNode> {
         current.setNumKeys(keysInLeftNode);
 
         // populate right node
-        T right = (T) current.newNode(order, true, false);
+        T right = (T) nodeFactory.newNode(isUnique(), leafOrder, true, false);
         tempNode.copyFromNodeToNode(keysInLeftNode, keysInLeftNode, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
@@ -242,7 +255,7 @@ public abstract class BTree<T extends BTreeNode> {
      * @param newNode
      * @return
      */
-    public static <T extends BTreeNode> Pair<T, Pair<Long, Long> > putAndSplit(T current, long key, long value, T newNode) {
+    public <T extends BTreeNode> Pair<T, Pair<Long, Long> > putAndSplit(T current, long key, long value, T newNode) {
         if (current.isLeaf()) {
             throw new IllegalStateException(
                     "Should only be called on inner nodes.");
@@ -250,13 +263,13 @@ public abstract class BTree<T extends BTreeNode> {
         int order = current.getOrder();
         int numKeys = current.getNumKeys();
         // create a temporary node to allow the insertion
-        T tempNode = (T) current.newNode(order + 1, false, true);
+        T tempNode = (T) nodeFactory.newNode(isUnique(), innerNodeOrder + 1, false, true);
         current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, order);
         tempNode.setNumKeys(numKeys);
         tempNode.put(key, value, newNode);
 
         // split
-        T right = (T) current.newNode(order, false, false);
+        T right = (T) nodeFactory.newNode(isUnique(), innerNodeOrder, false, false);
         int keysInLeftNode = (int) Math.floor(order / 2.0);
         // populate left node
         tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);

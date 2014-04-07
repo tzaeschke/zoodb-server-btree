@@ -1,13 +1,13 @@
 package org.zoodb.test.index2.performance;
 
-import java.util.ArrayList;
-
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.BTreeIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.PagedUniqueLongLong;
 import org.zoodb.tools.ZooConfig;
+
+import java.util.ArrayList;
 
 public class PageUsageStats {
 
@@ -31,7 +31,7 @@ public class PageUsageStats {
 	public PageUsageStats(PagedUniqueLongLong oldIndex, BTreeIndex newIndex) {
 		System.out.println("Old order: " + oldIndex.getMaxInnerN() + ":"
 				+ oldIndex.getMaxLeafN() + "\t" + "New Order: "
-				+ newIndex.getTree().getOrder());
+				+ newIndex.getTree().getLeafOrder());
 
 		int numElements = 1000;
 		ArrayList<LLEntry> entries = PerformanceTest

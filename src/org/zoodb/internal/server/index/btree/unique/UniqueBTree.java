@@ -21,6 +21,10 @@ public abstract class UniqueBTree<T extends BTreeNode> extends BTree<T> {
         super(order, nodeFactory);
     }
 
+    protected UniqueBTree(int innerNodeOrder, int leafOrder, BTreeNodeFactory nodeFactory) {
+        super(innerNodeOrder, leafOrder, nodeFactory);
+    }
+
     @Override
     public boolean isUnique() {
         return true;

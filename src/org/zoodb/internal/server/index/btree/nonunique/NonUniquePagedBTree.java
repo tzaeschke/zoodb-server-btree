@@ -13,6 +13,11 @@ public class NonUniquePagedBTree extends NonUniqueBTree<PagedBTreeNode> {
         this.bufferManager = bufferManager;
     }
 
+    public NonUniquePagedBTree(int innerNodeOrder, int leafOrder, BTreeBufferManager bufferManager) {
+        super(innerNodeOrder, leafOrder, new PagedBTreeNodeFactory(bufferManager));
+        this.bufferManager = bufferManager;
+    }
+
     public BTreeBufferManager getBufferManager() {
         return bufferManager;
     }

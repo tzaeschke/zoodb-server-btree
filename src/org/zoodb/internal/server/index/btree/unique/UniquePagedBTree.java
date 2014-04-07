@@ -18,6 +18,11 @@ public class UniquePagedBTree extends UniqueBTree<PagedBTreeNode> {
         this.bufferManager = bufferManager;
     }
 
+    public UniquePagedBTree(int innerNodeOrder, int leafOrder, BTreeBufferManager bufferManager) {
+        super(innerNodeOrder, leafOrder, new PagedBTreeNodeFactory(bufferManager));
+        this.bufferManager = bufferManager;
+    }
+
     @Override
     public void delete(long key) {
         //TODO need to all nodes involved in delete as dirty, not just the path down

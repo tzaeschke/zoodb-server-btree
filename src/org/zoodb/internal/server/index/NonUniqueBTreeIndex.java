@@ -7,12 +7,15 @@ import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 public class NonUniqueBTreeIndex extends AbstractIndex implements LongLongIndex {
 
     private NonUniquePagedBTree tree;
+    private BTreeStorageBufferManager bufferManager;
 
     public NonUniqueBTreeIndex(StorageChannel file, boolean isNew, boolean isUnique) {
         super(file, isNew, isUnique);
 
-        final int order = 4;
-        tree = new NonUniquePagedBTree(order, new BTreeStorageBufferManager(file, isUnique));
+        bufferManager = new BTreeStorageBufferManager(file, isUnique);
+        final int leafOrder = bufferManager.getLeafOrder();
+        final int innerOrder = bufferManager.getInnerNodeOrder();
+        tree = new NonUniquePagedBTree(innerOrder, leafOrder, bufferManager);
     }
 
     @Override

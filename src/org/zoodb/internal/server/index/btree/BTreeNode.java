@@ -246,6 +246,10 @@ public abstract class BTreeNode extends Observable {
 		return getNumKeys() >= order;
 	}
 
+    public boolean isFull() {
+        return getNumKeys() >= order - 1;
+    }
+
 	public boolean incrementNumKyes() {
         markChanged();
 		return increaseNumKeys(1);

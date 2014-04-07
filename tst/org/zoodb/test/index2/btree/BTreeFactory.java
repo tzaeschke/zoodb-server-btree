@@ -29,7 +29,7 @@ public class BTreeFactory {
     }
 
     public BTreeFactory(int order, BTreeBufferManager bufferManager, boolean unique)  {
-        createTree(order, bufferManager, unique);
+        createTree(order, order, bufferManager, unique);
         this.nodeFactory = tree.getNodeFactory();
         this.bufferManager = bufferManager;
     }
@@ -53,18 +53,19 @@ public class BTreeFactory {
 			List<Long> values = nodeValues.get(i);
 			prevLayer.get(i).setValues(padLongArray(toPrimitives(
 									values.toArray(new Long[values.size()])), 
-									this.tree.getOrder()));
+									this.tree.getLeafOrder()));
 		}
 	}
 	
 	public void addLayer(boolean isLeaf, List<List<Long>> nodeKeys) {
+        int order = (isLeaf == true) ? tree.getLeafOrder() : tree.getInnerNodeOrder();
 		if(this.tree.isEmpty()) {
-			BTreeNode root = nodeFactory.newUniqueNode(this.tree.getOrder(), isLeaf, true);
+			BTreeNode root = nodeFactory.newUniqueNode(this.tree.getInnerNodeOrder(), isLeaf, true);
 			root.setNumKeys(nodeKeys.get(0).size());
 			List<Long> keys = nodeKeys.get(0);
 			root.setKeys(padLongArray(toPrimitives(
 									keys.toArray(new Long[keys.size()])), 
-									this.tree.getOrder()));
+									order));
 			tree.setRoot(root);
 			prevLayer = new ArrayList<BTreeNode>();
 			prevLayer.add(root);
@@ -72,19 +73,19 @@ public class BTreeFactory {
 			int indexLayer = 0;
 			List<BTreeNode> newLayer = new ArrayList<BTreeNode>();
 			for(BTreeNode parent : prevLayer) {
-				BTreeNode[] children = new BTreeNode[this.tree.getOrder()];
+				BTreeNode[] children = new BTreeNode[order];
 				for(int ik = 0; ik < parent.getNumKeys()+1; ik++) {
-					BTreeNode node = nodeFactory.newUniqueNode(this.tree.getOrder(), isLeaf, false);
+					BTreeNode node = nodeFactory.newUniqueNode(order, isLeaf, false);
 					List<Long> keys = nodeKeys.get(indexLayer);
 					node.setKeys(padLongArray(toPrimitives(
-									keys.toArray(new Long[keys.size()])), 
-									this.tree.getOrder()));
+									keys.toArray(new Long[keys.size()])),
+                            order));
 					node.setNumKeys(keys.size());
 					children[ik] = node;
 					newLayer.add(node);
 					indexLayer++;
 				}
-				parent.setChildren(padChildrenArray(children, this.tree.getOrder()));
+				parent.setChildren(padChildrenArray(children, order));
 			}
 			this.prevLayer = newLayer;
 		}
@@ -95,7 +96,7 @@ public class BTreeFactory {
 	}
 	
 	public void clear() {
-        createTree(tree.getOrder(), bufferManager, unique);
+        createTree(tree.getInnerNodeOrder(), tree.getLeafOrder(), bufferManager, unique);
 	}
 	
 	private static List<List<Pair<Long,Long>>> zip(List<List<Long>> l1, List<List<Long>> l2) {
@@ -154,11 +155,11 @@ public class BTreeFactory {
 	    return primitives;
 	}
 
-    private void createTree(int order, BTreeBufferManager bufferManager, boolean unique) {
+    private void createTree(int innerNodeOrder, int leafOrder, BTreeBufferManager bufferManager, boolean unique) {
         if (unique) {
-            this.tree = new UniquePagedBTree(order, bufferManager);
+            this.tree = new UniquePagedBTree(innerNodeOrder, leafOrder, bufferManager);
         } else {
-            this.tree = new NonUniquePagedBTree(order, bufferManager);
+            this.tree = new NonUniquePagedBTree(innerNodeOrder, leafOrder, bufferManager);
         }
     }
 
