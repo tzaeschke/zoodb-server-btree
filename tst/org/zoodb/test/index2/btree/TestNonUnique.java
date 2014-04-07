@@ -95,10 +95,11 @@ public class TestNonUnique {
     @Test
     public void testInsertAndDelete() {
         int order = 320;
-        int numEntries = 100000;
+        int numEntries = 1000;
+        int numTimes = 100;
         BTreeFactory factory = factory(order);
         NonUniqueBTree tree = (NonUniqueBTree) factory.getTree();
-        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries);
+        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.nonUniqueEntries(numEntries, numTimes);
 
         for (LongLongIndex.LLEntry entry : entries) {
             tree.insert(entry.getKey(), entry.getValue());

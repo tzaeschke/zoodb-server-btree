@@ -459,10 +459,22 @@ public class TestBTree {
 	 * inserts and deletes.
 	 */
 	@Test
-	public void deleteMassively() {
+	public void testDeleteMassively() {
 		int order = 320;
-		int numEntries = 100000;
         BTreeFactory factory = factory(order, newBufferManager());
+		deleteMassively(factory);
+	}
+	
+	@Test
+	public void testDeleteMassivelyWithDifferentOrder() {
+		int leafOrder = 128;
+		int innerOrder = 256;
+        BTreeFactory factory = new BTreeFactory(innerOrder, leafOrder, newBufferManager(), true);
+		deleteMassively(factory);
+	}
+	
+	public void deleteMassively(BTreeFactory factory) {
+		int numEntries = 100000;
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries);
 
@@ -484,7 +496,7 @@ public class TestBTree {
 		}
 		// root is empty and has no children
 		assertEquals(0, tree.getRoot().getNumKeys());
-		BTreeNode[] emptyChildren = new BTreeNode[order];
+		BTreeNode[] emptyChildren = new BTreeNode[tree.getRoot().getOrder()];
 		Arrays.fill(emptyChildren, null);
 		assertArrayEquals(emptyChildren, tree.getRoot().getChildren());
 
