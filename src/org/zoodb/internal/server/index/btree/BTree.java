@@ -334,7 +334,6 @@ public abstract class BTree<T extends BTreeNode> {
         int keyIndex = parent.keyIndexOf(left, current);
 
         //check if we need to merge with parent
-        //TODO add method to node to change the order
         if (parent.isRoot() && parent.getNumKeys() == 1) {
             current.shiftRecordsRight(parent.getNumKeys());
             current.migrateEntry(0, parent, 0);
