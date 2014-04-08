@@ -58,6 +58,8 @@ public abstract class BTreeNode extends Observable {
     protected abstract boolean containsAtPosition(int position, long key, long value);
     protected abstract boolean smallerThanKeyValue(int position, long key, long value);
     protected abstract boolean checkIllegalInsert(int position, long key, long value);
+    protected abstract void resizeEntries(int order);
+    protected abstract void resizeChildren(int order);
 
     public void put(long key, long value) {
         if (!isLeaf()) {
@@ -516,5 +518,30 @@ public abstract class BTreeNode extends Observable {
         }
         return true;
     }
+
+    public void changeOrder(int newOrder) {
+        if (newOrder < getNumKeys()) {
+            throw new RuntimeException("Attempting to set an order smaller than the number of keys");
+        }
+        if (newOrder == getOrder()) {
+            return;
+        }
+        resizeEntries(newOrder);
+    }
+
+    protected void resizeKeys(int order) {
+        long[] keys = new long[order - 1];
+        int length = Math.min(order, getOrder());
+        System.arraycopy(getKeys(), 0, keys, 0, length - 1);
+        setKeys(keys);
+    }
+
+    protected void resizeValues(int order) {
+        long[] values = new long[order - 1];
+        int length = Math.min(order, getOrder());
+        System.arraycopy(getValues(), 0, values, 0, length - 1);
+        setValues(values);
+    }
+
 
 }

@@ -96,6 +96,16 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
+    protected void resizeEntries(int order) {
+        resizeKeys(order);
+        if (isLeaf()) {
+            resizeValues(order);
+        } else {
+            resizeChildren(order);
+        }
+    }
+
+    @Override
     protected boolean containsAtPosition(int position, long key, long value) {
         return this.getKey(position) == key;
     }

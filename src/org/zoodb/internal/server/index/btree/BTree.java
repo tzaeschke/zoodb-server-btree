@@ -301,6 +301,7 @@ public abstract class BTree<T extends BTreeNode> {
             right.increaseNumKeys(current.getNumKeys());
             tree.swapRoot(right);
             parent.close();
+            right.changeOrder(innerNodeOrder);
             parent = right;
         } else {
             if (right.isLeaf()) {
@@ -333,6 +334,7 @@ public abstract class BTree<T extends BTreeNode> {
         int keyIndex = parent.keyIndexOf(left, current);
 
         //check if we need to merge with parent
+        //TODO add method to node to change the order
         if (parent.isRoot() && parent.getNumKeys() == 1) {
             current.shiftRecordsRight(parent.getNumKeys());
             current.migrateEntry(0, parent, 0);
@@ -343,6 +345,7 @@ public abstract class BTree<T extends BTreeNode> {
             current.increaseNumKeys(left.getNumKeys());
             tree.swapRoot(current);
             parent.close();
+            current.changeOrder(innerNodeOrder);
             parent = current;
         } else {
             if (current.isLeaf()) {

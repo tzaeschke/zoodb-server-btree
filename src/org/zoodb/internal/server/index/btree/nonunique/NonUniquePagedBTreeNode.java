@@ -91,6 +91,15 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
+    protected void resizeEntries(int order) {
+        resizeKeys(order);
+        resizeValues(order);
+        if (!isLeaf()) {
+            resizeChildren(order);
+        }
+    }
+
+    @Override
     protected boolean containsAtPosition(int position, long key, long value) {
         return this.getKey(position) == key && getValue(position) == value;
     }

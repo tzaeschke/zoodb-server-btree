@@ -5,7 +5,7 @@ import java.util.List;
 
 public abstract class PagedBTreeNode extends BTreeNode {
 
-	private int pageId;
+    private int pageId;
 	private boolean isDirty;
 	// isDirty: does the node in memory differ from the node in storage?
 	private int[] childrenPageIds;
@@ -214,6 +214,14 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	public void setChildrenPageIds(int[] childrenPageIds) {
 		this.childrenPageIds = childrenPageIds;
 	}
+
+    @Override
+    protected void resizeChildren(int order) {
+        int[] childrenIds = new int[order];
+        int length = Math.min(order, getOrder());
+        System.arraycopy(childrenPageIds, 0, childrenIds, 0, length);
+        childrenPageIds = childrenIds;
+    }
 
 	@Override
 	public void close() {
