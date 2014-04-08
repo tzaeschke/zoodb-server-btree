@@ -11,9 +11,9 @@ import java.util.Observable;
  */
 public abstract class BTreeNode extends Observable {
 
-	private final boolean isLeaf;
+	private boolean isLeaf;
 	private boolean isRoot;
-	protected final int order;
+	protected int order;
 
 	// ToDo maybe we want to have the keys set dynamically sized somehow
 	protected int numKeys;
@@ -530,13 +530,14 @@ public abstract class BTreeNode extends Observable {
     }
 
     public void changeOrder(int newOrder) {
-        if (newOrder < getNumKeys()) {
-            throw new RuntimeException("Attempting to set an order smaller than the number of keys");
-        }
+//        if (newOrder < getNumKeys()) {
+//            throw new RuntimeException("Attempting to set an order smaller than the number of keys");
+//        }
         if (newOrder == getOrder()) {
             return;
         }
         resizeEntries(newOrder);
+        order = newOrder;
     }
 
     protected void resizeKeys(int order) {

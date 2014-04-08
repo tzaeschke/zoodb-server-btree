@@ -25,7 +25,6 @@ public class TestNonUnique {
         tree.insert(1, 1);
         tree.insert(1, 2);
         assertEquals(2, tree.getRoot().getNumKeys());
-
     }
 
     @Test(expected = IllegalStateException.class)
@@ -107,6 +106,7 @@ public class TestNonUnique {
 
         // check whether all entries are inserted
         for (LongLongIndex.LLEntry entry : entries) {
+            //ToDo check why it does not work
             assertTrue(tree.contains(entry.getKey(), entry.getValue()));
         }
 

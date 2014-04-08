@@ -8,7 +8,8 @@ import java.util.Stack;
  * Iterates through all nodes (inner & leafs) of the tree in pre-order.
  */
 public class BTreeIterator implements Iterator<BTreeNode> {
-	private BTreeNode cur = null;
+
+    private BTreeNode cur = null;
 	private BTree tree;
 	private Stack<BTreeNode> ancestors = new Stack<BTreeNode>();
 

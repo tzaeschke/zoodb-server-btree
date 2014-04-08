@@ -1,32 +1,22 @@
 package org.zoodb.test.index2.btree;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
+import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
+import org.zoodb.internal.util.Pair;
+import org.zoodb.tools.ZooConfig;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Test;
-import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeIterator;
-import org.zoodb.internal.server.index.btree.BTreeNode;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
-import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
-import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
-import org.zoodb.internal.util.Pair;
-import org.zoodb.tools.ZooConfig;
+import static org.junit.Assert.*;
 
 public class TestBTree {
-
 
 	@Test
 	public void searchSingleNode() {

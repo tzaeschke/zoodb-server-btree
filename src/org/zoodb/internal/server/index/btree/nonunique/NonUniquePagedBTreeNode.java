@@ -4,6 +4,8 @@ import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
+import java.util.Arrays;
+
 public class NonUniquePagedBTreeNode extends PagedBTreeNode {
 
     public NonUniquePagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {
@@ -12,6 +14,11 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
 
     public NonUniquePagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot, int pageId) {
         super(bufferManager, order, isLeaf, isRoot, pageId);
+    }
+
+    @Override
+    protected void copyValues(PagedBTreeNode node) {
+        node.setValues(Arrays.copyOf(node.getValues(), node.getValues().length));
     }
 
     @Override

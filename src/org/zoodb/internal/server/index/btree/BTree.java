@@ -2,12 +2,18 @@ package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.util.Pair;
 
+import java.util.Collections;
 import java.util.LinkedList;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 /**
  * Shared behaviour of unique and non-unique B+ tree.
  */
 public abstract class BTree<T extends BTreeNode> {
+
+    private Set<BTreeLeafIterator> iterators =
+            Collections.newSetFromMap(new WeakHashMap<BTreeLeafIterator, Boolean>());
 
     protected int innerNodeOrder;
     protected int leafOrder;
@@ -48,7 +54,12 @@ public abstract class BTree<T extends BTreeNode> {
         LinkedList<T> ancestorStack = result.getA();
         T leaf = result.getB();
 
+        //notify iterators that this leaf is about to change
+        notifyIterators(leaf);
         if (leaf.isFull()) {
+            for (T ancestor: ancestorStack) {
+                notifyIterators(ancestor);
+            }
             //split node
             T rightNode = putAndSplit(leaf, key, value);
             insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
@@ -61,6 +72,10 @@ public abstract class BTree<T extends BTreeNode> {
         Pair<LinkedList<T>,T> pair = searchNodeWithHistory(key, value);
         T leaf = pair.getB();
         LinkedList<T> ancestorStack = pair.getA();
+
+        //notify iterators that this leaf is about to change
+        notifyIterators(leaf);
+
         deleteFromLeaf(leaf, key, value);
 
         if (leaf.isRoot()) {
@@ -132,7 +147,7 @@ public abstract class BTree<T extends BTreeNode> {
         while (!current.isLeaf()) {
             current.markChanged();
             stack.push(current);
-            current = (T) current.findChild(key, value);
+            current = current.findChild(key, value);
         }
         return new Pair<>(stack, current);
     }
@@ -301,7 +316,7 @@ public abstract class BTree<T extends BTreeNode> {
             right.increaseNumKeys(current.getNumKeys());
             tree.swapRoot(right);
             parent.close();
-            right.changeOrder(innerNodeOrder);
+            right.changeOrder(leafOrder);
             parent = right;
         } else {
             if (right.isLeaf()) {
@@ -344,7 +359,7 @@ public abstract class BTree<T extends BTreeNode> {
             current.increaseNumKeys(left.getNumKeys());
             tree.swapRoot(current);
             parent.close();
-            current.changeOrder(innerNodeOrder);
+            current.changeOrder(leafOrder);
             parent = current;
         } else {
             if (current.isLeaf()) {
@@ -474,5 +489,19 @@ public abstract class BTree<T extends BTreeNode> {
 
     private void copyNodeToAnother(T source, T destination, int destinationIndex) {
         source.copyFromNodeToNode(0, 0, destination, destinationIndex, destinationIndex, source.getNumKeys(), source.getNumKeys() + 1);
+    }
+
+    public void registerIterator(BTreeLeafIterator iterator) {
+        iterators.add(iterator);
+    }
+
+    public void deregisterIterator(BTreeLeafIterator iterator) {
+        iterators.add(iterator);
+    }
+
+    private void notifyIterators(T changedNode) {
+        for (BTreeLeafIterator iterator : iterators) {
+            iterator.handleNodeChange(changedNode);
+        }
     }
 }

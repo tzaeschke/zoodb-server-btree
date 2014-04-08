@@ -18,6 +18,11 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
+    protected void copyValues(PagedBTreeNode node) {
+        //do nothing
+    }
+
+    @Override
     public void initializeEntries(int order) {
         initKeys(order);
         if (isLeaf()) {

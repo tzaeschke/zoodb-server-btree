@@ -1,6 +1,7 @@
 package org.zoodb.internal.server.index.btree;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public abstract class PagedBTreeNode extends BTreeNode {
@@ -10,6 +11,10 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	// isDirty: does the node in memory differ from the node in storage?
 	private int[] childrenPageIds;
     protected BTreeBufferManager bufferManager;
+
+    public PagedBTreeNode(int order, boolean isLeaf, boolean isRoot) {
+        super(order, isLeaf, isRoot);
+    }
 
 	public PagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {
 		super(order, isLeaf, isRoot);
@@ -32,7 +37,9 @@ public abstract class PagedBTreeNode extends BTreeNode {
     }
     
     private void init() {
-		this.addObserver(bufferManager);
+        if (bufferManager != null) {
+            this.addObserver(bufferManager);
+        }
 		this.childrenPageIds = new int[order];
     }
 
@@ -215,6 +222,14 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		this.childrenPageIds = childrenPageIds;
 	}
 
+    public void cloneInto(PagedBTreeNode clone) {
+        clone.setPageId(this.getPageId());
+        clone.setKeys(Arrays.copyOf(this.getKeys(), this.getKeys().length));
+        copyValues(clone);
+    }
+
+    protected abstract void copyValues(PagedBTreeNode node);
+
     @Override
     protected void resizeChildren(int order) {
         int[] childrenIds = new int[order];
@@ -228,4 +243,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		bufferManager.remove(getPageId());
 	}
 
+    public BTreeBufferManager getBufferManager() {
+        return bufferManager;
+    }
 }

@@ -54,12 +54,16 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory<PagedBTreeNode> {
                                                      int pageId,
                                                      int numKeys,
                                                      long[] keys,
+                                                     long[] values,
                                                      int[] childrenPageIds) {
         boolean isLeaf = false;
 		PagedBTreeNode node = createNode(bufferManager, isUnique, isRoot, isLeaf, order, pageId);
 
 		node.setNumKeys(numKeys);
 		node.setKeys(keys);
+        if (values != null) {
+            node.setValues(values);
+        }
 		node.setChildrenPageIds(childrenPageIds);
 		return node;
 	}

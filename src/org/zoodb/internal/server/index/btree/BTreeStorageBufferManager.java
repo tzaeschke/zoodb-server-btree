@@ -90,7 +90,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		}
 		long[] keys = new long[order - 1];
 		storageIn.noCheckRead(keys);
-		
+		//ToDo add values for unique
 		if (isInner == -1) {
 			// leaf
 			long[] values = new long[order - 1];
@@ -103,9 +103,13 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			int[] childrenPageIds = new int[order];
 
 			storageIn.noCheckRead(childrenPageIds);
-			
+            long[] values = null;
+            if (!isUnique) {
+                values = new long[order - 1];
+                storageIn.noCheckRead(values);
+            }
 			node = PagedBTreeNodeFactory.constructInnerNode(this, isUnique, true,
-								order, pageId, numKeys, keys, 
+								order, pageId, numKeys, keys, values,
 								childrenPageIds);
 		}
 
@@ -191,6 +195,9 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			int[] childrenPageIds = node.getChildrenPageIds();
 			storageOut.writeShort((short) node.getNumKeys());
 			storageOut.noCheckWrite(node.getKeys());
+            if (node.getValues() != null) {
+                storageOut.noCheckWrite(node.getValues());
+            }
 			storageOut.noCheckWrite(childrenPageIds);
 		}
 
