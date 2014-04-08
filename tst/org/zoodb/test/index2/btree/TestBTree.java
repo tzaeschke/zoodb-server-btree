@@ -678,7 +678,7 @@ public class TestBTree {
         return new BTreeFactory(order, bufferManager, unique);
     }
     
-    private static BTreeBufferManager newBufferManager() { 
+    public static BTreeBufferManager newBufferManager() { 
     	StorageChannel storage = new StorageRootInMemory(ZooConfig.getFilePageSize());
     	boolean isUnique = true;
 		return new BTreeStorageBufferManager(storage, isUnique);
