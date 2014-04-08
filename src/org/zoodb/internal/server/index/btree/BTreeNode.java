@@ -372,6 +372,16 @@ public abstract class BTreeNode extends Observable {
         Long value = (getValues() != null) ? getValue(position) : -1;
         return new Pair<>(key, value);
     }
+	public BTreeNode leftMostLeafOf() {
+		if(isLeaf()) {
+			return this;
+		}
+		BTreeNode node = this;
+		while(!node.isLeaf()) {
+			node = node.getChild(0);
+		}
+		return node;
+	}
 
     /**
      * Perform binary search on the key array for a certain key/value pair.

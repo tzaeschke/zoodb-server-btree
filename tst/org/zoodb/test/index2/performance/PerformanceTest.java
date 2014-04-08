@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
@@ -166,9 +167,11 @@ public class PerformanceTest {
 				});
 		Random prng = new Random(System.nanoTime());
 		while (randomEntryList.size() < numElements) {
-			randomEntryList.add(new LLEntry(prng.nextLong(), prng.nextLong()));
+			randomEntryList.add(new LLEntry(prng.nextInt(), prng.nextInt()));
 		}
-		return new ArrayList<LLEntry>(randomEntryList);
+		ArrayList<LLEntry> l = new ArrayList<LLEntry>(randomEntryList);
+		Collections.shuffle(l);
+		return l;
 	}
 
 	/*

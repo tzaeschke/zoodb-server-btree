@@ -40,7 +40,7 @@ public class PageUsageStats {
 				+ newIndex.getTree().getInnerNodeOrder() + ":"
 				+ newIndex.getTree().getLeafOrder());
 
-		int numElements = 12;
+		int numElements = 50000;
 		ArrayList<LLEntry> entries = PerformanceTest
 				.randomEntriesUnique(numElements);
 
@@ -73,8 +73,8 @@ public class PageUsageStats {
 			else newInnerN++;
 		}
 
-		System.out.println(newIndex.getTree());
-		oldIndex.print();
+//		System.out.println(newIndex.getTree());
+//		oldIndex.print();
 		
 		System.out.println("Size after " + String.valueOf(numElements)
 				+ " inserts: " 
