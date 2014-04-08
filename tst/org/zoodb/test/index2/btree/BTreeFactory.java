@@ -33,6 +33,12 @@ public class BTreeFactory {
         this.nodeFactory = tree.getNodeFactory();
         this.bufferManager = bufferManager;
     }
+    
+    public BTreeFactory(int innerNodeOrder, int leafNodeOrder, BTreeBufferManager bufferManager, boolean unique)  {
+        createTree(innerNodeOrder, leafNodeOrder, bufferManager, unique);
+        this.nodeFactory = tree.getNodeFactory();
+        this.bufferManager = bufferManager;
+    }
 
     public void addInnerLayer(List<List<Long>> nodeKeys) {
 		this.addLayer(false, nodeKeys);

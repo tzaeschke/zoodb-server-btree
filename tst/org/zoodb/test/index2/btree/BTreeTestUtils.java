@@ -15,6 +15,17 @@ public class BTreeTestUtils {
         return map;
     }
     
+    public static List<LLEntry> nonUniqueEntries(int numElements, int numTimes) {
+    	ArrayList<LLEntry> entryList = new ArrayList<LLEntry>();
+        Random random = new Random();
+        for(int j=0; j<numTimes; j++) {
+	        for (int i = 0; i < numElements; i++) {
+	        	entryList.add(new LLEntry(i, random.nextLong()));
+	        }
+        }
+        return entryList;
+    }
+    
     public static List<LLEntry> randomUniqueEntries(int numElements) {
 		// ensure that entries with equal keys can not exists in the set
 		Set<LLEntry> randomEntryList = new TreeSet<>(
