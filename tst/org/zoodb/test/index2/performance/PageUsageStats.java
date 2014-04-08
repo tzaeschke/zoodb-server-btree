@@ -8,6 +8,7 @@ import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.BTreeIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.PagedUniqueLongLong;
+import org.zoodb.internal.server.index.btree.BTreeIterator;
 import org.zoodb.tools.ZooConfig;
 
 public class PageUsageStats {
@@ -20,8 +21,7 @@ public class PageUsageStats {
 		StorageChannel oldStorage = new StorageRootInMemory(
 				ZooConfig.getFilePageSize());
 		PagedUniqueLongLong oldIndex = new PagedUniqueLongLong(
-				DATA_TYPE.GENERIC_INDEX, new StorageRootInMemory(
-						ZooConfig.getFilePageSize()));
+				DATA_TYPE.GENERIC_INDEX, oldStorage);
 
 		StorageChannel newStorage = new StorageRootInMemory(
 				ZooConfig.getFilePageSize());
@@ -40,18 +40,50 @@ public class PageUsageStats {
 				+ newIndex.getTree().getInnerNodeOrder() + ":"
 				+ newIndex.getTree().getLeafOrder());
 
-		int numElements = 1000;
+		int numElements = 12;
 		ArrayList<LLEntry> entries = PerformanceTest
-				.increasingEntriesUnique(1000);
+				.randomEntriesUnique(numElements);
 
-		PerformanceTest.insertList(oldIndex, entries);
+		System.out.println(PerformanceTest.insertList(oldIndex, entries));
 		oldIndex.write();
-		PerformanceTest.insertList(newIndex, entries);
+//		PerformanceTest.removeList(oldIndex, entries);
+//		oldIndex.write();
+		
+		System.out.println(PerformanceTest.insertList(newIndex, entries));
 		newIndex.write();
+//		PerformanceTest.removeList(newIndex, entries);
+//		oldIndex.write();
+		
+		oldIndex.statsGetInnerN();
+		oldIndex.statsGetLeavesN();
+		
+		BTreeIterator it = new BTreeIterator(newIndex.getTree());
+		int height = 1;
+		while(it.hasNext()) {
+			if(it.next().isLeaf()) break;
+			height++;
+		}
+		System.out.println("Height new Index: " + height);
+		
+		it = new BTreeIterator(newIndex.getTree());
+		int newInnerN = 0;
+		int newLeavesN = 0;
+		while(it.hasNext()) {
+			if(it.next().isLeaf()) newLeavesN++;
+			else newInnerN++;
+		}
 
+		System.out.println(newIndex.getTree());
+		oldIndex.print();
+		
 		System.out.println("Size after " + String.valueOf(numElements)
-				+ " inserts: " + "(New Index, "
-				+ String.valueOf(newIndex.getTree().size()) + ")");
+				+ " inserts: " 
+				+ "(Old Index, "
+				+ String.valueOf(oldIndex.statsGetInnerN()) +":" + oldIndex.statsGetLeavesN() + "), "
+				+ "(New Index, "
+				+ String.valueOf(newInnerN) +":" + newLeavesN + ")"
+
+				);
 
 		System.out.println("Page writes after "
 				+ String.valueOf(numElements)
@@ -61,13 +93,5 @@ public class PageUsageStats {
 				+ "), (New Index, "
 				+ String.valueOf(newIndex.getBufferManager()
 						.getStatNWrittenPages() + ")"));
-		
-		System.out.println("Page writes after "
-				+ String.valueOf(numElements)
-				+ " inserts: "
-				+ "(Old Index, "
-				+ String.valueOf(oldStorage.statsGetWriteCount())
-				+ "), (New Index, "
-				+ String.valueOf(newStorage.statsGetWriteCount() + ")"));
 	}
 }
