@@ -4,10 +4,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.zoodb.internal.server.index.LongLongIndex;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeLeafIterator;
-import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.*;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 
@@ -41,7 +38,7 @@ public class BTreeIteratorTest {
 		BTree<PagedBTreeNode> tree = TestBTree.getTestTree(new BTreeMemoryBufferManager());
 		System.out.println(tree);
 		
-		BTreeLeafIterator it = new BTreeLeafIterator(tree);
+		BTreeLeafIterator it = new AscendingBTreeLeafIterator(tree);
 		
 		while(it.hasNext()) {
 			System.out.println(it.next().getKey());
@@ -64,7 +61,7 @@ public class BTreeIteratorTest {
             tree.insert(key, value);
         }
 
-        BTreeLeafIterator iterator = new BTreeLeafIterator(tree);
+        BTreeLeafIterator iterator = new AscendingBTreeLeafIterator(tree);
         int i = 0;
         while (iterator.hasNext()) {
             LongLongIndex.LLEntry returned = iterator.next();
