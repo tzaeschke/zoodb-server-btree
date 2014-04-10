@@ -55,11 +55,8 @@ public abstract class BTree<T extends BTreeNode> {
         T leaf = result.getB();
 
         //notify iterators that this leaf is about to change
-        notifyIterators(leaf);
+        notifyIterators();
         if (leaf.isFull()) {
-            for (T ancestor: ancestorStack) {
-                notifyIterators(ancestor);
-            }
             //split node
             T rightNode = putAndSplit(leaf, key, value);
             insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
@@ -74,7 +71,7 @@ public abstract class BTree<T extends BTreeNode> {
         LinkedList<T> ancestorStack = pair.getA();
 
         //notify iterators that this leaf is about to change
-        notifyIterators(leaf);
+        notifyIterators();
 
         deleteFromLeaf(leaf, key, value);
 
@@ -499,9 +496,9 @@ public abstract class BTree<T extends BTreeNode> {
         iterators.add(iterator);
     }
 
-    private void notifyIterators(T changedNode) {
+    private void notifyIterators() {
         for (BTreeLeafIterator iterator : iterators) {
-            iterator.handleNodeChange(changedNode);
+            iterator.handleNodeChange();
         }
     }
 }

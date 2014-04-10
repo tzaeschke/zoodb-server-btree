@@ -1,21 +1,42 @@
 package org.zoodb.test.index2.btree;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeLeafIterator;
 import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.NoSuchElementException;
 
 import static org.junit.Assert.assertEquals;
 
+@RunWith(Parameterized.class)
 public class BTreeIteratorTest {
 
-	@Test(expected = NoSuchElementException.class)
+    private BTree testTree;
+
+    public BTreeIteratorTest(BTree testTree) {
+        this.testTree = testTree;
+    }
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList( new Object[][]{
+                { new NonUniquePagedBTree(4, new BTreeMemoryBufferManager()) },
+                { new UniquePagedBTree(4, new BTreeMemoryBufferManager()) }
+        }
+        );
+    }
+
+    @Test(expected = NoSuchElementException.class)
 	public void testLeafIterate() {
 		BTree<PagedBTreeNode> tree = TestBTree.getTestTree(new BTreeMemoryBufferManager());
 		System.out.println(tree);
@@ -32,7 +53,7 @@ public class BTreeIteratorTest {
     @Test
     public void testChangedTree() {
         int order = 4;
-        UniquePagedBTree tree = new UniquePagedBTree(order, new BTreeMemoryBufferManager());
+        BTree tree = new NonUniquePagedBTree(order, new BTreeMemoryBufferManager());
 
         ArrayList<LongLongIndex.LLEntry> entries = new ArrayList<>();
         int limit = 10;
@@ -44,11 +65,6 @@ public class BTreeIteratorTest {
         }
 
         BTreeLeafIterator iterator = new BTreeLeafIterator(tree);
-        for (int i = 0; i < limit; i++) {
-            long key = i * 2 + 1;
-            long value = i * 2 + 1;
-            tree.insert(key, value);
-        }
         int i = 0;
         while (iterator.hasNext()) {
             LongLongIndex.LLEntry returned = iterator.next();
