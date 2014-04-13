@@ -26,7 +26,7 @@ public class BTreeTestUtils {
         return entryList;
     }
     
-    public static List<LLEntry> randomUniqueEntries(int numElements) {
+    public static List<LLEntry> randomUniqueEntries(int numElements, long seed) {
 		// ensure that entries with equal keys can not exists in the set
 		Set<LLEntry> randomEntryList = new TreeSet<>(
 				new Comparator<LLEntry>() {
@@ -34,7 +34,7 @@ public class BTreeTestUtils {
 						return Long.compare(e1.getKey(), e2.getKey());
 					}
 				});
-		Random prng = new Random(System.nanoTime());
+		Random prng = new Random(seed);
 		while (randomEntryList.size() < numElements) {
 			randomEntryList.add(new LLEntry(prng.nextInt(Integer.MAX_VALUE), prng.nextInt(Integer.MAX_VALUE)));
 		}

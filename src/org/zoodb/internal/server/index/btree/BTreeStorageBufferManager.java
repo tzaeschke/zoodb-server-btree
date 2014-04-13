@@ -79,14 +79,19 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
         storageIn.seekPageForRead(dataType, pageId);
 
 		PagedBTreeNode node;
-		int order = leafOrder;
 
 		short isInner = storageIn.readShort();
 		int numKeys;
+		int order;
+
 		if(isInner > -1) {
+            // its an innner node
 			numKeys = isInner;
+			order = innerNodeOrder;
 		} else { 
+            // its a leaf
 			numKeys = storageIn.readShort();
+			order = leafOrder;
 		}
 		long[] keys = new long[order - 1];
 		storageIn.noCheckRead(keys);

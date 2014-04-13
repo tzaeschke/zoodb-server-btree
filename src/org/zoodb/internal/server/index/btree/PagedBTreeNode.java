@@ -26,7 +26,8 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	}
 	
 	/*
-	 * Constructor when we know on which page this node lies.
+	 * Constructor when we know on which page this node lies. 
+	 * Does not save the node in the buffer managers memory.
 	 */
     public PagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot, int pageId) {
 		super(order, isLeaf, isRoot);

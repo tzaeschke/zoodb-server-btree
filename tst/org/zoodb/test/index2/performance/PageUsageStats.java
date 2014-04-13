@@ -40,7 +40,7 @@ public class PageUsageStats {
 				+ newIndex.getTree().getInnerNodeOrder() + ":"
 				+ newIndex.getTree().getLeafOrder());
 
-		int numElements = 50000;
+		int numElements = 10000;
 		ArrayList<LLEntry> entries = PerformanceTest
 				.randomEntriesUnique(numElements);
 
