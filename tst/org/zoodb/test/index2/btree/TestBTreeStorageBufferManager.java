@@ -17,8 +17,10 @@ import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeIterator;
 import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 import org.zoodb.tools.ZooConfig;
@@ -245,7 +247,7 @@ public class TestBTreeStorageBufferManager {
 		}
 
 		tree.write();
-		tree2.setRoot(bufferManager2.read(tree.getRoot().getPageId()));
+		tree2.setRoot(constructRootWithNewBufferManager(tree.getRoot(),bufferManager2));
 
 		// check whether all entries are inserted
 		for (LLEntry entry : entries) {
@@ -260,7 +262,7 @@ public class TestBTreeStorageBufferManager {
 		}
 
 		tree.write();
-		tree2.setRoot(bufferManager2.read(tree.getRoot().getPageId()));
+		tree2.setRoot(constructRootWithNewBufferManager(tree.getRoot(),bufferManager2));
 
 		for (LLEntry entry : entries) {
 			assertEquals(-1, tree2.search(entry.getKey()));
@@ -279,9 +281,9 @@ public class TestBTreeStorageBufferManager {
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries,
 				42);
 
-		// add all entries, delete half of it, check that correct ones are
+		// add all entries, delete a portion of it, check that correct ones are
 		// deleted and still present respectively
-		int split = numEntries / 2;
+		int split = (9 * numEntries) / (10 * numEntries);
 		for (LLEntry entry : entries) {
 			tree.insert(entry.getKey(), entry.getValue());
 		}
@@ -296,7 +298,7 @@ public class TestBTreeStorageBufferManager {
 		}
 
 		tree.write();
-		tree2.setRoot(bufferManager2.read(tree.getRoot().getPageId()));
+		tree2.setRoot(constructRootWithNewBufferManager(tree.getRoot(),bufferManager2));
 
 		i = 0;
 		for (LLEntry entry : entries) {
@@ -306,6 +308,13 @@ public class TestBTreeStorageBufferManager {
 				assertEquals(entry.getValue(), tree2.search(entry.getKey()));
 			}
 			i++;
+		}
+
+		// there is only one root
+		BTreeIterator it = new BTreeIterator(tree2);
+		assertTrue(it.next().isRoot());
+		while (it.hasNext()) {
+			assertFalse(it.next().isRoot());
 		}
 	}
 
@@ -340,4 +349,20 @@ public class TestBTreeStorageBufferManager {
 		return tree;
 	}
 
+	PagedBTreeNode constructRootWithNewBufferManager(PagedBTreeNode prevRoot,
+			BTreeBufferManager bufferManager) {
+		if (!prevRoot.isLeaf()) {
+			return PagedBTreeNodeFactory.constructInnerNode(bufferManager, false, true,
+					prevRoot.getOrder(), prevRoot.getPageId(),
+					prevRoot.getNumKeys(), prevRoot.getKeys(),
+					prevRoot.getValues(), prevRoot.getChildrenPageIds());
+		} else {
+			return PagedBTreeNodeFactory.constructLeaf(bufferManager, false, true,
+					prevRoot.getOrder(), prevRoot.getPageId(),
+					prevRoot.getNumKeys(), prevRoot.getKeys(),
+					prevRoot.getValues());
+
+		}
+
+	}
 }
