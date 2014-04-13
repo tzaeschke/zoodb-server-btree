@@ -3,6 +3,7 @@ package org.zoodb.internal.server.index;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 
 
@@ -14,12 +15,24 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
     
 	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
-		
-		// TODO Auto-generated constructor stub
+		init();
+	}
+	
+	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique, int rootPageId) {
+		super(file, isNew, isUnique);
+		init();
+
+		PagedBTreeNode root = bufferManager.read(rootPageId);
+		root.setIsRoot(true);
+		tree.setRoot(root);
+	}
+	
+	public void init() {
         bufferManager = new BTreeStorageBufferManager(file, isUnique);
         final int leafOrder = bufferManager.getLeafOrder();
         final int innerOrder = bufferManager.getInnerNodeOrder();
 		tree = new UniquePagedBTree(innerOrder, leafOrder, bufferManager);
+		
 	}
 
 	@Override
