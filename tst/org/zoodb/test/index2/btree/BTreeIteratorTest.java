@@ -38,7 +38,7 @@ public class BTreeIteratorTest {
 		BTree<PagedBTreeNode> tree = TestBTree.getTestTree(new BTreeMemoryBufferManager());
 		System.out.println(tree);
 		
-		BTreeLeafIterator it = new DescendingBTreeLeafIterator(tree);
+		BTreeLeafIterator it = new AscendingBTreeLeafIterator(tree, 3, 15);
 		
 		while(it.hasNext()) {
 			System.out.println(it.next().getKey());

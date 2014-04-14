@@ -35,6 +35,9 @@ public class DescendingBTreeLeafIterator<T extends PagedBTreeNode> extends BTree
                 curPos = curLeaf.getNumKeys() - 1;
             }
         }
+        if (curLeaf != null && curLeaf.getKey(curPos) < start) {
+            curLeaf = null;
+        }
     }
     @Override
     void setFirstLeaf() {
@@ -45,5 +48,13 @@ public class DescendingBTreeLeafIterator<T extends PagedBTreeNode> extends BTree
         ancestors = p.getA();
         curLeaf = p.getB();
         curPos = curLeaf.getNumKeys() - 1;
+    }
+
+    @Override
+    void initializePosition() {
+        curPos-=1;
+        while (curLeaf != null && curLeaf.getKey(curPos) > end) {
+            updatePosition();
+        }
     }
 }
