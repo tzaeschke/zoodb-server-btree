@@ -42,7 +42,7 @@ public class PageUsageStats {
 				+ newIndex.getTree().getInnerNodeOrder() + ":"
 				+ newIndex.getTree().getLeafOrder());
 
-		int numElements = 1000;
+		int numElements = 10000;
 		ArrayList<LLEntry> entries = PerformanceTest
 				.randomEntriesUnique(numElements);
 		
@@ -93,7 +93,7 @@ public class PageUsageStats {
 		 * Delete elements
 		 */
 		System.out.println("");
-		int numDeleteEntries = 500; 
+		int numDeleteEntries = 5000; 
         System.out.println("Delete " + numDeleteEntries);
         Collections.shuffle(entries);
         List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
