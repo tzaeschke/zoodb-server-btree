@@ -27,6 +27,15 @@ public class TestNonUnique {
         assertEquals(2, tree.getRoot().getNumKeys());
     }
 
+    @Test
+    public void testSameKeyReverse() {
+        int order = 5;
+        BTree tree = factory(order).getTree();
+        tree.insert(1, 3);
+        tree.insert(1, 2);
+        System.out.println(tree);
+    }
+
     @Test(expected = IllegalStateException.class)
     public void testSameKeyValuePair() {
         int order = 5;
@@ -94,14 +103,15 @@ public class TestNonUnique {
     @Test
     public void testInsertAndDelete() {
         int order = 320;
-        int numEntries = 1000;
-        int numTimes = 100;
+        int numEntries = 10000;
+        int numTimes = 200;
         BTreeFactory factory = factory(order);
         NonUniqueBTree tree = (NonUniqueBTree) factory.getTree();
         List<LongLongIndex.LLEntry> entries = BTreeTestUtils.nonUniqueEntries(numEntries, numTimes);
 
         for (LongLongIndex.LLEntry entry : entries) {
             tree.insert(entry.getKey(), entry.getValue());
+            assertTrue(tree.contains(entry.getKey(), entry.getValue()));
         }
 
         // check whether all entries are inserted
@@ -113,6 +123,7 @@ public class TestNonUnique {
         // delete every entry and check that there is indeed no entry anymore
         for (LongLongIndex.LLEntry entry : entries) {
             tree.delete(entry.getKey(), entry.getValue());
+            assertFalse(tree.contains(entry.getKey(), entry.getValue()));
         }
         for (LongLongIndex.LLEntry entry : entries) {
             assertFalse(tree.contains(entry.getKey(), entry.getValue()));

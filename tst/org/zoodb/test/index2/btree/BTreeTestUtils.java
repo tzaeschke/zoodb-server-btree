@@ -16,14 +16,18 @@ public class BTreeTestUtils {
     }
     
     public static List<LLEntry> nonUniqueEntries(int numElements, int numTimes) {
-    	ArrayList<LLEntry> entryList = new ArrayList<LLEntry>();
         Random random = new Random();
+        Set<LLEntry> entrySet = new HashSet<>();
         for(int j=0; j<numTimes; j++) {
 	        for (int i = 0; i < numElements; i++) {
-	        	entryList.add(new LLEntry(i, random.nextLong()));
+                LLEntry newEntry = null;
+                do {
+                    newEntry = new LLEntry(i, random.nextLong());
+                } while (entrySet.contains(newEntry));
+                entrySet.add(newEntry);
 	        }
         }
-        return entryList;
+        return new ArrayList<>(entrySet);
     }
     
     public static List<LLEntry> randomUniqueEntries(int numElements, long seed) {

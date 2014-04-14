@@ -102,9 +102,11 @@ public abstract class BTreeNode extends Observable {
         // if the key is not here, find the child subtree that has it
         if (!found) {
             //TODO need to change for key and value for non-unique
-            if (closest == 0 && key < getKey(0)) {
+            if (closest == 0 && smallerThanKeyValue(0, key, value)) {
+            //if (closest == 0 && key < getKey(0)) {
                 return 0;
-            } else if (key < getKey(closest)) {
+            } else if (smallerThanKeyValue(closest, key, value)) {
+                //if (key < getKey(closest)) {
                 return closest;
             }
         }
@@ -139,6 +141,9 @@ public abstract class BTreeNode extends Observable {
         setChild(pos + 1, newNode);
 
         shiftKeys(pos, pos + 1, recordsToMove);
+        if (values != null) {
+            shiftValues(pos, pos + 1, recordsToMove);
+        }
         setEntry(pos, key, value);
         incrementNumKyes();
     }
@@ -542,9 +547,6 @@ public abstract class BTreeNode extends Observable {
     }
 
     public void changeOrder(int newOrder) {
-//        if (newOrder < getNumKeys()) {
-//            throw new RuntimeException("Attempting to set an order smaller than the number of keys");
-//        }
         if (newOrder == getOrder()) {
             return;
         }
@@ -555,14 +557,14 @@ public abstract class BTreeNode extends Observable {
     protected void resizeKeys(int order) {
         long[] keys = new long[order - 1];
         int length = Math.min(order, getOrder());
-        System.arraycopy(getKeys(), 0, keys, 0, length - 1);
+        System.arraycopy(getKeys(), 0, keys, 0, length);
         setKeys(keys);
     }
 
     protected void resizeValues(int order) {
         long[] values = new long[order - 1];
         int length = Math.min(order, getOrder());
-        System.arraycopy(getValues(), 0, values, 0, length - 1);
+        System.arraycopy(getValues(), 0, values, 0, length);
         setValues(values);
     }
 

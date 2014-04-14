@@ -453,6 +453,7 @@ public class TestBTree {
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
 		
 		tree.delete(11);
+        System.out.println(tree);
 	}
 	
 	/*
@@ -475,7 +476,7 @@ public class TestBTree {
 	}
 	
 	public void deleteMassively(BTreeFactory factory) {
-		int numEntries = 10000;
+		int numEntries = 50000;
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries, System.nanoTime());
 

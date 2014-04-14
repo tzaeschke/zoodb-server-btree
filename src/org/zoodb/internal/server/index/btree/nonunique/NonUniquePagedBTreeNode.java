@@ -87,7 +87,7 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
 
     @Override
     public void shiftRecordsLeftWithIndex(int startIndex, int amount) {
-        int keysToMove = getNumKeys() - amount;
+        int keysToMove = getNumKeys() - amount - startIndex;
         shiftKeys(startIndex + amount, startIndex, keysToMove);
         shiftValues(startIndex + amount, startIndex, keysToMove);
         if (!isLeaf()) {

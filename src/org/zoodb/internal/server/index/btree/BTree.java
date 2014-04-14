@@ -82,28 +82,33 @@ public abstract class BTree<T extends BTreeNode> {
         long replacementValue = leaf.getSmallestValue();
         T current = leaf;
         T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
-        while (current != null && current.isUnderfull()) {
-            //check if can borrow 1 value from the left or right siblings
-            T rightSibling = (T) current.rightSibling(parent);
-            T leftSibling = (T) current.leftSibling(parent);
-            if (leftSibling != null && leftSibling.hasExtraKeys()) {
-                redistributeKeysFromLeft(current, leftSibling, parent);
-            } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
-                redistributeKeysFromRight(current, rightSibling, parent);
-            } else {
-                //at this point, both left and right sibling have the minimum number of keys
-                if (leftSibling!= null) {
-                    //merge with left sibling
-                    parent = mergeWithLeft(this, current, leftSibling, parent);
+        while (current != null) {
+            if (current.isUnderfull()) {
+                //check if can borrow 1 value from the left or right siblings
+                T rightSibling = (T) current.rightSibling(parent);
+                T leftSibling = (T) current.leftSibling(parent);
+                if (leftSibling != null && leftSibling.hasExtraKeys()) {
+                    redistributeKeysFromLeft(current, leftSibling, parent);
+                } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
+                    redistributeKeysFromRight(current, rightSibling, parent);
                 } else {
-                    //merge with right sibling
-                    parent = mergeWithRight(this, current, rightSibling, parent);
+                    //at this point, both left and right sibling have the minimum number of keys
+                    if (leftSibling!= null) {
+                        //merge with left sibling
+                        parent = mergeWithLeft(this, current, leftSibling, parent);
+                    } else {
+                        //merge with right sibling
+                        parent = mergeWithRight(this, current, rightSibling, parent);
+                    }
                 }
             }
             if (current.containsKeyValue(key, value)) {
                 current.replaceEntry(key, value, replacementKey, replacementValue);
             }
             current = parent;
+//            if (parent != null && parent.isLeaf() && parent.containsKeyValue(key, value)) {
+//                deleteFromLeaf(parent, key, value);
+//            }
             parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
         }
     }
@@ -303,7 +308,8 @@ public abstract class BTree<T extends BTreeNode> {
 
         //check if parent needs merging -> tree gets smaller
         if (parent.isRoot() && parent.getNumKeys() == 1) {
-            if (parent.getKey(0) != right.getKey(0)) {
+            //if (parent.getKey(0) != right.getKey(0)) {
+            if (!current.isLeaf()) {
                 right.shiftRecordsRight(parent.getNumKeys());
                 right.migrateEntry(0, parent, 0);
                 right.increaseNumKeys(1);
@@ -313,7 +319,7 @@ public abstract class BTree<T extends BTreeNode> {
             right.increaseNumKeys(current.getNumKeys());
             tree.swapRoot(right);
             parent.close();
-            right.changeOrder(leafOrder);
+            //right.changeOrder(leafOrder);
             parent = right;
         } else {
             if (right.isLeaf()) {
@@ -347,7 +353,9 @@ public abstract class BTree<T extends BTreeNode> {
 
         //check if we need to merge with parent
         if (parent.isRoot() && parent.getNumKeys() == 1) {
-        	if(parent.getKey(0) != current.getKey(0)) {
+
+        	//if(parent.getKey(0) != current.getKey(0)) {
+            if (!current.isLeaf()) {
 	            current.shiftRecordsRight(parent.getNumKeys());
 	            current.migrateEntry(0, parent, 0);
 	            current.increaseNumKeys(parent.getNumKeys());
@@ -358,7 +366,7 @@ public abstract class BTree<T extends BTreeNode> {
             current.increaseNumKeys(left.getNumKeys());
             tree.swapRoot(current);
             parent.close();
-            current.changeOrder(leafOrder);
+            //current.changeOrder(leafOrder);
             parent = current;
         } else {
             if (current.isLeaf()) {
