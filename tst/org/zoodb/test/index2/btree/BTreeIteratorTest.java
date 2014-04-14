@@ -38,7 +38,7 @@ public class BTreeIteratorTest {
 		BTree<PagedBTreeNode> tree = TestBTree.getTestTree(new BTreeMemoryBufferManager());
 		System.out.println(tree);
 		
-		BTreeLeafIterator it = new AscendingBTreeLeafIterator(tree);
+		BTreeLeafIterator it = new DescendingBTreeLeafIterator(tree);
 		
 		while(it.hasNext()) {
 			System.out.println(it.next().getKey());
@@ -48,12 +48,12 @@ public class BTreeIteratorTest {
 	}
 
     @Test
-    public void testChangedTree() {
+    public void testAscendingIterator() {
         int order = 4;
         BTree tree = new NonUniquePagedBTree(order, new BTreeMemoryBufferManager());
 
         ArrayList<LongLongIndex.LLEntry> entries = new ArrayList<>();
-        int limit = 10;
+        int limit = 10000;
         for (int i = 0; i < limit; i++) {
             long key = i * 2;
             long value = i * 2;
@@ -69,6 +69,32 @@ public class BTreeIteratorTest {
             assertEquals(entries.get(i).getValue(), returned.getValue());
             i++;
         }
+    }
+
+    @Test
+    public void testDescendingIterator() {
+        int order = 4;
+
+        BTree tree = new NonUniquePagedBTree(order, new BTreeMemoryBufferManager());
+
+        ArrayList<LongLongIndex.LLEntry> entries = new ArrayList<>();
+        int limit = 10000;
+        for (int i = 0; i < limit; i++) {
+            long key = i * 2;
+            long value = i * 2;
+            entries.add(new LongLongIndex.LLEntry(key, value));
+            tree.insert(key, value);
+        }
+
+        BTreeLeafIterator iterator = new DescendingBTreeLeafIterator(tree);
+        int i = limit - 1;
+        while (iterator.hasNext()) {
+            LongLongIndex.LLEntry returned = iterator.next();
+            assertEquals(entries.get(i).getKey(), returned.getKey());
+            assertEquals(entries.get(i).getValue(), returned.getValue());
+            i--;
+        }
+
     }
 
 }

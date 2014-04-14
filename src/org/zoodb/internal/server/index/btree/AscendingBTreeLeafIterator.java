@@ -15,6 +15,7 @@ public class AscendingBTreeLeafIterator<T extends PagedBTreeNode> extends BTreeL
     }
 
     void updatePosition() {
+        //TODO fix this
         if (curPos < curLeaf.getNumKeys() - 1) {
             curPos++;
         } else {
@@ -31,9 +32,7 @@ public class AscendingBTreeLeafIterator<T extends PagedBTreeNode> extends BTreeL
             if (rightSibling == null) {
                 curLeaf = null;
             } else {
-                if (!rightSibling.isLeaf())
-                    ancestors.push(rightSibling);
-                curLeaf = (T) rightSibling.leftMostLeafOf();
+                curLeaf = getLefmostLeaf(rightSibling);
             }
         }
     }

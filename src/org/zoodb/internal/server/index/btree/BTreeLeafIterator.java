@@ -82,4 +82,30 @@ public abstract class BTreeLeafIterator<T extends PagedBTreeNode> implements
         close();
     }
 
+    protected T getLefmostLeaf(T node) {
+        if(node.isLeaf()) {
+            return node;
+        }
+        T current = node;
+        while(!current.isLeaf()) {
+            ancestors.push(current);
+            current = (T) current.getChild(0);
+        }
+        return current;
+    }
+
+    protected T getRightMostLeaf(T node) {
+        if(node.isLeaf()) {
+            return node;
+        }
+        T current = node;
+        while(!current.isLeaf()) {
+            ancestors.push(current);
+            int numKeys = current.getNumKeys();
+            current = (T) current.getChild(numKeys);
+        }
+        return current;
+    }
+
+
 }
