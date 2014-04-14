@@ -180,14 +180,16 @@ public abstract class BTreeNode extends Observable {
      *
      * @param key
      */
-    public void delete(long key, long value) {
+    public long delete(long key, long value) {
         if (!isLeaf()) {
             throw new IllegalStateException("Should be a leaf node");
         }
         final int keyPos = findKeyValuePos(key, value);
         int recordsToMove = getNumKeys() - keyPos;
+        long oldValue = getValue(keyPos - 1);
         shiftRecords(keyPos, keyPos - 1, recordsToMove);
         decrementNumKeys();
+        return oldValue;
     }
 
     public void replaceEntry(long key, long value, long replacementKey, long replacementValue) {

@@ -60,8 +60,8 @@ public abstract class UniqueBTree<T extends BTreeNode> extends BTree<T> {
      *
      * @param key               The key to be deleted.
      */
-	public void delete(long key) {
-		deleteEntry(key, NO_VALUE);
+	public long delete(long key) {
+		return deleteEntry(key, NO_VALUE);
 	}
 
     private long findValue(T node, long key) {

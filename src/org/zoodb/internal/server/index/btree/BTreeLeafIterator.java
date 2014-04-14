@@ -14,8 +14,8 @@ public abstract class BTreeLeafIterator<T extends PagedBTreeNode> implements
 	protected int curPos;
 	protected LinkedList<T> ancestors;
 
-    protected int start = Integer.MIN_VALUE;
-    protected int end = Integer.MAX_VALUE;
+    protected long start = Long.MIN_VALUE;
+    protected long end = Long.MAX_VALUE;
     protected HashMap<Integer, T> clones;
 
     abstract void updatePosition();
@@ -32,7 +32,7 @@ public abstract class BTreeLeafIterator<T extends PagedBTreeNode> implements
 		setFirstLeaf();
 	}
 
-    public BTreeLeafIterator(BTree<T> tree, int start, int end) {
+    public BTreeLeafIterator(BTree<T> tree, long start, long end) {
         this(tree);
         //ToDo get smallest key and value from tree
         this.start = start;

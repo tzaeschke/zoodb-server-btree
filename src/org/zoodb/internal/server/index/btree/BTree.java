@@ -65,7 +65,7 @@ public abstract class BTree<T extends BTreeNode> {
         }
     }
 
-    protected void deleteEntry(long key, long value) {
+    protected long deleteEntry(long key, long value) {
         Pair<LinkedList<T>,T> pair = searchNodeWithHistory(key, value);
         T leaf = pair.getB();
         LinkedList<T> ancestorStack = pair.getA();
@@ -73,10 +73,10 @@ public abstract class BTree<T extends BTreeNode> {
         //notify iterators that this leaf is about to change
         notifyIterators();
 
-        deleteFromLeaf(leaf, key, value);
+        long oldValue = deleteFromLeaf(leaf, key, value);
 
         if (leaf.isRoot()) {
-            return;
+            return oldValue;
         }
         long replacementKey = leaf.getSmallestKey();
         long replacementValue = leaf.getSmallestValue();
@@ -106,11 +106,9 @@ public abstract class BTree<T extends BTreeNode> {
                 current.replaceEntry(key, value, replacementKey, replacementValue);
             }
             current = parent;
-//            if (parent != null && parent.isLeaf() && parent.containsKeyValue(key, value)) {
-//                deleteFromLeaf(parent, key, value);
-//            }
             parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
         }
+        return oldValue;
     }
 
     /**
@@ -154,8 +152,8 @@ public abstract class BTree<T extends BTreeNode> {
         return new Pair<>(stack, current);
     }
 
-    protected void deleteFromLeaf(T leaf, long key, long value) {
-        leaf.delete(key, value);
+    protected long deleteFromLeaf(T leaf, long key, long value) {
+        return leaf.delete(key, value);
     }
 
     public void setRoot(BTreeNode root) {
@@ -504,6 +502,12 @@ public abstract class BTree<T extends BTreeNode> {
 
     public void deregisterIterator(BTreeLeafIterator iterator) {
         iterators.add(iterator);
+    }
+
+    public void refreshIterators() {
+        for (BTreeLeafIterator it : iterators) {
+            it.refresh();
+        }
     }
 
     private void notifyIterators() {

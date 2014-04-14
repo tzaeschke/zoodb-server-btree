@@ -10,7 +10,7 @@ public class DescendingBTreeLeafIterator<T extends PagedBTreeNode> extends BTree
         super(tree);
     }
 
-    public DescendingBTreeLeafIterator(BTree<T> tree, int start, int end) {
+    public DescendingBTreeLeafIterator(BTree<T> tree, long start, long end) {
         super(tree, start, end);
     }
 

@@ -24,9 +24,9 @@ public class UniquePagedBTree extends UniqueBTree<PagedBTreeNode> {
     }
 
     @Override
-    public void delete(long key) {
+    public long delete(long key) {
         //TODO need to all nodes involved in delete as dirty, not just the path down
-        super.delete(key);
+        return super.delete(key);
     }
 
     public BTreeBufferManager getBufferManager() {

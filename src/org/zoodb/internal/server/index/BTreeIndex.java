@@ -2,8 +2,7 @@ package org.zoodb.internal.server.index;
 
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.*;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 
 
@@ -11,7 +10,7 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 	
 	private UniquePagedBTree tree;
     private BTreeStorageBufferManager bufferManager;
-    private boolean isUnique;
+    private boolean isUnique = true;
     
 	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
@@ -38,25 +37,25 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 	@Override
 	public void insertLong(long key, long value) {
 		tree.insert(key, value);
-
 	}
 
 	@Override
 	public long removeLong(long key, long value) {
-		tree.delete(key);
-		return 0;
+		return tree.delete(key);
 	}
 
 	@Override
 	public void print() {
         System.out.println(tree);
-
 	}
 
 	@Override
 	public boolean insertLongIfNotSet(long key, long value) {
-		// TODO Auto-generated method stub
-		return false;
+		if (tree.search(key) != -1) {
+            return false;
+        }
+        tree.insert(key, value);
+        return true;
 	}
 
 	@Override
@@ -79,26 +78,22 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public LongLongIterator<LLEntry> iterator() {
-		// TODO Auto-generated method stub
-		return null;
+		return new AscendingBTreeLeafIterator<>(tree);
 	}
 
 	@Override
 	public LongLongIterator<LLEntry> iterator(long min, long max) {
-		// TODO Auto-generated method stub
-		return null;
+        return new AscendingBTreeLeafIterator<>(tree, min, max);
 	}
 
 	@Override
 	public LongLongIterator<LLEntry> descendingIterator() {
-		// TODO Auto-generated method stub
-		return null;
+        return new DescendingBTreeLeafIterator<>(tree);
 	}
 
 	@Override
 	public LongLongIterator<LLEntry> descendingIterator(long max, long min) {
-		// TODO Auto-generated method stub
-		return null;
+        return new DescendingBTreeLeafIterator<>(tree, min, max);
 	}
 
 	@Override
@@ -115,14 +110,12 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public void deregisterIterator(LongLongIterator<?> it) {
-		// TODO Auto-generated method stub
-
+		tree.deregisterIterator((BTreeLeafIterator) it);
 	}
 
 	@Override
 	public void refreshIterators() {
-		// TODO Auto-generated method stub
-
+        tree.refreshIterators();
 	}
 
 	@Override

@@ -43,8 +43,8 @@ public class NonUniqueBTree<T extends BTreeNode> extends BTree<T> {
      *
      * @param key               The key to be deleted.
      */
-    public void delete(long key, long value) {
-        deleteEntry(key, value);
+    public long delete(long key, long value) {
+        return deleteEntry(key, value);
     }
 
 }
