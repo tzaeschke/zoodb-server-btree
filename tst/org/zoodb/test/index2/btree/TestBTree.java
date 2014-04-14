@@ -442,8 +442,19 @@ public class TestBTree {
 		tree.delete(14);
 		tree.delete(19);
 	}
-
-
+	
+	@Test
+	public void deleteInRightLeafParentIsRoot() {
+		int order = 4;
+		BTreeFactory factory = factory(order, newBufferManager());
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(10L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(1L, 2L),
+				Arrays.asList(10L, 11L)));
+		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
+		
+		tree.delete(11);
+	}
+	
 	/*
 	 * Tests whether the state of the tree is correct after doing a lot of
 	 * inserts and deletes.

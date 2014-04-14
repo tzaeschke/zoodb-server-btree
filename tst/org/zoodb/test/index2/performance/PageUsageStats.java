@@ -3,6 +3,7 @@ package org.zoodb.test.index2.performance;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
@@ -42,9 +43,9 @@ public class PageUsageStats {
 				+ newIndex.getTree().getInnerNodeOrder() + ":"
 				+ newIndex.getTree().getLeafOrder());
 
-		int numElements = 10000;
+		int numElements = 10;
 		ArrayList<LLEntry> entries = PerformanceTest
-				.randomEntriesUnique(numElements);
+				.randomEntriesUnique(numElements, 42);
 		
 		/*
 		 * Insert elements
@@ -89,13 +90,15 @@ public class PageUsageStats {
 				+ String.valueOf(newIndex.getBufferManager()
 						.getStatNWrittenPages() + ")"));
 		
+		System.out.println(newIndex.getTree());
+		
 		/*
 		 * Delete elements
 		 */
 		System.out.println("");
-		int numDeleteEntries = 5000; 
+		int numDeleteEntries = 5; 
         System.out.println("Delete " + numDeleteEntries);
-        Collections.shuffle(entries);
+        Collections.shuffle(entries, new Random(43));
         List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
 
 		System.out.println("mseconds old: " + PerformanceTest.removeList(oldIndex, deleteEntries));

@@ -158,6 +158,10 @@ public class PerformanceTest {
 	}
 
 	public static ArrayList<LLEntry> randomEntriesUnique(int numElements) {
+		return randomEntriesUnique(numElements, System.nanoTime());
+	}
+	
+	public static ArrayList<LLEntry> randomEntriesUnique(int numElements, long seed) {
 		// ensure that entries with equal keys can not exists in the set
 		Set<LLEntry> randomEntryList = new TreeSet<LLEntry>(
 				new Comparator<LLEntry>() {
@@ -165,12 +169,12 @@ public class PerformanceTest {
 						return Long.compare(e1.getKey(), e2.getKey());
 					}
 				});
-		Random prng = new Random(System.nanoTime());
+		Random prng = new Random(seed);
 		while (randomEntryList.size() < numElements) {
 			randomEntryList.add(new LLEntry(prng.nextInt(), prng.nextInt()));
 		}
 		ArrayList<LLEntry> l = new ArrayList<LLEntry>(randomEntryList);
-		Collections.shuffle(l);
+		Collections.shuffle(l, prng);
 		return l;
 	}
 

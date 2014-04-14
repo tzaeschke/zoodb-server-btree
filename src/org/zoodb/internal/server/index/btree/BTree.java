@@ -350,9 +350,11 @@ public abstract class BTree<T extends BTreeNode> {
 
         //check if we need to merge with parent
         if (parent.isRoot() && parent.getNumKeys() == 1) {
-            current.shiftRecordsRight(parent.getNumKeys());
-            current.migrateEntry(0, parent, 0);
-            current.increaseNumKeys(parent.getNumKeys());
+        	if(parent.getKey(0) != current.getKey(0)) {
+	            current.shiftRecordsRight(parent.getNumKeys());
+	            current.migrateEntry(0, parent, 0);
+	            current.increaseNumKeys(parent.getNumKeys());
+        	} 
 
             current.shiftRecordsRight(left.getNumKeys());
             copyNodeToAnother(left, current, 0);
