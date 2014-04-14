@@ -464,9 +464,9 @@ public class TestBTree {
 	}
 	
 	public void deleteMassively(BTreeFactory factory) {
-		int numEntries = 100000;
+		int numEntries = 10000;
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
-		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries);
+		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries, System.nanoTime());
 
 		for (LLEntry entry : entries) {
 			tree.insert(entry.getKey(), entry.getValue());
@@ -490,9 +490,9 @@ public class TestBTree {
 		Arrays.fill(emptyChildren, null);
 		assertArrayEquals(emptyChildren, tree.getRoot().getChildren());
 
-		// add all entries, delete half of it, check that correct ones are
+		// add all entries, delete a portion of it, check that correct ones are
 		// deleted and still present respectively
-		int split = numEntries / 2;
+		int split = (9*numEntries) / (10*numEntries);
 		for (LLEntry entry : entries) {
 			tree.insert(entry.getKey(), entry.getValue());
 		}
@@ -514,6 +514,14 @@ public class TestBTree {
 			}
 			i++;
 		}
+		
+		// there is only one root
+		BTreeIterator it = new BTreeIterator(tree);
+        assertTrue(it.next().isRoot());
+		while(it.hasNext()) {
+			assertFalse(it.next().isRoot());
+		}
+		
 	}
 
 	@Test

@@ -79,14 +79,19 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
         storageIn.seekPageForRead(dataType, pageId);
 
 		PagedBTreeNode node;
-		int order = leafOrder;
 
 		short isInner = storageIn.readShort();
 		int numKeys;
+		int order;
+
 		if(isInner > -1) {
+            // its an innner node
 			numKeys = isInner;
+			order = innerNodeOrder;
 		} else { 
+            // its a leaf
 			numKeys = storageIn.readShort();
+			order = leafOrder;
 		}
 		long[] keys = new long[order - 1];
 		storageIn.noCheckRead(keys);
@@ -96,7 +101,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			long[] values = new long[order - 1];
 			storageIn.noCheckRead(values);
 
-			node = PagedBTreeNodeFactory.constructLeaf(this, isUnique, true,
+			node = PagedBTreeNodeFactory.constructLeaf(this, isUnique, false,
 										order, pageId, numKeys, 
 										keys, values);
 		} else {
@@ -108,7 +113,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
                 values = new long[order - 1];
                 storageIn.noCheckRead(values);
             }
-			node = PagedBTreeNodeFactory.constructInnerNode(this, isUnique, true,
+			node = PagedBTreeNodeFactory.constructInnerNode(this, isUnique, false,
 								order, pageId, numKeys, keys, values,
 								childrenPageIds);
 		}
@@ -134,7 +139,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			for (int childPageId : node.getChildrenPageIdList()) {
 				PagedBTreeNode child = readNodeFromMemory(childPageId);
                 //if child is not in memory, then it can not be dirty
-				if(node != null && child.isDirty()) {
+				if(child != null && child.isDirty()) {
                     int newChildPageId = write(child);
                     node.setChildPageId(childIndex, newChildPageId);
 				}
