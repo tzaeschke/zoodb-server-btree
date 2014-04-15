@@ -476,7 +476,7 @@ public class TestBTree {
 	}
 	
 	public void deleteMassively(BTreeFactory factory) {
-		int numEntries = 50000;
+		int numEntries = 500000;
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries, System.nanoTime());
 

@@ -175,10 +175,27 @@ public abstract class PagedBTreeNode extends BTreeNode {
         this.markDirty();
     }
 
+    @Override
+    public int keyIndexOf(BTreeNode left, BTreeNode right) {
+        int leftPageId = toPagedNode(left).getPageId();
+        int rightPageId = toPagedNode(right).getPageId();
+        int indexRight = 0;
+        for (int pageId : childrenPageIds) {
+            if (pageId == rightPageId) {
+                if (indexRight > 0 && childrenPageIds[indexRight-1] == leftPageId) {
+                    return indexRight - 1;
+                }
+            }
+            indexRight++;
+        }
+        throw new RuntimeException("Wrong call for parent index");
+
+    }
+
     /*
-         * Mark this node dirty which must mark all parents up to the root dirty as
-         * well because they depend on this node.
-         */
+             * Mark this node dirty which must mark all parents up to the root dirty as
+             * well because they depend on this node.
+             */
 	public void markDirty() {
 		if (isDirty()) {
 			// this node is dirty, so parents must be already dirty

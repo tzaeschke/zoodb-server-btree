@@ -225,14 +225,7 @@ public abstract class BTreeNode extends Observable {
         markChanged();
 	}
 
-	public int keyIndexOf(BTreeNode left, BTreeNode right) {
-		for (int i = 0; i < getNumKeys(); i++) {
-			if (getChild(i) == left && getChild(i + 1) == right) {
-				return i;
-			}
-		}
-		return -1;
-	}
+	public abstract int keyIndexOf(BTreeNode left, BTreeNode right);
 
 	public boolean isUnderfull() {
 		if (isRoot()) {
