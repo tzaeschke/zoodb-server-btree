@@ -88,6 +88,52 @@ public class PrefixSharingHelper {
         return optimalIndex;
     }
 
+    /**
+     * Compute the number of keys to move from the left array to the right array.
+     *
+     * As a precondition, the left array should have a larger storage size than the
+     * left array.
+     *
+     * @param first
+     * @param second
+     * @return
+     */
+    public static int computeIndexForSplit(long[] first, long[] second) {
+        /*
+         *  Perform a binary search on the index in the first array that would
+         *  provide the optimal split point.
+         */
+        int low = 0 ;
+        int high = first.length - 1;
+        int mid = 0;
+        int optimalIndex = 0;
+        long optimalDiff = Long.MAX_VALUE;
+        while (low <= high) {
+            mid = low + ((high - low) >> 1);
+            long prefixLeft = computePrefix(first[0], first[mid]);
+            long prefixRight = computePrefix(first[mid+1], second[second.length - 1]);
+            long sizeLeft = prefixLeft + (mid + 1) * (64 - prefixLeft);
+            long sizeRight = prefixRight + (first.length - 1 - mid + second.length) * (64 - prefixRight);
+            if (optimalDiff > Math.abs(sizeLeft - sizeRight)) {
+                optimalIndex = mid;
+                optimalDiff = Math.abs(sizeLeft - sizeRight);
+            }
+            if (sizeLeft < sizeRight) {
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        System.out.println("Optimal difference: " + optimalDiff);
+        return optimalIndex;
+
+    }
+
+    /**
+     * Utility method for printing the prefix representation of an array.
+     *
+     * @param arr
+     */
     public static void printSharedPrefixArray(long[] arr) {
         long prefix = computePrefix(arr);
         System.out.println("Prefix size:\t" + prefix);
