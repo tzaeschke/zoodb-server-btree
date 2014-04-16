@@ -1,5 +1,8 @@
 package org.zoodb.internal.server.index;
 
+import java.util.List;
+
+import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
 import org.zoodb.internal.server.index.btree.*;
@@ -140,5 +143,41 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 	
     public BTreeStorageBufferManager getBufferManager() {
 		return bufferManager;
+	}
+
+	@Override
+	public long size() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public DATA_TYPE getDataType() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public List<Integer> debugPageIds() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public int statsGetWrittenPagesN() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public long removeLongNoFail(long key, long failValue) {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public long deleteAndCheckRangeEmpty(long pos, long min, long max) {
+		// TODO Auto-generated method stub
+		return 0;
 	}
 }

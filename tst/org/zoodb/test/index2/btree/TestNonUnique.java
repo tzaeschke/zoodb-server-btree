@@ -103,7 +103,7 @@ public class TestNonUnique {
     @Test
     public void testInsertAndDelete() {
         int order = 320;
-        int numEntries = 10000;
+        int numEntries = 1000;
         int numTimes = 200;
         BTreeFactory factory = factory(order);
         NonUniqueBTree tree = (NonUniqueBTree) factory.getTree();
