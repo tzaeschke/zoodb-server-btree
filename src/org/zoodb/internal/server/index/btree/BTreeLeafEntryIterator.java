@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
-public abstract class BTreeLeafEntryIterator<T extends PagedBTreeNode> implements
+public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 		LongLongIndex.LongLongIterator<LongLongIndex.LLEntry> {
 	protected BTree<T> tree;
 	protected T curLeaf;

@@ -19,6 +19,9 @@ public abstract class BTree<T extends BTreeNode> {
     protected int leafOrder;
     protected T root;
     protected BTreeNodeFactory nodeFactory;
+    
+    private long maxKey = 0;
+    private long minKey = 0;
 
     public BTree(int innerNodeOrder, int leafOrder, BTreeNodeFactory nodeFactory) {
         this.innerNodeOrder = innerNodeOrder;
@@ -63,6 +66,9 @@ public abstract class BTree<T extends BTreeNode> {
         } else {
             leaf.put(key, value);
         }
+        
+        maxKey = Math.max(maxKey, key);
+        minKey = Math.min(minKey, key);
     }
 
     protected long deleteEntry(long key, long value) {
@@ -107,6 +113,13 @@ public abstract class BTree<T extends BTreeNode> {
             }
             current = parent;
             parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
+        }
+        
+        if(key == minKey) {
+        	minKey = computeMinKey();
+        }
+        if(key == minKey) {
+        	maxKey = computeMaxKey();
         }
         return oldValue;
     }
@@ -485,6 +498,32 @@ public abstract class BTree<T extends BTreeNode> {
     public void copyRedistributeFromLeftNodeToRightNode(T src, int srcStart, T dest, int destStart,
                                                         int keys, int children) {
         src.copyFromNodeToNode( srcStart, srcStart + 1, dest, destStart, destStart, keys, children);
+    }
+    
+    public long getMaxKey() {
+		return maxKey;
+	}
+
+	public long getMinKey() {
+		return minKey;
+	}
+
+	public long computeMinKey() {
+        BTreeLeafEntryIterator<T> it = new AscendingBTreeLeafEntryIterator<T>(this);
+        long minKey = 0;
+        if(it.hasNext()) {
+                minKey = it.next().getKey();
+        }
+        return minKey;
+    }
+
+    public long computeMaxKey() {
+        BTreeLeafEntryIterator<T> it = new DescendingBTreeLeafEntryIterator<T>(this);
+        long maxKey = 0;
+        if(it.hasNext()) {
+                maxKey = it.next().getKey();
+        }
+        return maxKey;
     }
     
     public int statsGetInnerN() {
