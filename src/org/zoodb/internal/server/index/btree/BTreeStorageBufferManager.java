@@ -44,7 +44,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		
     	int pageSize = this.storageFile.getPageSize();
     	this.leafOrder = computeLeafOrder(pageSize);
-    	this.innerNodeOrder = computeInnerNodeOrder(pageSize);
+    	this.innerNodeOrder = computeInnerNodeOrder(pageSize, isUnique);
 	}
 
 	public BTreeStorageBufferManager(StorageChannel storage, boolean isUnique, DATA_TYPE dataType) {
@@ -202,7 +202,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			int[] childrenPageIds = node.getChildrenPageIds();
 			storageOut.writeShort((short) node.getNumKeys());
 			storageOut.noCheckWrite(node.getKeys());
-            if (node.getValues() != null) {
+            if (!isUnique) {
                 storageOut.noCheckWrite(node.getValues());
             }
 			storageOut.noCheckWrite(childrenPageIds);
@@ -235,11 +235,11 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return order+1;
 	}
     
-    public static int computeInnerNodeOrder(int pageSize) {
+    public static int computeInnerNodeOrder(int pageSize, boolean isUnique) {
     	int headerSize = DiskIO.PAGE_HEADER_SIZE;
     	int numKeysSize = 2;
     	
-    	int keySize = 8;
+    	int keySize = isUnique ? 8 : 16;
     	int childrenSize = 4;
     	
     	if(pageSize < headerSize + numKeysSize) {

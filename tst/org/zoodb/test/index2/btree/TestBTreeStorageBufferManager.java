@@ -10,7 +10,9 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
@@ -20,6 +22,7 @@ import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTree;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 import org.zoodb.tools.ZooConfig;
@@ -56,7 +59,7 @@ public class TestBTreeStorageBufferManager {
 		int pageSize = 128;
 		assertEquals(8, BTreeStorageBufferManager.computeLeafOrder(pageSize));
 		assertEquals(10,
-				BTreeStorageBufferManager.computeInnerNodeOrder(pageSize));
+				BTreeStorageBufferManager.computeInnerNodeOrder(pageSize, true));
 	}
 
 	@Test
@@ -316,6 +319,25 @@ public class TestBTreeStorageBufferManager {
 			assertFalse(it.next().isRoot());
 		}
 	}
+	
+	@Test
+	public void testNonUnique() {
+        final int MAX = 10000;
+        NonUniquePagedBTree tree = new NonUniquePagedBTree(bufferManager.getInnerNodeOrder(), bufferManager.getLeafOrder(), bufferManager);
+
+        //Fill index
+        for (int i = 1000; i < 1000+MAX; i++) {
+            tree.insert(i, 32+i);
+        }
+
+        tree.write();
+        
+        bufferManager.clear();
+        for (int i = 1000; i < 1000+MAX; i++) {
+            assertTrue(tree.contains(i, 32+i));
+        }
+
+	}
 
 	private PagedBTreeNode getTestLeaf(BTreeStorageBufferManager bufferManager) {
 		int order = bufferManager.getLeafOrder();
@@ -362,6 +384,5 @@ public class TestBTreeStorageBufferManager {
 					prevRoot.getValues());
 
 		}
-
 	}
 }
