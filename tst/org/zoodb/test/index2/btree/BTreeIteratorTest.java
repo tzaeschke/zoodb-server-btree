@@ -18,9 +18,9 @@ import static org.junit.Assert.assertEquals;
 @RunWith(Parameterized.class)
 public class BTreeIteratorTest {
 
-    private BTree testTree;
+    private PagedBTree<?> testTree;
 
-    public BTreeIteratorTest(BTree testTree) {
+    public BTreeIteratorTest(PagedBTree<?> testTree) {
         this.testTree = testTree;
     }
 
@@ -35,10 +35,10 @@ public class BTreeIteratorTest {
 
     @Test(expected = NoSuchElementException.class)
 	public void testLeafIterate() {
-		BTree<PagedBTreeNode> tree = TestBTree.getTestTree(new BTreeMemoryBufferManager());
+		PagedBTree<?> tree = TestBTree.getTestTree(new BTreeMemoryBufferManager());
 		System.out.println(tree);
 		
-		BTreeLeafEntryIterator it = new AscendingBTreeLeafEntryIterator(tree, 3, 15);
+		BTreeLeafEntryIterator<?> it = new AscendingBTreeLeafEntryIterator(tree, 3, 15);
 		
 		while(it.hasNext()) {
 			System.out.println(it.next().getKey());

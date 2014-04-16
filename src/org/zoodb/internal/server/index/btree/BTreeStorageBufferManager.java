@@ -20,7 +20,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	
 	private Map<Integer, PagedBTreeNode> dirtyBuffer;
 	private Map<Integer, PagedBTreeNode> cleanBuffer;
-	private final int maxCleanBufferElements = 2000;
+	private final int maxCleanBufferElements = 20000;
 
 	private int pageIdCounter;
 	private final boolean isUnique;
@@ -357,7 +357,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	 * been removed using BTree.remove and thus its page has been reported
 	 * as free.
 	 */
-	public List<Integer> debugPageIds(BTree<PagedBTreeNode> tree) {
+	public <T extends PagedBTreeNode> List<Integer> debugPageIds(PagedBTree<T> tree) {
 		BTreeIterator it = new BTreeIterator(tree);
 		ArrayList<Integer> pageIds = new ArrayList<Integer>();
 		while(it.hasNext()) {

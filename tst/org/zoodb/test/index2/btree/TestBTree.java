@@ -665,7 +665,7 @@ public class TestBTree {
 	}
 
 
-	public static BTree<PagedBTreeNode> getTestTree(BTreeBufferManager bufferManager) {
+	public static UniquePagedBTree getTestTree(BTreeBufferManager bufferManager) {
 		int order = 5;
 		BTreeFactory factory = factory(order, bufferManager);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));

@@ -1,61 +1,87 @@
 package org.zoodb.internal.server.index.btree.unique;
 
-import org.zoodb.internal.server.index.btree.AscendingBTreeLeafEntryIterator;
+import java.util.NoSuchElementException;
+
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeLeafEntryIterator;
-import org.zoodb.internal.server.index.btree.DescendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.PagedBTree;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
-import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
+import org.zoodb.internal.util.Pair;
 
 /**
  * Abstracts the need to specify a BTreeNodeFactory, which is specific to this type of tree.
  *
  * Also, adds the buffer manager that will be used by this type of node as an argument.
  */
-public class UniquePagedBTree extends UniqueBTree<PagedBTreeNode> {
-
-    private BTreeBufferManager bufferManager;
+public class UniquePagedBTree extends PagedBTree<UniquePagedBTreeNode> {
+	
+    private static final int NO_VALUE = 0;
 
     public UniquePagedBTree(int order, BTreeBufferManager bufferManager) {
-        super(order, new PagedBTreeNodeFactory(bufferManager));
-        this.bufferManager = bufferManager;
+        super(order, bufferManager);
     }
 
     public UniquePagedBTree(int innerNodeOrder, int leafOrder, BTreeBufferManager bufferManager) {
-        super(innerNodeOrder, leafOrder, new PagedBTreeNodeFactory(bufferManager));
-        this.bufferManager = bufferManager;
+        super(innerNodeOrder, leafOrder, bufferManager);
+    }
+    
+        @Override
+    public boolean isUnique() {
+        return true;
     }
 
-    @Override
-    public long delete(long key) {
-        //TODO need to all nodes involved in delete as dirty, not just the path down
-        return super.delete(key);
+    /**
+     * Retrieve the value corresponding to the key from the B+ tree.
+     *
+     * @param key
+     * @return corresponding value or null if key not found
+     */
+    public Long search(long key) {
+        PagedBTreeNode current = root;
+        while (!current.isLeaf()) {
+            current = current.findChild(key, NO_VALUE);
+        }
+        try {
+        	long value = findValue(current, key);
+        	return value;
+        } catch(NoSuchElementException e) {
+            return null; 
+        }
     }
 
-    public BTreeBufferManager getBufferManager() {
-        return bufferManager;
+    /**
+     * Delete the value corresponding to the key from the tree.
+     *
+     * Deletion steps are as a follows:
+     *  - find the leaf node that contains the key that needs to be deleted.
+     *  - delete the entry from the leaf
+     *  - at this point, it is possible that the leaf is underfull.
+     *    In this case, one of the following things are done:
+     *    - if the left sibling has extra keys (more than the minimum number), borrow keys from the left node
+     *    - if that is not possible, try to borrow extra keys from the right sibling
+     *    - if that is not possible, either both the left and right nodes have precisely half the max number of keys.
+     *      The current node has half the max number of keys - 1 so a merge can be done with either of them.
+     *      The left node is check for merge first, then the right one.
+     *
+     * @param key               The key to be deleted.
+     */
+	public long delete(long key) {
+		return deleteEntry(key, NO_VALUE);
+	}
+
+    private long findValue(PagedBTreeNode node, long key) {
+        if (!node.isLeaf()) {
+            throw new IllegalStateException(
+                    "Should only be called on leaf nodes.");
+        }
+        if (node.getNumKeys() > 0) {
+            Pair<Boolean, Integer> result = node.binarySearch(key, NO_VALUE);
+            int position = result.getB();
+            boolean found = result.getA();
+            if(found) {
+            	return node.getValue(position);
+            }
+        }
+
+        throw new NoSuchElementException("Key not found: " + key);
     }
-    
-    public void write() {
-    	bufferManager.write(getRoot());
-    }
-    
-    public long getMinKey() {
-    	BTreeLeafEntryIterator<PagedBTreeNode> it = new AscendingBTreeLeafEntryIterator<PagedBTreeNode>(this);
-    	long minKey = 0;
-		if(it.hasNext()) {
-			minKey = it.next().getKey();
-		}
-		return minKey;
-    }
-    
-    public long getMaxKey() {
-    	BTreeLeafEntryIterator<PagedBTreeNode> it = new DescendingBTreeLeafEntryIterator<PagedBTreeNode>(this);
-    	long maxKey = 0;
-		if(it.hasNext()) {
-			maxKey = it.next().getKey();
-		}
-		return maxKey;
-    }
-    
 }

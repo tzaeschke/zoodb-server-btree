@@ -1,46 +1,50 @@
 package org.zoodb.internal.server.index.btree.nonunique;
 
-import org.zoodb.internal.server.index.btree.AscendingBTreeLeafEntryIterator;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeLeafEntryIterator;
-import org.zoodb.internal.server.index.btree.DescendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.PagedBTree;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
-import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 
-public class NonUniquePagedBTree extends NonUniqueBTree<PagedBTreeNode> {
-
-    private BTreeBufferManager bufferManager;
+public class NonUniquePagedBTree extends PagedBTree<NonUniquePagedBTreeNode> {
 
     public NonUniquePagedBTree(int order, BTreeBufferManager bufferManager) {
-        super(order, new PagedBTreeNodeFactory(bufferManager));
-        this.bufferManager = bufferManager;
+        super(order, bufferManager);
     }
 
     public NonUniquePagedBTree(int innerNodeOrder, int leafOrder, BTreeBufferManager bufferManager) {
-        super(innerNodeOrder, leafOrder, new PagedBTreeNodeFactory(bufferManager));
-        this.bufferManager = bufferManager;
+        super(innerNodeOrder, leafOrder, bufferManager);
+    }
+    
+    @Override
+    public boolean isUnique() {
+        return false;
     }
 
-    public BTreeBufferManager getBufferManager() {
-        return bufferManager;
+    public boolean contains(long key, long value) {
+        PagedBTreeNode current = root;
+        while (!current.isLeaf()) {
+            current = current.findChild(key, value);
+        }
+        return current.containsKeyValue(key, value);
     }
-    
-    public long getMinKey() {
-    	BTreeLeafEntryIterator<PagedBTreeNode> it = new AscendingBTreeLeafEntryIterator<PagedBTreeNode>(this);
-    	long minKey = 0;
-		if(it.hasNext()) {
-			minKey = it.next().getKey();
-		}
-		return minKey;
-    }
-    
-    public long getMaxKey() {
-    	BTreeLeafEntryIterator<PagedBTreeNode> it = new DescendingBTreeLeafEntryIterator<PagedBTreeNode>(this);
-    	long maxKey = 0;
-		if(it.hasNext()) {
-			maxKey = it.next().getKey();
-		}
-		return maxKey;
+
+    /**
+     * Delete the value corresponding to the key from the tree.
+     *
+     * Deletion steps are as a follows:
+     *  - find the leaf node that contains the key that needs to be deleted.
+     *  - delete the entry from the leaf
+     *  - at this point, it is possible that the leaf is underfull.
+     *    In this case, one of the following things are done:
+     *    - if the left sibling has extra keys (more than the minimum number), borrow keys from the left node
+     *    - if that is not possible, try to borrow extra keys from the right sibling
+     *    - if that is not possible, either both the left and right nodes have precisely half the max number of keys.
+     *      The current node has half the max number of keys - 1 so a merge can be done with either of them.
+     *      The left node is check for merge first, then the right one.
+     *
+     * @param key               The key to be deleted.
+     */
+    public long delete(long key, long value) {
+        return deleteEntry(key, value);
     }
 
 }

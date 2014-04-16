@@ -10,15 +10,14 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeIterator;
 import org.zoodb.internal.server.index.btree.BTreeNode;
-import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTree;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
@@ -34,7 +33,7 @@ public class TestBTreeStorageBufferManager {
 	public void resetStorage() {
 		this.storage = new StorageRootInMemory(ZooConfig.getFilePageSize());
 		boolean isUnique = true;
-		this.bufferManager = new BTreeStorageBufferManager(storage, true);
+		this.bufferManager = new BTreeStorageBufferManager(storage, isUnique);
 	}
 
 	@Test
@@ -333,7 +332,7 @@ public class TestBTreeStorageBufferManager {
 		return innerNode;
 	}
 
-	public static BTree<PagedBTreeNode> getTestTree(
+	public static PagedBTree getTestTree(
 			BTreeStorageBufferManager bufferManager) {
 		BTreeFactory factory = new BTreeFactory(
 				bufferManager.getInnerNodeOrder(),
@@ -352,12 +351,12 @@ public class TestBTreeStorageBufferManager {
 	PagedBTreeNode constructRootWithNewBufferManager(PagedBTreeNode prevRoot,
 			BTreeBufferManager bufferManager) {
 		if (!prevRoot.isLeaf()) {
-			return PagedBTreeNodeFactory.constructInnerNode(bufferManager, false, true,
+			return PagedBTreeNodeFactory.constructInnerNode(bufferManager, true, true,
 					prevRoot.getOrder(), prevRoot.getPageId(),
 					prevRoot.getNumKeys(), prevRoot.getKeys(),
 					prevRoot.getValues(), prevRoot.getChildrenPageIds());
 		} else {
-			return PagedBTreeNodeFactory.constructLeaf(bufferManager, false, true,
+			return PagedBTreeNodeFactory.constructLeaf(bufferManager, true, true,
 					prevRoot.getOrder(), prevRoot.getPageId(),
 					prevRoot.getNumKeys(), prevRoot.getKeys(),
 					prevRoot.getValues());

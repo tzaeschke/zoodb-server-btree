@@ -1,18 +1,19 @@
 package org.zoodb.test.index2.performance;
 
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.BTreeIndex;
-import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.PagedUniqueLongLong;
-import org.zoodb.internal.server.index.btree.BTreeIterator;
-import org.zoodb.tools.ZooConfig;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+
+import org.zoodb.internal.server.DiskIO.DATA_TYPE;
+import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.BTreeIndex;
+import org.zoodb.internal.server.index.BTreeIndexUnique;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+import org.zoodb.internal.server.index.PagedUniqueLongLong;
+import org.zoodb.internal.server.index.btree.BTreeIterator;
+import org.zoodb.tools.ZooConfig;
 
 public class PageUsageStats {
 
@@ -31,7 +32,7 @@ public class PageUsageStats {
 	
     PagedUniqueLongLong oldIndex;
     StorageChannel oldStorage; 
-    BTreeIndex newIndex;
+    BTreeIndexUnique newIndex;
     StorageChannel newStorage;
 
 	public PageUsageStats() {
@@ -46,7 +47,7 @@ public class PageUsageStats {
 
 		newStorage = new StorageRootInMemory(
 				ZooConfig.getFilePageSize());
-		newIndex = new BTreeIndex(newStorage, true, true);
+		newIndex = new BTreeIndexUnique(newStorage, true, true);
 	}
 			
 	public void insertAndDelete() {

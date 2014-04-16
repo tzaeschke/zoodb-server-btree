@@ -1,18 +1,20 @@
 package org.zoodb.test.index2.btree;
 
-import org.junit.Test;
-import org.zoodb.internal.server.index.LongLongIndex;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeNode;
-import org.zoodb.internal.server.index.btree.nonunique.NonUniqueBTree;
-import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
-import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import org.junit.Test;
+import org.zoodb.internal.server.index.LongLongIndex;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 
 public class TestNonUnique {
 
@@ -106,7 +108,7 @@ public class TestNonUnique {
         int numEntries = 1000;
         int numTimes = 200;
         BTreeFactory factory = factory(order);
-        NonUniqueBTree tree = (NonUniqueBTree) factory.getTree();
+        NonUniquePagedBTree tree = (NonUniquePagedBTree) factory.getTree();
         List<LongLongIndex.LLEntry> entries = BTreeTestUtils.nonUniqueEntries(numEntries, numTimes);
 
         for (LongLongIndex.LLEntry entry : entries) {
