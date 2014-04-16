@@ -12,8 +12,8 @@ import java.util.WeakHashMap;
  */
 public abstract class BTree<T extends BTreeNode> {
 
-    private Set<BTreeLeafIterator> iterators =
-            Collections.newSetFromMap(new WeakHashMap<BTreeLeafIterator, Boolean>());
+    private Set<BTreeLeafEntryIterator> iterators =
+            Collections.newSetFromMap(new WeakHashMap<BTreeLeafEntryIterator, Boolean>());
 
     protected int innerNodeOrder;
     protected int leafOrder;
@@ -486,7 +486,25 @@ public abstract class BTree<T extends BTreeNode> {
                                                         int keys, int children) {
         src.copyFromNodeToNode( srcStart, srcStart + 1, dest, destStart, destStart, keys, children);
     }
-
+    
+    public int statsGetInnerN() {
+    	BTreeIterator it = new BTreeIterator(this);
+		int innerN = 0;
+		while(it.hasNext()) {
+			if(!it.next().isLeaf()) innerN++;
+		}
+		return innerN;
+    }
+    
+    public int statsGetLeavesN() {
+    	BTreeIterator it = new BTreeIterator(this);
+		int leafN = 0;
+		while(it.hasNext()) {
+			if(it.next().isLeaf()) leafN++;
+		}
+		return leafN;
+    }
+    
     private void copyFromRightNodeToLeftNode(T src,  int srcStart, T dest, int destStart,
                                              int keys, int children) {
         src.copyFromNodeToNode(srcStart, srcStart, dest, destStart, destStart, keys, children);
@@ -496,22 +514,22 @@ public abstract class BTree<T extends BTreeNode> {
         source.copyFromNodeToNode(0, 0, destination, destinationIndex, destinationIndex, source.getNumKeys(), source.getNumKeys() + 1);
     }
 
-    public void registerIterator(BTreeLeafIterator iterator) {
+    public void registerIterator(BTreeLeafEntryIterator iterator) {
         iterators.add(iterator);
     }
 
-    public void deregisterIterator(BTreeLeafIterator iterator) {
+    public void deregisterIterator(BTreeLeafEntryIterator iterator) {
         iterators.add(iterator);
     }
 
     public void refreshIterators() {
-        for (BTreeLeafIterator it : iterators) {
+        for (BTreeLeafEntryIterator it : iterators) {
             it.refresh();
         }
     }
 
     private void notifyIterators() {
-        for (BTreeLeafIterator iterator : iterators) {
+        for (BTreeLeafEntryIterator iterator : iterators) {
             iterator.handleNodeChange();
         }
     }

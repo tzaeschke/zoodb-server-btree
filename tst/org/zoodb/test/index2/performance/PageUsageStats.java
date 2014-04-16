@@ -21,29 +21,41 @@ public class PageUsageStats {
 	public static void main(String[] args) {
 		ZooConfig.setFilePageSize(PAGE_SIZE);
 
-		StorageChannel oldStorage = new StorageRootInMemory(
-				ZooConfig.getFilePageSize());
-		PagedUniqueLongLong oldIndex = new PagedUniqueLongLong(
-				DATA_TYPE.GENERIC_INDEX, oldStorage);
-
-		StorageChannel newStorage = new StorageRootInMemory(
-				ZooConfig.getFilePageSize());
-		BTreeIndex newIndex = new BTreeIndex(newStorage, true, true);
-
-		new PageUsageStats(oldIndex, oldStorage, newIndex, newStorage);
+		PageUsageStats stats = new PageUsageStats();
+		stats.insertAndDelete();
+		stats.clear();
+		stats.insertAndDeleteMultiple();
 
 		ZooConfig.setFilePageSize(ZooConfig.FILE_PAGE_SIZE_DEFAULT);
 	}
+	
+    PagedUniqueLongLong oldIndex;
+    StorageChannel oldStorage; 
+    BTreeIndex newIndex;
+    StorageChannel newStorage;
 
-	public PageUsageStats(PagedUniqueLongLong oldIndex,
-			StorageChannel oldStorage, BTreeIndex newIndex,
-			StorageChannel newStorage) {
+	public PageUsageStats() {
+		this.clear();
+	}
+	
+    public void clear() {
+		oldStorage = new StorageRootInMemory(
+				ZooConfig.getFilePageSize());
+		oldIndex = new PagedUniqueLongLong(
+				DATA_TYPE.GENERIC_INDEX, oldStorage);
+
+		newStorage = new StorageRootInMemory(
+				ZooConfig.getFilePageSize());
+		newIndex = new BTreeIndex(newStorage, true, true);
+	}
+			
+	public void insertAndDelete() {
 		System.out.println("Orders (inner:leaf), Old: " + (oldIndex.getMaxInnerN() + 1) + ":"
 				+ (oldIndex.getMaxLeafN() + 1) + "\t" + "New Order: "
 				+ newIndex.getTree().getInnerNodeOrder() + ":"
 				+ newIndex.getTree().getLeafOrder());
 
-		int numElements = 1000000;
+		int numElements = 10000;
 		ArrayList<LLEntry> entries = PerformanceTest
 				.randomEntriesUnique(numElements, 42);
 		
@@ -67,30 +79,8 @@ public class PageUsageStats {
 		}
 		System.out.println("Height new Index: " + height);
 		
-		it = new BTreeIterator(newIndex.getTree());
-		int newInnerN = 0;
-		int newLeavesN = 0;
-		while(it.hasNext()) {
-			if(it.next().isLeaf()) newLeavesN++;
-			else newInnerN++;
-		}
-
-		System.out.println("Size "
-				+ "(Old Index, "
-				+ String.valueOf(oldIndex.statsGetInnerN()) +":" + oldIndex.statsGetLeavesN() + "), "
-				+ "(New Index, "
-				+ String.valueOf(newInnerN) +":" + newLeavesN + ")"
-
-				);
-
-		System.out.println("Page writes "
-				+ "(Old Index, "
-				+ String.valueOf(oldIndex.statsGetWrittenPagesN())
-				+ "), (New Index, "
-				+ String.valueOf(newIndex.getBufferManager()
-						.getStatNWrittenPages() + ")"));
+		printStats();
 		
-		//System.out.println(newIndex.getTree());
 		
 		/*
 		 * Delete elements
@@ -107,31 +97,45 @@ public class PageUsageStats {
 		System.out.println("mseconds new: " + PerformanceTest.removeList(newIndex, deleteEntries));
 		newIndex.write();
 		
-		it = new BTreeIterator(newIndex.getTree());
-		newInnerN = 0;
-		newLeavesN = 0;
-		while(it.hasNext()) {
-			if(it.next().isLeaf()) newLeavesN++;
-			else newInnerN++;
-		}
-		
-        int deletedIndex = 0;
-		for(LLEntry entry : deleteEntries) {
-			LLEntry e = newIndex.findValue(entry.getKey());
-			if(-1 != e.getValue()) {
-				throw new RuntimeException("Can find " + deletedIndex + "th element despite deletion.");
-			}
-			deletedIndex++;
-		}
+		printStats();
 
+	}
+	
+	
+	public void insertAndDeleteMultiple() {
+		int numElements = 5000;
+        int numDeleteEntries = (int) (numElements * 0.5);
+		int numTimes = 10;
+		System.out.println("");
+		System.out.println("Insert " + numElements + " and delete " + numDeleteEntries +  ", " + numTimes + " times.");
+
+        for(int i=0; i<numTimes; i++) {
+            ArrayList<LLEntry> entries = PerformanceTest
+                                    .randomEntriesUnique(numElements, 42+i);
+            PerformanceTest.insertList(oldIndex, entries);
+            oldIndex.write();
+            PerformanceTest.insertList(newIndex, entries);
+            newIndex.write();
+
+            Collections.shuffle(entries, new Random(43+i));
+            List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
+
+            PerformanceTest.removeList(oldIndex, deleteEntries);
+            oldIndex.write();
+            PerformanceTest.removeList(newIndex, deleteEntries);
+            newIndex.write();
+        }
+        printStats();
+		
+	}
+	
+	void printStats() {
 		System.out.println("Size "
 				+ "(Old Index, "
 				+ String.valueOf(oldIndex.statsGetInnerN()) +":" + oldIndex.statsGetLeavesN() + "), "
 				+ "(New Index, "
-				+ String.valueOf(newInnerN) +":" + newLeavesN + ")"
-
+				+ String.valueOf(newIndex.statsGetInnerN()) +":" + newIndex.statsGetLeavesN() + ")"
 				);
-
 		System.out.println("Page writes "
 				+ "(Old Index, "
 				+ String.valueOf(oldIndex.statsGetWrittenPagesN())

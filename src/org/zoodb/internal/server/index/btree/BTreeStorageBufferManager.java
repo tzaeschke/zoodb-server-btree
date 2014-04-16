@@ -1,15 +1,17 @@
 package org.zoodb.internal.server.index.btree;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Observable;
+
 import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageChannelInput;
 import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.util.DBLogger;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Observable;
 
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
@@ -347,5 +349,24 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	public int getStatNReadPages() {
 		return statNReadPages;
+	}
+	
+	/*
+	 * Iterates through tree and returns pageId of every reachable node
+	 * that has been written to storage. Every non-reachable node should have
+	 * been removed using BTree.remove and thus its page has been reported
+	 * as free.
+	 */
+	public List<Integer> debugPageIds(BTree<PagedBTreeNode> tree) {
+		BTreeIterator it = new BTreeIterator(tree);
+		ArrayList<Integer> pageIds = new ArrayList<Integer>();
+		while(it.hasNext()) {
+			PagedBTreeNode node = (PagedBTreeNode) it.next();
+			int pageId = node.getPageId();
+			if(pageId > 0) {
+				pageIds.add(pageId);
+			}
+		}
+		return pageIds;
 	}
 }

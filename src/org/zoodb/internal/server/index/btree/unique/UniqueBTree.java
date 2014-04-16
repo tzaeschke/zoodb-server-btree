@@ -1,5 +1,7 @@
 package org.zoodb.internal.server.index.btree.unique;
 
+import java.util.NoSuchElementException;
+
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
@@ -34,14 +36,19 @@ public abstract class UniqueBTree<T extends BTreeNode> extends BTree<T> {
      * Retrieve the value corresponding to the key from the B+ tree.
      *
      * @param key
-     * @return
+     * @return corresponding value or null if key not found
      */
-    public long search(long key) {
+    public Long search(long key) {
         T current = root;
         while (!current.isLeaf()) {
             current = current.findChild(key, NO_VALUE);
         }
-        return findValue(current, key);
+        try {
+        	long value = findValue(current, key);
+        	return value;
+        } catch(NoSuchElementException e) {
+            return null; 
+        }
     }
 
     /**
@@ -69,13 +76,15 @@ public abstract class UniqueBTree<T extends BTreeNode> extends BTree<T> {
             throw new IllegalStateException(
                     "Should only be called on leaf nodes.");
         }
-        if (node.getNumKeys() == 0) {
-            return -1;
+        if (node.getNumKeys() > 0) {
+            Pair<Boolean, Integer> result = node.binarySearch(key, NO_VALUE);
+            int position = result.getB();
+            boolean found = result.getA();
+            if(found) {
+            	return node.getValue(position);
+            }
         }
-        Pair<Boolean, Integer> result = node.binarySearch(key, NO_VALUE);
-        int position = result.getB();
-        boolean found = result.getA();
 
-        return found ? node.getValue(position) : -1;
+        throw new NoSuchElementException("Key not found: " + key);
     }
 }

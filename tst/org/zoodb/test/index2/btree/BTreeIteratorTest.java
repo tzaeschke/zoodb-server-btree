@@ -38,7 +38,7 @@ public class BTreeIteratorTest {
 		BTree<PagedBTreeNode> tree = TestBTree.getTestTree(new BTreeMemoryBufferManager());
 		System.out.println(tree);
 		
-		BTreeLeafIterator it = new AscendingBTreeLeafIterator(tree, 3, 15);
+		BTreeLeafEntryIterator it = new AscendingBTreeLeafEntryIterator(tree, 3, 15);
 		
 		while(it.hasNext()) {
 			System.out.println(it.next().getKey());
@@ -61,7 +61,7 @@ public class BTreeIteratorTest {
             tree.insert(key, value);
         }
 
-        BTreeLeafIterator iterator = new AscendingBTreeLeafIterator(tree);
+        BTreeLeafEntryIterator iterator = new AscendingBTreeLeafEntryIterator(tree);
         int i = 0;
         while (iterator.hasNext()) {
             LongLongIndex.LLEntry returned = iterator.next();
@@ -86,7 +86,7 @@ public class BTreeIteratorTest {
             tree.insert(key, value);
         }
 
-        BTreeLeafIterator iterator = new DescendingBTreeLeafIterator(tree);
+        BTreeLeafEntryIterator iterator = new DescendingBTreeLeafEntryIterator(tree);
         int i = limit - 1;
         while (iterator.hasNext()) {
             LongLongIndex.LLEntry returned = iterator.next();

@@ -32,11 +32,6 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 		tree.setRoot(root);
 	}
 	
-	public void init() {
-
-		
-	}
-
 	@Override
 	public void insertLong(long key, long value) {
 		tree.insert(key, value);
@@ -63,14 +58,12 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public int statsGetLeavesN() {
-		// TODO Auto-generated method stub
-		return 0;
+		return tree.statsGetLeavesN();
 	}
 
 	@Override
 	public int statsGetInnerN() {
-		// TODO Auto-generated method stub
-		return 0;
+		return tree.statsGetInnerN();
 	}
 
 	@Override
@@ -81,39 +74,37 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public LongLongIterator<LLEntry> iterator() {
-		return new AscendingBTreeLeafIterator<>(tree);
+		return new AscendingBTreeLeafEntryIterator<>(tree);
 	}
 
 	@Override
 	public LongLongIterator<LLEntry> iterator(long min, long max) {
-        return new AscendingBTreeLeafIterator<>(tree, min, max);
+        return new AscendingBTreeLeafEntryIterator<>(tree, min, max);
 	}
 
 	@Override
 	public LongLongIterator<LLEntry> descendingIterator() {
-        return new DescendingBTreeLeafIterator<>(tree);
+        return new DescendingBTreeLeafEntryIterator<>(tree);
 	}
 
 	@Override
 	public LongLongIterator<LLEntry> descendingIterator(long max, long min) {
-        return new DescendingBTreeLeafIterator<>(tree, min, max);
+        return new DescendingBTreeLeafEntryIterator<>(tree, min, max);
 	}
 
 	@Override
 	public long getMinKey() {
-		// TODO Auto-generated method stub
-		return 0;
+		return tree.getMinKey();
 	}
 
 	@Override
 	public long getMaxKey() {
-		// TODO Auto-generated method stub
-		return 0;
+		return tree.getMaxKey();
 	}
 
 	@Override
 	public void deregisterIterator(LongLongIterator<?> it) {
-		tree.deregisterIterator((BTreeLeafIterator) it);
+		tree.deregisterIterator((BTreeLeafEntryIterator) it);
 	}
 
 	@Override
@@ -128,13 +119,16 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public LLEntry findValue(long key) {
-		return new LLEntry(key, tree.search(key));
+		Long value = tree.search(key);
+		if(value != null) 
+            return new LLEntry(key, value);
+		else 
+			return null;
 	}
 
 	@Override
 	public long removeLong(long key) {
-		tree.delete(key);
-        return 0;
+		return tree.delete(key);
 	}
 
 	public UniquePagedBTree getTree() {
@@ -147,26 +141,22 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 	@Override
 	public long size() {
-		// TODO Auto-generated method stub
-		return 0;
+		return tree.size();
 	}
 
 	@Override
 	public DATA_TYPE getDataType() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.getDataType();
 	}
 
 	@Override
 	public List<Integer> debugPageIds() {
-		// TODO Auto-generated method stub
-		return null;
+		return bufferManager.debugPageIds(tree);
 	}
 
 	@Override
 	public int statsGetWrittenPagesN() {
-		// TODO Auto-generated method stub
-		return 0;
+		return bufferManager.getStatNWrittenPages();
 	}
 
 	@Override

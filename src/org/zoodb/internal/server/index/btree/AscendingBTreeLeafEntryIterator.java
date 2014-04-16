@@ -4,13 +4,13 @@ import org.zoodb.internal.util.Pair;
 
 import java.util.LinkedList;
 
-public class AscendingBTreeLeafIterator<T extends PagedBTreeNode> extends BTreeLeafIterator<T> {
+public class AscendingBTreeLeafEntryIterator<T extends PagedBTreeNode> extends BTreeLeafEntryIterator<T> {
 
-    public AscendingBTreeLeafIterator(BTree tree) {
+    public AscendingBTreeLeafEntryIterator(BTree tree) {
         super(tree);
     }
 
-    public AscendingBTreeLeafIterator(BTree tree, long start, long end) {
+    public AscendingBTreeLeafEntryIterator(BTree tree, long start, long end) {
         super(tree, start, end);
     }
 

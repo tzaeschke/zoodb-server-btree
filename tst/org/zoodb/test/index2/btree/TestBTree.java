@@ -72,7 +72,7 @@ public class TestBTree {
 		for (int key : missingKeys) {
 			assertEquals(
 					"Incorrect return value when searching for missing key.",
-					-1, tree.search(key));
+					null, tree.search(key));
 		}
 	}
 
@@ -92,7 +92,7 @@ public class TestBTree {
 		for (int key : missingKeys) {
 			assertEquals(
 					"Incorrect return value when searching for missing key.",
-					-1, tree.search(key));
+					null, tree.search(key));
 		}
 	}
 
@@ -476,7 +476,7 @@ public class TestBTree {
 	}
 	
 	public void deleteMassively(BTreeFactory factory) {
-		int numEntries = 500000;
+		int numEntries = 50000;
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries, System.nanoTime());
 
@@ -486,7 +486,7 @@ public class TestBTree {
 
 		// check whether all entries are inserted
 		for (LLEntry entry : entries) {
-			assertEquals(entry.getValue(), tree.search(entry.getKey()));
+			assertEquals(new Long(entry.getValue()), tree.search(entry.getKey()));
 		}
 
 		// delete every entry and check that there is indeed no entry anymore
@@ -494,7 +494,7 @@ public class TestBTree {
 			tree.delete(entry.getKey());
 		}
 		for (LLEntry entry : entries) {
-			assertEquals(-1, tree.search(entry.getKey()));
+			assertEquals(null, tree.search(entry.getKey()));
 		}
 		// root is empty and has no children
 		assertEquals(0, tree.getRoot().getNumKeys());
@@ -520,9 +520,9 @@ public class TestBTree {
 		i = 0;
 		for (LLEntry entry : entries) {
 			if (i < split) {
-				assertEquals(-1, tree.search(entry.getKey()));
+				assertEquals(null, tree.search(entry.getKey()));
 			} else {
-				assertEquals(entry.getValue(), tree.search(entry.getKey()));
+				assertEquals(new Long(entry.getValue()), tree.search(entry.getKey()));
 			}
 			i++;
 		}

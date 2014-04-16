@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
-public abstract class BTreeLeafIterator<T extends PagedBTreeNode> implements
+public abstract class BTreeLeafEntryIterator<T extends PagedBTreeNode> implements
 		LongLongIndex.LongLongIterator<LongLongIndex.LLEntry> {
 	protected BTree<T> tree;
 	protected T curLeaf;
@@ -22,7 +22,7 @@ public abstract class BTreeLeafIterator<T extends PagedBTreeNode> implements
     abstract void setFirstLeaf();
     abstract void initializePosition();
 
-	public BTreeLeafIterator(BTree<T> tree) {
+	public BTreeLeafEntryIterator(BTree<T> tree) {
 		this.tree = tree;
 		this.curLeaf = null;
 		this.curPos = -1;
@@ -32,7 +32,7 @@ public abstract class BTreeLeafIterator<T extends PagedBTreeNode> implements
 		setFirstLeaf();
 	}
 
-    public BTreeLeafIterator(BTree<T> tree, long start, long end) {
+    public BTreeLeafEntryIterator(BTree<T> tree, long start, long end) {
         this(tree);
         //ToDo get smallest key and value from tree
         this.start = start;

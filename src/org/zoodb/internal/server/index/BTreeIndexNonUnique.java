@@ -4,19 +4,20 @@ import java.util.List;
 
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.index.btree.AscendingBTreeLeafIterator;
-import org.zoodb.internal.server.index.btree.BTreeLeafIterator;
+import org.zoodb.internal.server.index.btree.AscendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.BTreeLeafEntryIterator;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.DescendingBTreeLeafIterator;
+import org.zoodb.internal.server.index.btree.DescendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniqueBTree;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 
-public class NonUniqueBTreeIndex extends AbstractIndex implements LongLongIndex {
+public class BTreeIndexNonUnique extends AbstractIndex implements LongLongIndex {
 
     private NonUniquePagedBTree tree;
     private BTreeStorageBufferManager bufferManager;
     private boolean isUnique = false;
 
-    public NonUniqueBTreeIndex(StorageChannel file, boolean isNew, boolean isUnique) {
+    public BTreeIndexNonUnique(StorageChannel file, boolean isNew, boolean isUnique) {
         super(file, isNew, isUnique);
 
         bufferManager = new BTreeStorageBufferManager(file, isUnique);
@@ -66,22 +67,22 @@ public class NonUniqueBTreeIndex extends AbstractIndex implements LongLongIndex 
 
     @Override
     public LongLongIterator<LLEntry> iterator() {
-		return new AscendingBTreeLeafIterator<>(tree);
+		return new AscendingBTreeLeafEntryIterator<>(tree);
     }
 
     @Override
     public LongLongIterator<LLEntry> iterator(long min, long max) {
-        return new AscendingBTreeLeafIterator<>(tree, min, max);
+        return new AscendingBTreeLeafEntryIterator<>(tree, min, max);
     }
 
     @Override
     public LongLongIterator<LLEntry> descendingIterator() {
-        return new DescendingBTreeLeafIterator<>(tree);
+        return new DescendingBTreeLeafEntryIterator<>(tree);
     }
 
     @Override
     public LongLongIterator<LLEntry> descendingIterator(long max, long min) {
-        return new DescendingBTreeLeafIterator<>(tree, min, max);
+        return new DescendingBTreeLeafEntryIterator<>(tree, min, max);
     }
 
     @Override
@@ -96,7 +97,7 @@ public class NonUniqueBTreeIndex extends AbstractIndex implements LongLongIndex 
 
     @Override
     public void deregisterIterator(LongLongIterator<?> it) {
-		tree.deregisterIterator((BTreeLeafIterator) it);
+		tree.deregisterIterator((BTreeLeafEntryIterator) it);
     }
 
     @Override
@@ -109,7 +110,7 @@ public class NonUniqueBTreeIndex extends AbstractIndex implements LongLongIndex 
 		return bufferManager.write(tree.getRoot());
 	}
 
-	public NonUniquePagedBTree getTree() {
+	public NonUniqueBTree getTree() {
 		return tree;
 	}
 
