@@ -108,13 +108,4 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 		return bufferManager.getStatNWrittenPages();
 	}
 
-	public long removeLongNoFail(long key, long failValue) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	public long deleteAndCheckRangeEmpty(long pos, long min, long max) {
-		// TODO Auto-generated method stub
-		return 0;
-	}
 }

@@ -1,5 +1,7 @@
 package org.zoodb.internal.server.index;
 
+import java.util.NoSuchElementException;
+
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
@@ -58,6 +60,26 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
 	@Override
 	public UniquePagedBTree getTree() {
 		return tree;
+	}
+
+	@Override
+	public long removeLongNoFail(long key, long failValue) {
+		try {
+			return removeLong(key);
+		} catch (NoSuchElementException e) {
+			return failValue;
+		}
+	}
+
+	@Override
+	public long deleteAndCheckRangeEmpty(long pos, long min, long max) {
+		long ret = removeLong(pos);
+		LongLongIterator<LLEntry> it = iterator(min, max);
+		if(!it.hasNext()) {
+			file.reportFreePage(BitTools.getPage(pos));
+		}
+
+		return ret;
 	}
 
 }
