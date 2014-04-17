@@ -46,11 +46,25 @@ public class DescendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTree
         if (tree.isEmpty()) {
             return;
         }
-        Pair<LinkedList<T>, T> p = tree.searchNodeWithHistory(end, 0);
+        Pair<LinkedList<T>, T> p = tree.searchNodeWithHistory(end, Long.MAX_VALUE);
         ancestors = p.getA();
         curLeaf = p.getB();
-        curPos = curLeaf.findKeyValuePos(end, 0);
+        curPos = curLeaf.findKeyValuePos(end, Long.MAX_VALUE);
+        // findKeyValuePos looks for a position to insert an entry
+        // and thus it is one off
         curPos = curPos > 0 ? curPos-1 : 0; 
+    
+        // the following code is necessary for non unique trees,
+        // because searchNodeWithHistory returns the correct node
+        // for inserting an entry but here we need the last
+        // entry whose key <= end.
+	    while(this.hasNext() && curLeaf.getKey(curPos) > end) {
+	    	this.next();
+	    }
+	    
+	    // case when start is bigger than every element in the tree
+        if(curLeaf!=null && start > curLeaf.getKey(curPos)) {
+        	curLeaf = null;
+        }
     }
-
 }
