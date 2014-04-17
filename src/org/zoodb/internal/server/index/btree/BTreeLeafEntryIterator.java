@@ -20,7 +20,6 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 
     abstract void updatePosition();
     abstract void setFirstLeaf();
-    abstract void initializePosition();
 
 	public BTreeLeafEntryIterator(BTree<T> tree) {
 		this.tree = tree;
@@ -37,7 +36,7 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
         //ToDo get smallest key and value from tree
         this.start = start;
         this.end = end;
-        initializePosition();
+        setFirstLeaf();
     }
 
 	@Override

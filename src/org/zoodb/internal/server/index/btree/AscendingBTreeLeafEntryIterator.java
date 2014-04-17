@@ -47,15 +47,8 @@ public class AscendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTreeL
         Pair<LinkedList<T>, T> p = tree.searchNodeWithHistory(start, 0);
         ancestors = p.getA();
         curLeaf = p.getB();
-        curPos = 0;
-    }
-
-    @Override
-    void initializePosition() {
-        curPos += 1;
-        while (curLeaf != null && curLeaf.getKey(curPos) < start) {
-            updatePosition();
-        }
+        curPos = curLeaf.findKeyValuePos(start, 0);
+        curPos = curPos > 0 ? curPos-1 : 0; 
     }
 
 }

@@ -4,6 +4,8 @@ import org.zoodb.internal.util.Pair;
 
 import java.util.LinkedList;
 
+import javax.swing.text.AbstractDocument.LeafElement;
+
 public class DescendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTreeLeafEntryIterator<T> {
 
     public DescendingBTreeLeafEntryIterator(BTree<T> tree) {
@@ -47,14 +49,8 @@ public class DescendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTree
         Pair<LinkedList<T>, T> p = tree.searchNodeWithHistory(end, 0);
         ancestors = p.getA();
         curLeaf = p.getB();
-        curPos = curLeaf.getNumKeys() - 1;
+        curPos = curLeaf.findKeyValuePos(end, 0);
+        curPos = curPos > 0 ? curPos-1 : 0; 
     }
 
-    @Override
-    void initializePosition() {
-        curPos-=1;
-        while (curLeaf != null && curLeaf.getKey(curPos) > end) {
-            updatePosition();
-        }
-    }
 }
