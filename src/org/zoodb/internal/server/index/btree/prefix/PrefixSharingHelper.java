@@ -155,4 +155,109 @@ public class PrefixSharingHelper {
         }
         return paddedBinaryString.append(binaryString).toString();
     }
+
+    public static byte[] encodeArray(long[] array) {
+        long prefix = computePrefix(array);
+        return encodeArray(array, prefix);
+    }
+
+    public static long prefixBits(long prefix, long number) {
+        return number >> (64 - prefix);
+    }
+
+    /**
+     * Encode a prefix shared long array into an array of bytes.
+     *
+     * @param array
+     * @param prefix
+     * @return
+     */
+    public static byte[] encodeArray(long[] array, long prefix) {
+        int inputArrayIndex = 0;
+        int currentByte = 0;
+        int indexInCurrentByte = 0;
+
+        /* Compute the number of bits to be stored */
+        int bitsToStore = (int) (prefix + (64 - prefix) * array.length);
+        int outputArraySize = (int) Math.ceil(bitsToStore/ 8.0);
+
+        byte[] outputArray = new byte[outputArraySize + 5];
+
+        /*Write the size of the array as an int - always 4 bytes */
+        outputArray[currentByte++] = (byte) (array.length >>> 24);
+        outputArray[currentByte++] = (byte) (array.length >>> 16);
+        outputArray[currentByte++] = (byte) (array.length >>> 8);
+        outputArray[currentByte++] = (byte) array.length;
+
+        /* Write the prefix size */
+        outputArray[currentByte++] = (byte) prefix;
+
+        long prefixBits = prefixBits(prefix, array[0]);
+        /* Encode the prefix*/
+        for (int i = (int) (prefix - 1); i >= 0; i--) {
+            long bitValue = BitOperationsHelper.getBitValue(prefixBits, i);
+            outputArray[currentByte] = BitOperationsHelper.setBitValue(outputArray[currentByte], indexInCurrentByte, bitValue);
+            indexInCurrentByte = increaseIndexInCurrentByte(indexInCurrentByte);
+            currentByte = updateCurrentByte(indexInCurrentByte, currentByte);
+        }
+
+        /* Perform the actual encoding */
+        while (inputArrayIndex < array.length) {
+            for (int i = (int) (63 - prefix); i >= 0; i--) {
+                long bitValue = BitOperationsHelper.getBitValue(array[inputArrayIndex], i);
+                outputArray[currentByte] = BitOperationsHelper.setBitValue(outputArray[currentByte], indexInCurrentByte, bitValue);
+                indexInCurrentByte = increaseIndexInCurrentByte(indexInCurrentByte);
+                currentByte = updateCurrentByte(indexInCurrentByte, currentByte);
+            }
+            inputArrayIndex++;
+        }
+        return outputArray;
+    }
+
+    /**
+     * Decoded a prefix shared encoded array
+     * @param encodedArray
+     * @return
+     */
+    public static long[] decodeArray(byte[] encodedArray) {
+        int currentByte = 0;
+        int decodedArraySize =  (encodedArray[currentByte] << 24 )  |
+                                (encodedArray[currentByte+1] << 16 )  |
+                                (encodedArray[currentByte+2] << 8 )   |
+                                encodedArray[currentByte+3];
+        currentByte += 4;
+        long[] decodedArray = new long[decodedArraySize];
+        int indexInCurrentByte = 0;
+        long prefixBits = 0;
+        byte prefix = encodedArray[currentByte++];
+        /* Read prefix */
+        for (int i = prefix - 1; i >= 0; i--) {
+            long bitValue = BitOperationsHelper.getBitValue(encodedArray[currentByte], indexInCurrentByte);
+            prefixBits = BitOperationsHelper.setBitValue(prefixBits, i, bitValue);
+            indexInCurrentByte = increaseIndexInCurrentByte(indexInCurrentByte);
+            currentByte = updateCurrentByte(indexInCurrentByte, currentByte);
+        }
+
+        prefixBits = prefixBits << (64 - prefix);
+
+        for (int i = 0; i < decodedArraySize; i++) {
+            decodedArray[i] = prefixBits;
+            for (int j = 63 - prefix; j >= 0; j--) {
+                long bitValue = BitOperationsHelper.getBitValue(encodedArray[currentByte], indexInCurrentByte);
+                decodedArray[i] = BitOperationsHelper.setBitValue(decodedArray[i], j, bitValue);
+                indexInCurrentByte = increaseIndexInCurrentByte(indexInCurrentByte);
+                currentByte = updateCurrentByte(indexInCurrentByte, currentByte);
+            }
+        }
+
+        return decodedArray;
+    }
+
+    private static int increaseIndexInCurrentByte(int indexInCurrentByte) {
+        return (indexInCurrentByte == 7) ? 0 : indexInCurrentByte + 1;
+    }
+
+    private static int updateCurrentByte(int indexInCurrentByte, int currentByte) {
+        return (indexInCurrentByte == 0) ? currentByte + 1 : currentByte;
+    }
 }

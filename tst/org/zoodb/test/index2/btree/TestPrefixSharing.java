@@ -1,6 +1,7 @@
 package org.zoodb.test.index2.btree;
 
 import org.junit.Test;
+import org.zoodb.internal.server.index.btree.prefix.BitOperationsHelper;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 import java.util.Arrays;
@@ -11,7 +12,7 @@ public class TestPrefixSharing {
 
     @Test
     public void testComputePrefix() {
-        long[] arr = { 1114, 11116};
+        long[] arr = { 1114, 1116};
 
         long prefix = PrefixSharingHelper.computePrefix(arr);
         System.out.println(prefix);
@@ -46,6 +47,23 @@ public class TestPrefixSharing {
         assertCorresSplitForRedistribute(first, second);
     }
 
+    @Test
+    public void testIndividualBits() {
+        long number = 11L;
+        for (int i = 63; i >=0; i--) {
+            System.out.print(BitOperationsHelper.getBitValue(number, i));
+        }
+    }
+
+    @Test
+    public void testEncodeDecode() {
+        long[] inputArray = {-10, -5, 1};
+        byte[] bytes = PrefixSharingHelper.encodeArray(inputArray);
+        long[] decodedArray = PrefixSharingHelper.decodeArray(bytes);
+        System.out.print(Arrays.toString(decodedArray));
+        assertArrayEquals(inputArray, decodedArray);
+    }
+
     public void assertCorresSplitForRedistribute(long[] first, long[] second) {
         int splitPosition = PrefixSharingHelper.computeIndexForSplit(first, second);
         long[] firstAfterSplit = Arrays.copyOfRange(first, 0, splitPosition + 1);
@@ -72,5 +90,7 @@ public class TestPrefixSharing {
         PrefixSharingHelper.printSharedPrefixArray(arrLeft);
         PrefixSharingHelper.printSharedPrefixArray(arrRight);
     }
+
+
 
 }
