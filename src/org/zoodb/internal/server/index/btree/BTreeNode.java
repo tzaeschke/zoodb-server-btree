@@ -57,7 +57,7 @@ public abstract class BTreeNode extends Observable {
     public abstract void shiftRecordsLeftWithIndex(int startIndex, int amount);
     protected abstract boolean containsAtPosition(int position, long key, long value);
     protected abstract boolean smallerThanKeyValue(int position, long key, long value);
-    protected abstract boolean checkIllegalInsert(int position, long key, long value);
+    protected abstract boolean allowNonUniqueKeys();
     protected abstract void resizeEntries(int order);
     protected abstract void resizeChildren(int order);
 
@@ -70,17 +70,24 @@ public abstract class BTreeNode extends Observable {
         int pos = this.findKeyValuePos(key, value);
         if (checkIllegalInsert(pos, key, value)) {
             throw new IllegalStateException(
-                    "Tree is not allowed to have non-unique values.");
+                    "Tree is not allowed to have non-unique key-value pairs.");
         }
-        shiftRecords(pos, pos + 1, getNumKeys() - pos);
+        if(!allowNonUniqueKeys() && pos > 0 && getKey(pos-1) == key) {
+        	pos -=1;
+        } else {
+            shiftRecords(pos, pos + 1, getNumKeys() - pos);
+            incrementNumKeys();
+        }
         setKey(pos, key);
         setValue(pos, value);
-        incrementNumKyes();
 
         //signal change
         markChanged();
     }
-
+    
+    private boolean checkIllegalInsert(int position, long key, long value) {
+        return position > 0 && (getKey(position - 1) == key && getValue(position - 1) == value);
+    }
 
     public <T extends BTreeNode> T findChild(long key, long value) {
         return getChild(findKeyValuePos(key, value));
@@ -145,7 +152,7 @@ public abstract class BTreeNode extends Observable {
             shiftValues(pos, pos + 1, recordsToMove);
         }
         setEntry(pos, key, value);
-        incrementNumKyes();
+        incrementNumKeys();
     }
 
     /**
@@ -252,7 +259,7 @@ public abstract class BTreeNode extends Observable {
         return getNumKeys() >= order - 1;
     }
 
-	public boolean incrementNumKyes() {
+	public boolean incrementNumKeys() {
         markChanged();
 		return increaseNumKeys(1);
 	}
