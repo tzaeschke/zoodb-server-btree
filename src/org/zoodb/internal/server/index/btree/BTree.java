@@ -20,8 +20,8 @@ public abstract class BTree<T extends BTreeNode> {
     protected T root;
     protected BTreeNodeFactory nodeFactory;
     
-    private long maxKey = 0;
-    private long minKey = 0;
+    private long maxKey = Long.MIN_VALUE;
+    private long minKey = Long.MIN_VALUE;
 
     public BTree(int innerNodeOrder, int leafOrder, BTreeNodeFactory nodeFactory) {
         this.innerNodeOrder = innerNodeOrder;
@@ -81,44 +81,43 @@ public abstract class BTree<T extends BTreeNode> {
 
         long oldValue = deleteFromLeaf(leaf, key, value);
 
-        if (leaf.isRoot()) {
-            return oldValue;
-        }
-        long replacementKey = leaf.getSmallestKey();
-        long replacementValue = leaf.getSmallestValue();
-        T current = leaf;
-        T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
-        while (current != null) {
-            if (current.isUnderfull()) {
-                //check if can borrow 1 value from the left or right siblings
-                T rightSibling = (T) current.rightSibling(parent);
-                T leftSibling = (T) current.leftSibling(parent);
-                if (leftSibling != null && leftSibling.hasExtraKeys()) {
-                    redistributeKeysFromLeft(current, leftSibling, parent);
-                } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
-                    redistributeKeysFromRight(current, rightSibling, parent);
-                } else {
-                    //at this point, both left and right sibling have the minimum number of keys
-                    if (leftSibling!= null) {
-                        //merge with left sibling
-                        parent = mergeWithLeft(this, current, leftSibling, parent);
+        if (!leaf.isRoot()) {
+            long replacementKey = leaf.getSmallestKey();
+            long replacementValue = leaf.getSmallestValue();
+            T current = leaf;
+            T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
+            while (current != null) {
+                if (current.isUnderfull()) {
+                    //check if can borrow 1 value from the left or right siblings
+                    T rightSibling = (T) current.rightSibling(parent);
+                    T leftSibling = (T) current.leftSibling(parent);
+                    if (leftSibling != null && leftSibling.hasExtraKeys()) {
+                        redistributeKeysFromLeft(current, leftSibling, parent);
+                    } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
+                        redistributeKeysFromRight(current, rightSibling, parent);
                     } else {
-                        //merge with right sibling
-                        parent = mergeWithRight(this, current, rightSibling, parent);
+                        //at this point, both left and right sibling have the minimum number of keys
+                        if (leftSibling!= null) {
+                            //merge with left sibling
+                            parent = mergeWithLeft(this, current, leftSibling, parent);
+                        } else {
+                            //merge with right sibling
+                            parent = mergeWithRight(this, current, rightSibling, parent);
+                        }
                     }
                 }
+                if (current.containsKeyValue(key, value)) {
+                    current.replaceEntry(key, value, replacementKey, replacementValue);
+                }
+                current = parent;
+                parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
             }
-            if (current.containsKeyValue(key, value)) {
-                current.replaceEntry(key, value, replacementKey, replacementValue);
-            }
-            current = parent;
-            parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
         }
         
         if(key == minKey) {
         	minKey = computeMinKey();
         }
-        if(key == minKey) {
+        if(key == maxKey) {
         	maxKey = computeMaxKey();
         }
         return oldValue;
@@ -510,7 +509,7 @@ public abstract class BTree<T extends BTreeNode> {
 
 	public long computeMinKey() {
         BTreeLeafEntryIterator<T> it = new AscendingBTreeLeafEntryIterator<T>(this);
-        long minKey = 0;
+        long minKey = Long.MIN_VALUE;
         if(it.hasNext()) {
                 minKey = it.next().getKey();
         }
@@ -519,7 +518,7 @@ public abstract class BTree<T extends BTreeNode> {
 
     public long computeMaxKey() {
         BTreeLeafEntryIterator<T> it = new DescendingBTreeLeafEntryIterator<T>(this);
-        long maxKey = 0;
+        long maxKey = Long.MIN_VALUE;
         if(it.hasNext()) {
                 maxKey = it.next().getKey();
         }

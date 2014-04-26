@@ -41,7 +41,7 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 
 	@Override
 	public boolean hasNext() {
-		return curLeaf != null;
+		return curLeaf != null && !tree.isEmpty() && tree.getRoot().getNumKeys() > 0;
 	}
 
 	@Override

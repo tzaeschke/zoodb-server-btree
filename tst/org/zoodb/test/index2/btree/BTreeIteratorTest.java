@@ -1,21 +1,25 @@
 package org.zoodb.test.index2.btree;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.zoodb.internal.server.index.LongLongIndex;
-import org.zoodb.internal.server.index.btree.*;
-import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
-import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.NoSuchElementException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.zoodb.internal.server.index.LongLongIndex;
+import org.zoodb.internal.server.index.btree.AscendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
+import org.zoodb.internal.server.index.btree.DescendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.PagedBTree;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 
 @RunWith(Parameterized.class)
 public class BTreeIteratorTest {
@@ -283,6 +287,22 @@ public class BTreeIteratorTest {
 	    assertFalse(new DescendingBTreeLeafEntryIterator<>(tree, 4, 5).hasNext());
 		
 	}
+	
+    @Test 
+	public void emptyTreeTest() {
+		int order = 4;
+		UniquePagedBTree tree = new UniquePagedBTree(order,
+				new BTreeMemoryBufferManager());
+
+        tree.insert(1, 2);
+        tree.delete(1);
+        
+        BTreeLeafEntryIterator<?> it = new AscendingBTreeLeafEntryIterator<>(tree);
+        assertFalse(it.hasNext());
+        
+        it = new DescendingBTreeLeafEntryIterator<>(tree);
+        assertFalse(it.hasNext());
+    }
 
 	public ArrayList<Long> valueListFromIterator(BTreeLeafEntryIterator<?> it) {
 		ArrayList<Long> values = new ArrayList<>();
