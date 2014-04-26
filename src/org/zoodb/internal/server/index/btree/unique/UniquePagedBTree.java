@@ -36,10 +36,15 @@ public class UniquePagedBTree extends PagedBTree<UniquePagedBTreeNode> {
      * @return corresponding value or null if key not found
      */
     public Long search(long key) {
+        if(isEmpty()) {
+        	return null;
+        }
         PagedBTreeNode current = root;
+
         while (!current.isLeaf()) {
             current = current.findChild(key, NO_VALUE);
         }
+
         try {
         	long value = findValue(current, key);
         	return value;
