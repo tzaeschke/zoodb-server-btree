@@ -2,7 +2,9 @@ package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+import org.zoodb.internal.util.DBLogger;
 
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
@@ -16,16 +18,22 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 
     protected long start = Long.MIN_VALUE;
     protected long end = Long.MAX_VALUE;
+    
+    // used to throw errors when modifying the
+    // tree while using the iterator
+    private final int modCount;
+    private final Long txId; 
 
     abstract void updatePosition();
     abstract void setFirstLeaf();
 
 	public BTreeLeafEntryIterator(BTree<T> tree) {
 		this.tree = tree;
+		this.modCount = tree.getModcount();
+		this.txId = this.getTxId();
 		this.curLeaf = null;
 		this.curPos = -1;
 		this.ancestors = new LinkedList<>();
-        tree.registerIterator(this);
 		setFirstLeaf();
 	}
 
@@ -39,11 +47,13 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 
 	@Override
 	public boolean hasNext() {
-		return curLeaf != null && !tree.isEmpty() && tree.getRoot().getNumKeys() > 0;
+        checkValidity();
+		return  curLeaf != null && !tree.isEmpty() && tree.getRoot().getNumKeys() > 0;
 	}
 
 	@Override
 	public LLEntry next() {
+        checkValidity();
 		if (curLeaf == null) {
 			throw new NoSuchElementException();
 		} else {
@@ -58,7 +68,6 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 	public void close() {
 		// TODO release clones if there are any
 		curLeaf = null;
-        tree.deregisterIterator(this);
 	}
 
 	public void reset() {
@@ -69,11 +78,6 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 	public void remove() {
 		throw new UnsupportedOperationException();
 	}
-
-    public void handleNodeChange() {
-        //TODO should we handle tree modifications differently?
-        close();
-    }
 
     protected T getLefmostLeaf(T node) {
         if(node.isLeaf()) {
@@ -99,6 +103,26 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
         }
         return current;
     }
-
-
+    
+	public void checkValidity() {
+		if(this.txId != getTxId()) {
+            throw DBLogger.newUser("This iterator has been invalidated by commit() or rollback().");
+		}
+		if (this.modCount != tree.getModcount()) {
+			throw new ConcurrentModificationException();
+		}
+	}
+	
+	public Long getTxId() {
+		// txId is only relevant when we are dealing with PagedBTrees on
+		// StorageBufferManagers
+		if (this.tree instanceof PagedBTree) {
+			PagedBTree<?> tree = (PagedBTree<?>) this.tree;
+            if(tree.getBufferManager() instanceof BTreeStorageBufferManager) {
+                BTreeStorageBufferManager bm = (BTreeStorageBufferManager) tree.getBufferManager();
+                return bm.getStorageFile().getTxId();
+            }
+		}
+        return null;
+	}
 }

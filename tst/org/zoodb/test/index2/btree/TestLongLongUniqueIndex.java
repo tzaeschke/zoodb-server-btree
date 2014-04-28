@@ -42,6 +42,7 @@ import org.junit.Test;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.BTreeIndexUnique;
 import org.zoodb.internal.server.index.IndexFactory;
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
@@ -78,7 +79,7 @@ public class TestLongLongUniqueIndex {
     }
     
     private LongLongIndex.LongLongUIndex createIndex(StorageChannel paf) {
-    	LongLongIndex.LongLongUIndex ind = IndexFactory.createUniqueIndex(DATA_TYPE.GENERIC_INDEX, paf);
+    	LongLongIndex.LongLongUIndex ind = new BTreeIndexUnique(paf, true);
     	return ind; 
     }
     

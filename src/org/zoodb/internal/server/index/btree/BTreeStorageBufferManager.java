@@ -369,4 +369,8 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		}
 		return pageIds;
 	}
+
+	public StorageChannel getStorageFile() {
+		return this.storageFile;
+	}
 }

@@ -77,11 +77,6 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 		return bufferManager.write(getTree().getRoot());
 	}
 
-	public abstract T getTree();
-	
-    public BTreeStorageBufferManager getBufferManager() {
-		return bufferManager;
-	}
 
 	public long size() {
 		return getTree().size();
@@ -90,13 +85,19 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 	public DATA_TYPE getDataType() {
 		return this.getDataType();
 	}
-
-	public List<Integer> debugPageIds() {
+	
+    public List<Integer> debugPageIds() {
 		return bufferManager.debugPageIds(getTree());
 	}
 
 	public int statsGetWrittenPagesN() {
 		return bufferManager.getStatNWrittenPages();
+	}
+	
+    public abstract T getTree();
+	
+    public BTreeStorageBufferManager getBufferManager() {
+		return bufferManager;
 	}
 
 }

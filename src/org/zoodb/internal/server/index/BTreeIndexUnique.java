@@ -12,8 +12,8 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
 
     private UniquePagedBTree tree;
     
-    public BTreeIndexUnique(StorageChannel file, boolean isNew, boolean isUnique) {
-    	super(file, isNew, isUnique);
+    public BTreeIndexUnique(StorageChannel file, boolean isNew) {
+    	super(file, isNew, true);
     	
         final int leafOrder = bufferManager.getLeafOrder();
         final int innerOrder = bufferManager.getInnerNodeOrder();
@@ -45,7 +45,7 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
 
     @Override
 	public boolean insertLongIfNotSet(long key, long value) {
-		if (getTree().search(key) != -1) {
+		if (getTree().search(key) != null) {
             return false;
         }
         tree.insert(key, value);

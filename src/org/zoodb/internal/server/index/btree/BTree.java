@@ -12,9 +12,6 @@ import java.util.WeakHashMap;
  */
 public abstract class BTree<T extends BTreeNode> {
 
-    private Set<BTreeLeafEntryIterator> iterators =
-            Collections.newSetFromMap(new WeakHashMap<BTreeLeafEntryIterator, Boolean>());
-
     protected int innerNodeOrder;
     protected int leafOrder;
     protected T root;
@@ -22,6 +19,8 @@ public abstract class BTree<T extends BTreeNode> {
     
     private long maxKey = Long.MIN_VALUE;
     private long minKey = Long.MIN_VALUE;
+    
+    private int modcount = 0; // number of modifications of the tree
 
     public BTree(int innerNodeOrder, int leafOrder, BTreeNodeFactory nodeFactory) {
         this.innerNodeOrder = innerNodeOrder;
@@ -57,8 +56,8 @@ public abstract class BTree<T extends BTreeNode> {
         LinkedList<T> ancestorStack = result.getA();
         T leaf = result.getB();
 
-        //notify iterators that this leaf is about to change
-        notifyIterators();
+        increaseModcount();
+
         if (leaf.isFull()) {
             //split node
             T rightNode = putAndSplit(leaf, key, value);
@@ -71,13 +70,12 @@ public abstract class BTree<T extends BTreeNode> {
         minKey = Math.min(minKey, key);
     }
 
-    protected long deleteEntry(long key, long value) {
+	protected long deleteEntry(long key, long value) {
         Pair<LinkedList<T>,T> pair = searchNodeWithHistory(key, value);
         T leaf = pair.getB();
         LinkedList<T> ancestorStack = pair.getA();
 
-        //notify iterators that this leaf is about to change
-        notifyIterators();
+        increaseModcount();
 
         long oldValue = deleteFromLeaf(leaf, key, value);
 
@@ -552,17 +550,12 @@ public abstract class BTree<T extends BTreeNode> {
         source.copyFromNodeToNode(0, 0, destination, destinationIndex, destinationIndex, source.getNumKeys(), source.getNumKeys() + 1);
     }
 
-    public void registerIterator(BTreeLeafEntryIterator iterator) {
-        iterators.add(iterator);
+    private void increaseModcount() {
+    	modcount++;
+	}
+    
+    public int getModcount() {
+    	return this.modcount;
     }
 
-    public void deregisterIterator(BTreeLeafEntryIterator iterator) {
-        iterators.add(iterator);
-    }
-
-    private void notifyIterators() {
-        for (BTreeLeafEntryIterator iterator : iterators) {
-            iterator.handleNodeChange();
-        }
-    }
 }
