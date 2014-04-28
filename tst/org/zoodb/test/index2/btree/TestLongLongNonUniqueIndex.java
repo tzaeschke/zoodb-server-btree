@@ -860,7 +860,6 @@ public class TestLongLongNonUniqueIndex {
         assertEquals(sum, sum2);
     }
 
-    
     @Test
     public void testAddOverwrite() {
         final int MAX = 1000000;

@@ -35,15 +35,15 @@ public class TestNonUnique {
         BTree tree = factory(order).getTree();
         tree.insert(1, 3);
         tree.insert(1, 2);
-        System.out.println(tree);
+        assertEquals(2, tree.getRoot().getNumKeys());
     }
 
-    @Test(expected = IllegalStateException.class)
     public void testSameKeyValuePair() {
         int order = 5;
         BTree tree = factory(order).getTree();
         tree.insert(1, 1);
         tree.insert(1, 1);
+        assertEquals(1, tree.getRoot().getNumKeys());
     }
 
     @Test

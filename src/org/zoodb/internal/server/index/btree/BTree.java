@@ -4,6 +4,7 @@ import org.zoodb.internal.util.Pair;
 
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.WeakHashMap;
 
@@ -154,6 +155,10 @@ public abstract class BTree<T extends BTreeNode> {
     protected Pair<LinkedList<T>, T> searchNodeWithHistory(long key, long value) {
         LinkedList<T> stack = new LinkedList<>();
         T current = root;
+        
+        if(root == null) {
+        	throw new NoSuchElementException();
+        }
         while (!current.isLeaf()) {
             current.markChanged();
             stack.push(current);

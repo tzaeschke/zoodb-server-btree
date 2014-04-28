@@ -68,11 +68,7 @@ public abstract class BTreeNode extends Observable {
         }
 
         int pos = this.findKeyValuePos(key, value);
-        if (checkIllegalInsert(pos, key, value)) {
-            throw new IllegalStateException(
-                    "Tree is not allowed to have non-unique key-value pairs.");
-        }
-        if(!allowNonUniqueKeys() && pos > 0 && getKey(pos-1) == key) {
+        if(checkNonUniqueKey(pos, key) && (!allowNonUniqueKeys() || checkNonUniqueKeyValue(pos,key,value))) {
         	pos -=1;
         } else {
             shiftRecords(pos, pos + 1, getNumKeys() - pos);
@@ -85,7 +81,10 @@ public abstract class BTreeNode extends Observable {
         markChanged();
     }
     
-    private boolean checkIllegalInsert(int position, long key, long value) {
+    private boolean checkNonUniqueKey(int pos, long key) {
+        return pos > 0 && getKey(pos-1) == key;
+    }
+    private boolean checkNonUniqueKeyValue(int position, long key, long value) {
         return position > 0 && (getKey(position - 1) == key && getValue(position - 1) == value);
     }
 
