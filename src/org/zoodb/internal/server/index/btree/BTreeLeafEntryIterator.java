@@ -16,7 +16,6 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 
     protected long start = Long.MIN_VALUE;
     protected long end = Long.MAX_VALUE;
-    protected HashMap<Integer, T> clones;
 
     abstract void updatePosition();
     abstract void setFirstLeaf();
@@ -26,7 +25,6 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 		this.curLeaf = null;
 		this.curPos = -1;
 		this.ancestors = new LinkedList<>();
-        this.clones = new HashMap<>();
         tree.registerIterator(this);
 		setFirstLeaf();
 	}
@@ -61,12 +59,6 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 		// TODO release clones if there are any
 		curLeaf = null;
         tree.deregisterIterator(this);
-	}
-
-	@Override
-	public void refresh() {
-		clones.clear();
-		reset();
 	}
 
 	public void reset() {

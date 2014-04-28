@@ -73,15 +73,6 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 		return getTree().getMaxKey();
 	}
 
-	@SuppressWarnings("unchecked")
-	public void deregisterIterator(LongLongIterator<?> it) {
-		getTree().deregisterIterator((BTreeLeafEntryIterator<U>) it);
-	}
-
-	public void refreshIterators() {
-        getTree().refreshIterators();
-	}
-
 	public int write() {
 		return bufferManager.write(getTree().getRoot());
 	}

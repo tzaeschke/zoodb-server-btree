@@ -21,11 +21,9 @@
 package org.zoodb.internal.server.index;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
 
 import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
@@ -57,11 +55,7 @@ public abstract class AbstractPagedIndex extends AbstractIndex {
 	protected final int keySize;
 	protected final int valSize;
 	
-	//COW stuff
-	//TODO make concurrent?!?
-	private final WeakHashMap<AbstractPageIterator<?>, Object> iterators = 
-		new WeakHashMap<AbstractPageIterator<?>, Object>(); 
-	private int modcount = 0;
+	private int modCount = 0;
 	private final DATA_TYPE dataType;
 	
 
@@ -204,30 +198,8 @@ public abstract class AbstractPagedIndex extends AbstractIndex {
 		return statNWrittenPages;
 	}
 	
-	AbstractPageIterator<?> registerIterator(AbstractPageIterator<?> iter) {
-		iterators.put(iter, new Object());
-		return iter;
-	}
-	
-	/**
-	 * This is automatically called when the iterator finishes. But it can be called manually
-	 * if iteration is aborted before the end is reached.
-	 * 
-	 * @param iter
-	 */
-	public void deregisterIterator(LongLongIndex.LongLongIterator<?> iter) {
-		iterators.remove(iter);
-	}
-
-	final void notifyPageUpdate(AbstractIndexPage page) {
-		if (iterators.isEmpty()) {
-			//seems stupid, but saves ~10% for some perf tests! 
-			return;
-		}
-        AbstractIndexPage clone = null;
-        for (AbstractPageIterator<?> indexIter: iterators.keySet()) {
-            clone = indexIter.pageUpdateNotify(page, clone, modcount);
-        }
+	final void notifyPageUpdate() {
+		modCount++;
 	}
 	
 	public List<Integer> debugPageIds() {
@@ -254,23 +226,8 @@ public abstract class AbstractPagedIndex extends AbstractIndex {
 		getRoot().clear();
 		file.reportFreePage(getRoot().pageId());
 		markDirty();
-		
-		for (AbstractPageIterator<?> i: iterators.keySet()) {
-			i.close();
-		}
-		iterators.clear();
 	}
 	
-	final public void refreshIterators() {
-        if (iterators.isEmpty()) {
-            return;
-        }
-        Set<AbstractPageIterator<?>> s = new HashSet<AbstractPageIterator<?>>(iterators.keySet());
-        for (AbstractPageIterator<?> indexIter: s) {
-            indexIter.refresh();
-        }
-    }
-
 	public DATA_TYPE getDataType() {
 		return dataType;
 	}
@@ -283,5 +240,20 @@ public abstract class AbstractPagedIndex extends AbstractIndex {
 		return maxInnerN;
 	}
 
+	public void checkValidity(int modCount, long txId) {
+		if (this.file.getTxId() != txId) {
+			throw DBLogger.newUser("This iterator has been invalidated by commit() or rollback().");
+		}
+		if (this.modCount != modCount) {
+			throw new ConcurrentModificationException();
+		}
+	}
 
+	protected int getModCount() {
+		return modCount;
+	}
+
+	protected long getTxId() {
+		return file.getTxId();
+	}
 }

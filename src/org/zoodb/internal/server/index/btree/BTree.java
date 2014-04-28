@@ -560,12 +560,6 @@ public abstract class BTree<T extends BTreeNode> {
         iterators.add(iterator);
     }
 
-    public void refreshIterators() {
-        for (BTreeLeafEntryIterator it : iterators) {
-            it.refresh();
-        }
-    }
-
     private void notifyIterators() {
         for (BTreeLeafEntryIterator iterator : iterators) {
             iterator.handleNodeChange();
