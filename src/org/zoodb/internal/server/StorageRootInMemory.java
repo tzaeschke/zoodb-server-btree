@@ -66,8 +66,16 @@ public class StorageRootInMemory implements StorageChannel {
 	 * @param pageSize
 	 */
 	public StorageRootInMemory(int pageSize) {
+		this(pageSize, new FreeSpaceManager());
+	}
+	
+	/**
+	 * Special constructor for testing only.
+	 * @param pageSize
+	 */
+	public StorageRootInMemory(int pageSize, FreeSpaceManager fsm) {
 		PAGE_SIZE = pageSize;
-		this.fsm = new FreeSpaceManager();
+		this.fsm = fsm;
     	fsm.initBackingIndexNew(this);
     	fsm.getNextPage(0);  // avoid using first page
 		// We keep the arguments to allow transparent dependency injection.
@@ -94,7 +102,7 @@ public class StorageRootInMemory implements StorageChannel {
 	}
 
 	@Override
-	public void acquireLock(long txId) {
+	public void newTransaction(long txId) {
 		this.txId = txId;
 	}
 	

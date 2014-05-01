@@ -18,7 +18,7 @@
  * 
  * See the README and COPYING files for further information. 
  */
-package org.zoodb.test.index;
+package org.zoodb.test.index2.btree;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -42,6 +42,7 @@ import org.junit.Test;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.BTreeIndexNonUnique;
 import org.zoodb.internal.server.index.IndexFactory;
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
@@ -84,7 +85,7 @@ public class TestLongLongNonUniqueIndex {
     }
     
     private LongLongIndex createIndex(StorageChannel paf) {
-    	LongLongIndex ind = IndexFactory.createIndex(DATA_TYPE.GENERIC_INDEX, paf);
+    	LongLongIndex ind = new BTreeIndexNonUnique(paf, true);
     	return ind; 
     }
     
@@ -859,7 +860,6 @@ public class TestLongLongNonUniqueIndex {
         assertEquals(sum, sum2);
     }
 
-    
     @Test
     public void testAddOverwrite() {
         final int MAX = 1000000;

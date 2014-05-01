@@ -1,15 +1,17 @@
 package org.zoodb.internal.server.index.btree;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Observable;
+
 import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageChannelInput;
 import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.util.DBLogger;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Observable;
 
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
@@ -18,7 +20,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	
 	private Map<Integer, PagedBTreeNode> dirtyBuffer;
 	private Map<Integer, PagedBTreeNode> cleanBuffer;
-	private final int maxCleanBufferElements = 2000;
+	private final int maxCleanBufferElements = 20000;
 
 	private int pageIdCounter;
 	private final boolean isUnique;
@@ -42,7 +44,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		
     	int pageSize = this.storageFile.getPageSize();
     	this.leafOrder = computeLeafOrder(pageSize);
-    	this.innerNodeOrder = computeInnerNodeOrder(pageSize);
+    	this.innerNodeOrder = computeInnerNodeOrder(pageSize, isUnique);
 	}
 
 	public BTreeStorageBufferManager(StorageChannel storage, boolean isUnique, DATA_TYPE dataType) {
@@ -200,7 +202,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			int[] childrenPageIds = node.getChildrenPageIds();
 			storageOut.writeShort((short) node.getNumKeys());
 			storageOut.noCheckWrite(node.getKeys());
-            if (node.getValues() != null) {
+            if (!isUnique) {
                 storageOut.noCheckWrite(node.getValues());
             }
 			storageOut.noCheckWrite(childrenPageIds);
@@ -233,11 +235,11 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return order+1;
 	}
     
-    public static int computeInnerNodeOrder(int pageSize) {
+    public static int computeInnerNodeOrder(int pageSize, boolean isUnique) {
     	int headerSize = DiskIO.PAGE_HEADER_SIZE;
     	int numKeysSize = 2;
     	
-    	int keySize = 8;
+    	int keySize = isUnique ? 8 : 16;
     	int childrenSize = 4;
     	
     	if(pageSize < headerSize + numKeysSize) {
@@ -347,5 +349,28 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	public int getStatNReadPages() {
 		return statNReadPages;
+	}
+	
+	/*
+	 * Iterates through tree and returns pageId of every reachable node
+	 * that has been written to storage. Every non-reachable node should have
+	 * been removed using BTree.remove and thus its page has been reported
+	 * as free.
+	 */
+	public <T extends PagedBTreeNode> List<Integer> debugPageIds(PagedBTree<T> tree) {
+		BTreeIterator it = new BTreeIterator(tree);
+		ArrayList<Integer> pageIds = new ArrayList<Integer>();
+		while(it.hasNext()) {
+			PagedBTreeNode node = (PagedBTreeNode) it.next();
+			int pageId = node.getPageId();
+			if(pageId > 0) {
+				pageIds.add(pageId);
+			}
+		}
+		return pageIds;
+	}
+
+	public StorageChannel getStorageFile() {
+		return this.storageFile;
 	}
 }

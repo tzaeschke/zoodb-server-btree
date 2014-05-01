@@ -38,10 +38,10 @@ import org.zoodb.internal.ZooFieldDef;
 import org.zoodb.internal.ZooHandleImpl;
 import org.zoodb.internal.client.AbstractCache;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.index.AbstractPageIterator;
 import org.zoodb.internal.server.index.BitTools;
 import org.zoodb.internal.server.index.FreeSpaceManager;
 import org.zoodb.internal.server.index.LongLongIndex;
+import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
 import org.zoodb.internal.server.index.ObjectIterator;
 import org.zoodb.internal.server.index.ObjectPosIterator;
 import org.zoodb.internal.server.index.PagedOidIndex;
@@ -545,9 +545,14 @@ public class DiskAccessOneFile implements DiskAccess {
 	}
 
 	@Override
-	public void commit() {
+	public void beginTransaction() {
 		txId++;
-		file.acquireLock(txId);
+		file.newTransaction(txId);
+		freeIndex.notifyBegin(txId);
+	}
+	
+	@Override
+	public void commit() {
 		int oidPage = oidIndex.write();
 		int schemaPage1 = schemaIndex.write();
 		int userPage = rootPage.getUserPage(); //not updated currently
@@ -584,6 +589,8 @@ public class DiskAccessOneFile implements DiskAccess {
 	 */
 	@Override
 	public void revert() {
+		//We do NOT need a new txId here, revert() is just called when commit() fails.
+
 		//Empty file buffers. For now we just flush them.
 		file.flush(); //TODO revert for file???
 		//revert
@@ -750,7 +757,7 @@ public class DiskAccessOneFile implements DiskAccess {
         for (SchemaIndexEntry se: sList) {
         	for (int v = 0; v < se.getObjectIndexVersionCount(); v++) {
         		PagedPosIndex ppi = se.getObjectIndexVersion(v);
-        		AbstractPageIterator<LongLongIndex.LLEntry> it = ppi.iteratorPositions();
+        		LongLongIterator<LongLongIndex.LLEntry> it = ppi.iteratorPositions();
         		while (it.hasNext()) {
         			LongLongIndex.LLEntry lle = it.next();
         			nPosEntries++;

@@ -26,6 +26,8 @@ import java.util.NoSuchElementException;
 
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
+import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
 import org.zoodb.internal.util.CloseableIterator;
 
 /**
@@ -107,17 +109,6 @@ public class PagedPosIndex {
 	        }
 	        il.clear();
 	    }
-
-	    @Override
-	    public void refresh() {
-            if (iter != null) {
-                iter.refresh();
-            }
-            for (ObjectPosIterator i: il) {
-                i.refresh();
-            }
-	    }
-
 	}
 
 	
@@ -131,21 +122,11 @@ public class PagedPosIndex {
 		private LLIterator iter;
 		private boolean hasNext = true;
 		private long nextPos = -1;
-		private final long maxKey;
 		
-		public ObjectPosIterator(PagedUniqueLongLong root, long minKey, long maxKey) {
+		public ObjectPosIterator(LongLongUIndex root, long minKey, long maxKey) {
 			iter = (LLIterator) root.iterator(minKey, maxKey);
-			this.maxKey = maxKey;
 			nextPos();
 		}
-
-        @Override
-        public void refresh() {
-            if (hasNext) {
-                iter = (LLIterator) ((PagedUniqueLongLong)iter.ind).iterator(nextPos, maxKey);
-                nextPos();
-            }
-        }
 
         @Override
 		public boolean hasNext() {
@@ -202,7 +183,7 @@ public class PagedPosIndex {
 	}
 	
 	
-	private transient PagedUniqueLongLong idx;
+	private transient LongLongUIndex idx;
 	
 	/**
 	 * Constructor for creating new index. 
@@ -210,7 +191,7 @@ public class PagedPosIndex {
 	 */
 	public PagedPosIndex(StorageChannel file) {
 		//8 bit starting pos, 4 bit following page
-		idx = new PagedUniqueLongLong(DATA_TYPE.POS_INDEX, file, 8, 4);
+		idx = IndexFactory.createUniqueIndex(DATA_TYPE.POS_INDEX, file, 8, 4);
 	}
 
 	/**
@@ -218,7 +199,7 @@ public class PagedPosIndex {
 	 */
 	private PagedPosIndex(StorageChannel file, int pageId) {
 		//8 bit starting pos, 4 bit following page
-		idx = new PagedUniqueLongLong(DATA_TYPE.POS_INDEX, file, pageId, 8, 4);
+		idx = IndexFactory.loadUniqueIndex(DATA_TYPE.POS_INDEX, file, pageId, 8, 4);
 	}
 
 	/**
@@ -256,7 +237,7 @@ public class PagedPosIndex {
 		return new ObjectPosIterator(idx, 0, Long.MAX_VALUE);
 	}
 
-	public AbstractPageIterator<LongLongIndex.LLEntry> iteratorPositions() {
+	public LongLongIterator<LongLongIndex.LLEntry> iteratorPositions() {
 		return idx.iterator(0, Long.MAX_VALUE);
 	}
 
@@ -283,7 +264,7 @@ public class PagedPosIndex {
     public long removePosLongAndCheck(long pos) {
         long min = BitTools.getMinPosInPage(pos);
         long max = BitTools.getMaxPosInPage(pos);
-        return idx.getRoot().deleteAndCheckRangeEmpty(pos, min, max) << 32;
+        return idx.deleteAndCheckRangeEmpty(pos, min, max) << 32;
     }
 
     public List<Integer> debugPageIds() {
@@ -293,13 +274,6 @@ public class PagedPosIndex {
 	public void clear() {
 		idx.clear();
 	}
-
-	/**
-	 * Abandon COW status and refresh all iterators with latest pages.
-	 */
-    public void refreshIterators() {
-        idx.refreshIterators();
-    }
 
 	public long size() {
 		return idx.size();

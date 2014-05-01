@@ -4,13 +4,13 @@ import org.zoodb.internal.util.Pair;
 
 import java.util.LinkedList;
 
-public class AscendingBTreeLeafIterator<T extends PagedBTreeNode> extends BTreeLeafIterator<T> {
+public class AscendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTreeLeafEntryIterator<T> {
 
-    public AscendingBTreeLeafIterator(BTree tree) {
+    public AscendingBTreeLeafEntryIterator(BTree tree) {
         super(tree);
     }
 
-    public AscendingBTreeLeafIterator(BTree tree, long start, long end) {
+    public AscendingBTreeLeafEntryIterator(BTree tree, long start, long end) {
         super(tree, start, end);
     }
 
@@ -44,17 +44,25 @@ public class AscendingBTreeLeafIterator<T extends PagedBTreeNode> extends BTreeL
         if (tree.isEmpty()) {
             return;
         }
-        Pair<LinkedList<T>, T> p = tree.searchNodeWithHistory(start, 0);
+        Pair<LinkedList<T>, T> p = tree.searchNodeWithHistory(start, Long.MIN_VALUE);
         ancestors = p.getA();
         curLeaf = p.getB();
-        curPos = 0;
-    }
-
-    @Override
-    void initializePosition() {
-        curPos += 1;
-        while (curLeaf != null && curLeaf.getKey(curPos) < start) {
-            updatePosition();
+        curPos = curLeaf.findKeyValuePos(start, Long.MIN_VALUE);
+        // findKeyValuePos looks for a position to insert an entry
+        // and thus it is one off
+        curPos = curPos > 0 ? curPos-1 : 0; 
+        
+        // the following code is necessary for non unique trees,
+        // because searchNodeWithHistory returns the correct node
+        // for inserting an entry but here we need the first
+        // entry whose key >= start.
+        while(this.hasNext() && curLeaf.getKey(curPos) < start) {
+        	this.next();
+        }
+        
+	    // case when end is smaller than every element in the tree
+        if(curLeaf!=null && end < curLeaf.getKey(curPos)) {
+        	curLeaf = null;
         }
     }
 

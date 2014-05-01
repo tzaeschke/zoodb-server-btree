@@ -116,10 +116,10 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         return (key < getKey(position) ||
                 (key == getKey(position) && value < getValue(position)));
     }
-
+    
     @Override
-    protected boolean checkIllegalInsert(int position, long key, long value) {
-        return position > 0 && (getKey(position - 1) == key && getValue(position - 1) == value);
+    protected boolean allowNonUniqueKeys() {
+    	return true;
     }
 
     @Override

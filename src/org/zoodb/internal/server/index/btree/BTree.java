@@ -4,6 +4,7 @@ import org.zoodb.internal.util.Pair;
 
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.WeakHashMap;
 
@@ -12,13 +13,15 @@ import java.util.WeakHashMap;
  */
 public abstract class BTree<T extends BTreeNode> {
 
-    private Set<BTreeLeafIterator> iterators =
-            Collections.newSetFromMap(new WeakHashMap<BTreeLeafIterator, Boolean>());
-
     protected int innerNodeOrder;
     protected int leafOrder;
     protected T root;
     protected BTreeNodeFactory nodeFactory;
+    
+    private long maxKey = Long.MIN_VALUE;
+    private long minKey = Long.MIN_VALUE;
+    
+    private int modcount = 0; // number of modifications of the tree
 
     public BTree(int innerNodeOrder, int leafOrder, BTreeNodeFactory nodeFactory) {
         this.innerNodeOrder = innerNodeOrder;
@@ -54,8 +57,8 @@ public abstract class BTree<T extends BTreeNode> {
         LinkedList<T> ancestorStack = result.getA();
         T leaf = result.getB();
 
-        //notify iterators that this leaf is about to change
-        notifyIterators();
+        increaseModcount();
+
         if (leaf.isFull()) {
             //split node
             T rightNode = putAndSplit(leaf, key, value);
@@ -63,50 +66,58 @@ public abstract class BTree<T extends BTreeNode> {
         } else {
             leaf.put(key, value);
         }
+        
+        maxKey = Math.max(maxKey, key);
+        minKey = Math.min(minKey, key);
     }
 
-    protected long deleteEntry(long key, long value) {
+	protected long deleteEntry(long key, long value) {
         Pair<LinkedList<T>,T> pair = searchNodeWithHistory(key, value);
         T leaf = pair.getB();
         LinkedList<T> ancestorStack = pair.getA();
 
-        //notify iterators that this leaf is about to change
-        notifyIterators();
+        increaseModcount();
 
         long oldValue = deleteFromLeaf(leaf, key, value);
 
-        if (leaf.isRoot()) {
-            return oldValue;
-        }
-        long replacementKey = leaf.getSmallestKey();
-        long replacementValue = leaf.getSmallestValue();
-        T current = leaf;
-        T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
-        while (current != null) {
-            if (current.isUnderfull()) {
-                //check if can borrow 1 value from the left or right siblings
-                T rightSibling = (T) current.rightSibling(parent);
-                T leftSibling = (T) current.leftSibling(parent);
-                if (leftSibling != null && leftSibling.hasExtraKeys()) {
-                    redistributeKeysFromLeft(current, leftSibling, parent);
-                } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
-                    redistributeKeysFromRight(current, rightSibling, parent);
-                } else {
-                    //at this point, both left and right sibling have the minimum number of keys
-                    if (leftSibling!= null) {
-                        //merge with left sibling
-                        parent = mergeWithLeft(this, current, leftSibling, parent);
+        if (!leaf.isRoot()) {
+            long replacementKey = leaf.getSmallestKey();
+            long replacementValue = leaf.getSmallestValue();
+            T current = leaf;
+            T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
+            while (current != null) {
+                if (current.isUnderfull()) {
+                    //check if can borrow 1 value from the left or right siblings
+                    T rightSibling = (T) current.rightSibling(parent);
+                    T leftSibling = (T) current.leftSibling(parent);
+                    if (leftSibling != null && leftSibling.hasExtraKeys()) {
+                        redistributeKeysFromLeft(current, leftSibling, parent);
+                    } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
+                        redistributeKeysFromRight(current, rightSibling, parent);
                     } else {
-                        //merge with right sibling
-                        parent = mergeWithRight(this, current, rightSibling, parent);
+                        //at this point, both left and right sibling have the minimum number of keys
+                        if (leftSibling!= null) {
+                            //merge with left sibling
+                            parent = mergeWithLeft(this, current, leftSibling, parent);
+                        } else {
+                            //merge with right sibling
+                            parent = mergeWithRight(this, current, rightSibling, parent);
+                        }
                     }
                 }
+                if (current.containsKeyValue(key, value)) {
+                    current.replaceEntry(key, value, replacementKey, replacementValue);
+                }
+                current = parent;
+                parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
             }
-            if (current.containsKeyValue(key, value)) {
-                current.replaceEntry(key, value, replacementKey, replacementValue);
-            }
-            current = parent;
-            parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
+        }
+        
+        if(key == minKey) {
+        	minKey = computeMinKey();
+        }
+        if(key == maxKey) {
+        	maxKey = computeMaxKey();
         }
         return oldValue;
     }
@@ -144,6 +155,10 @@ public abstract class BTree<T extends BTreeNode> {
     protected Pair<LinkedList<T>, T> searchNodeWithHistory(long key, long value) {
         LinkedList<T> stack = new LinkedList<>();
         T current = root;
+        
+        if(root == null) {
+        	throw new NoSuchElementException();
+        }
         while (!current.isLeaf()) {
             current.markChanged();
             stack.push(current);
@@ -486,7 +501,51 @@ public abstract class BTree<T extends BTreeNode> {
                                                         int keys, int children) {
         src.copyFromNodeToNode( srcStart, srcStart + 1, dest, destStart, destStart, keys, children);
     }
+    
+    public long getMaxKey() {
+		return maxKey;
+	}
 
+	public long getMinKey() {
+		return minKey;
+	}
+
+	public long computeMinKey() {
+        BTreeLeafEntryIterator<T> it = new AscendingBTreeLeafEntryIterator<T>(this);
+        long minKey = Long.MIN_VALUE;
+        if(it.hasNext()) {
+                minKey = it.next().getKey();
+        }
+        return minKey;
+    }
+
+    public long computeMaxKey() {
+        BTreeLeafEntryIterator<T> it = new DescendingBTreeLeafEntryIterator<T>(this);
+        long maxKey = Long.MIN_VALUE;
+        if(it.hasNext()) {
+                maxKey = it.next().getKey();
+        }
+        return maxKey;
+    }
+    
+    public int statsGetInnerN() {
+    	BTreeIterator it = new BTreeIterator(this);
+		int innerN = 0;
+		while(it.hasNext()) {
+			if(!it.next().isLeaf()) innerN++;
+		}
+		return innerN;
+    }
+    
+    public int statsGetLeavesN() {
+    	BTreeIterator it = new BTreeIterator(this);
+		int leafN = 0;
+		while(it.hasNext()) {
+			if(it.next().isLeaf()) leafN++;
+		}
+		return leafN;
+    }
+    
     private void copyFromRightNodeToLeftNode(T src,  int srcStart, T dest, int destStart,
                                              int keys, int children) {
         src.copyFromNodeToNode(srcStart, srcStart, dest, destStart, destStart, keys, children);
@@ -496,23 +555,12 @@ public abstract class BTree<T extends BTreeNode> {
         source.copyFromNodeToNode(0, 0, destination, destinationIndex, destinationIndex, source.getNumKeys(), source.getNumKeys() + 1);
     }
 
-    public void registerIterator(BTreeLeafIterator iterator) {
-        iterators.add(iterator);
+    private void increaseModcount() {
+    	modcount++;
+	}
+    
+    public int getModcount() {
+    	return this.modcount;
     }
 
-    public void deregisterIterator(BTreeLeafIterator iterator) {
-        iterators.add(iterator);
-    }
-
-    public void refreshIterators() {
-        for (BTreeLeafIterator it : iterators) {
-            it.refresh();
-        }
-    }
-
-    private void notifyIterators() {
-        for (BTreeLeafIterator iterator : iterators) {
-            iterator.handleNodeChange();
-        }
-    }
 }

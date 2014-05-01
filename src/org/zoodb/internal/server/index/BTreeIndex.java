@@ -1,24 +1,28 @@
 package org.zoodb.internal.server.index;
 
+import java.util.List;
+
+import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
-import org.zoodb.internal.server.index.btree.*;
-import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
+import org.zoodb.internal.server.index.btree.AscendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.BTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.DescendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.PagedBTree;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
 
-public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
+public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNode> extends AbstractIndex {
 	
-	private UniquePagedBTree tree;
-    private BTreeStorageBufferManager bufferManager;
-    private boolean isUnique = true;
+    protected BTreeStorageBufferManager bufferManager;
     
 	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
 		
         bufferManager = new BTreeStorageBufferManager(file, isUnique);
-        final int leafOrder = bufferManager.getLeafOrder();
-        final int innerOrder = bufferManager.getInnerNodeOrder();
-		tree = new UniquePagedBTree(innerOrder, leafOrder, bufferManager);
+
 	}
 	
 	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique, int rootPageId) {
@@ -26,119 +30,74 @@ public class BTreeIndex extends AbstractIndex implements LongLongUIndex {
 
 		PagedBTreeNode root = bufferManager.read(rootPageId);
 		root.setIsRoot(true);
-		tree.setRoot(root);
+		this.getTree().setRoot(root);
 	}
 	
-	public void init() {
-
-		
-	}
-
-	@Override
 	public void insertLong(long key, long value) {
-		tree.insert(key, value);
+		getTree().insert(key, value);
 	}
 
-	@Override
-	public long removeLong(long key, long value) {
-		return tree.delete(key);
-	}
-
-	@Override
 	public void print() {
-        System.out.println(tree);
+        System.out.println(getTree());
 	}
 
-	@Override
-	public boolean insertLongIfNotSet(long key, long value) {
-		if (tree.search(key) != -1) {
-            return false;
-        }
-        tree.insert(key, value);
-        return true;
-	}
-
-	@Override
 	public int statsGetLeavesN() {
-		// TODO Auto-generated method stub
-		return 0;
+		return getTree().statsGetLeavesN();
 	}
 
-	@Override
 	public int statsGetInnerN() {
-		// TODO Auto-generated method stub
-		return 0;
+		return getTree().statsGetInnerN();
 	}
 
-	@Override
-	public void clear() {
-		tree = new UniquePagedBTree(tree.getInnerNodeOrder(), tree.getLeafOrder(), new BTreeStorageBufferManager(file, isUnique));
-
-	}
-
-	@Override
 	public LongLongIterator<LLEntry> iterator() {
-		return new AscendingBTreeLeafIterator<>(tree);
+		return new AscendingBTreeLeafEntryIterator<>(getTree());
 	}
 
-	@Override
 	public LongLongIterator<LLEntry> iterator(long min, long max) {
-        return new AscendingBTreeLeafIterator<>(tree, min, max);
+        return new AscendingBTreeLeafEntryIterator<>(getTree(), min, max);
 	}
 
-	@Override
 	public LongLongIterator<LLEntry> descendingIterator() {
-        return new DescendingBTreeLeafIterator<>(tree);
+        return new DescendingBTreeLeafEntryIterator<>(getTree());
 	}
 
-	@Override
 	public LongLongIterator<LLEntry> descendingIterator(long max, long min) {
-        return new DescendingBTreeLeafIterator<>(tree, min, max);
+        return new DescendingBTreeLeafEntryIterator<>(getTree(), min, max);
 	}
 
-	@Override
 	public long getMinKey() {
-		// TODO Auto-generated method stub
-		return 0;
+		return getTree().getMinKey();
 	}
 
-	@Override
 	public long getMaxKey() {
-		// TODO Auto-generated method stub
-		return 0;
+		return getTree().getMaxKey();
 	}
 
-	@Override
-	public void deregisterIterator(LongLongIterator<?> it) {
-		tree.deregisterIterator((BTreeLeafIterator) it);
-	}
-
-	@Override
-	public void refreshIterators() {
-        tree.refreshIterators();
-	}
-
-	@Override
 	public int write() {
-		return bufferManager.write(tree.getRoot());
+		return bufferManager.write(getTree().getRoot());
 	}
 
-	@Override
-	public LLEntry findValue(long key) {
-		return new LLEntry(key, tree.search(key));
+
+	public long size() {
+		return getTree().size();
 	}
 
-	@Override
-	public long removeLong(long key) {
-		tree.delete(key);
-        return 0;
+	public DATA_TYPE getDataType() {
+		return this.getDataType();
+	}
+	
+    public List<Integer> debugPageIds() {
+		return bufferManager.debugPageIds(getTree());
 	}
 
-	public UniquePagedBTree getTree() {
-		return tree;
+	public int statsGetWrittenPagesN() {
+		return bufferManager.getStatNWrittenPages();
 	}
+	
+    public abstract T getTree();
 	
     public BTreeStorageBufferManager getBufferManager() {
 		return bufferManager;
 	}
+
 }
