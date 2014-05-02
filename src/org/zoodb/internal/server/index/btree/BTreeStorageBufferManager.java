@@ -2,11 +2,13 @@ package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageChannelInput;
 import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.util.DBLogger;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Observable;
@@ -80,37 +82,32 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 		PagedBTreeNode node;
 
-		short isInner = storageIn.readShort();
-		int numKeys;
-		int order;
-
-		if(isInner > -1) {
-            // its an innner node
-			numKeys = isInner;
-			order = innerNodeOrder;
-		} else { 
-            // its a leaf
-			numKeys = storageIn.readShort();
-			order = leafOrder;
-		}
-		long[] keys = new long[order - 1];
-		storageIn.noCheckRead(keys);
-		//ToDo add values for unique
-		if (isInner == -1) {
-			// leaf
-			long[] values = new long[order - 1];
+		boolean isLeaf = storageIn.readShort() < 0 ? true : false;
+		
+		/* Deal with prefix-sharing encoded keys */
+		byte[] metadata = new byte[5];
+		storageIn.noCheckRead(metadata);
+		int decodedArraySize = PrefixSharingHelper.byteArrayToInt(metadata, 0);
+		byte prefixLength = metadata[4];
+		int encodedArraySize = PrefixSharingHelper.encodedArraySize(decodedArraySize, prefixLength);
+		byte[] encodedArrayWithoutMetadata = new byte[encodedArraySize];
+		storageIn.noCheckRead(encodedArrayWithoutMetadata);
+		long[] keys = PrefixSharingHelper.decodeArray(encodedArrayWithoutMetadata, decodedArraySize, prefixLength);
+		int numKeys = decodedArraySize;
+		
+		if(isLeaf) {
+			long[] values = new long[numKeys];
 			storageIn.noCheckRead(values);
-
 			node = PagedBTreeNodeFactory.constructLeaf(this, isUnique, false,
-										order, pageId, numKeys, 
-										keys, values);
+								order, pageId, numKeys, 
+								keys, values);
 		} else {
-			int[] childrenPageIds = new int[order];
+			int[] childrenPageIds = new int[numKeys];
 
 			storageIn.noCheckRead(childrenPageIds);
             long[] values = null;
             if (!isUnique) {
-                values = new long[order - 1];
+                values = new long[numKeys];
                 storageIn.noCheckRead(values);
             }
 			node = PagedBTreeNodeFactory.constructInnerNode(this, isUnique, false,
@@ -173,14 +170,14 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	/*
 	 * Leaf node page: 
 	 * 2 byte -1 
-	 * 2 byte numKeys 
-	 * 8 byte * order-1 keys 
-	 * 8 byte * order-1 values
+	 * prefixShareEncoding(keys) 
+	 * 8 byte * num_keys for values
 	 * 
 	 * Inner node page 
-	 * 2 byte numKeys 
-	 * 8 byte * order-1 keys
-	 * 4 byte * order childrenPageIds 
+	 * 2 byte -1 
+	 * prefixShareEncoding(keys) 
+	 * 8 byte * num_keys for values
+	 * 4 byte * (num_keys + 1) for childrenPageIds 
 	 */
 
 	int writeNodeDataToStorage(PagedBTreeNode node) {
@@ -192,18 +189,16 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 		if (node.isLeaf()) {
 			storageOut.writeShort((short) -1);
-			storageOut.writeShort((short) node.getNumKeys());
-			storageOut.noCheckWrite(node.getKeys());
-			storageOut.noCheckWrite(node.getValues());
+			storageOut.noCheckWrite(PrefixSharingHelper.encodeArray(node.getKeys()));
+			storageOut.noCheckWrite(Arrays.copyOf(node.getValues(), node.getNumKeys()));
 
 		} else {
-			int[] childrenPageIds = node.getChildrenPageIds();
-			storageOut.writeShort((short) node.getNumKeys());
-			storageOut.noCheckWrite(node.getKeys());
+			storageOut.writeShort((short) -1);
+			storageOut.noCheckWrite(PrefixSharingHelper.encodeArray(node.getKeys()));
             if (node.getValues() != null) {
-                storageOut.noCheckWrite(node.getValues());
+				storageOut.noCheckWrite(Arrays.copyOf(node.getValues(), node.getNumKeys()));
             }
-			storageOut.noCheckWrite(childrenPageIds);
+			storageOut.noCheckWrite(Arrays.copyOf(node.getChildrenPageIds(), node.getNumKeys()+1));
 		}
 
 		storageOut.flush();
