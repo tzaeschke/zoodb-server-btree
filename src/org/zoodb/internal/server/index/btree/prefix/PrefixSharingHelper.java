@@ -307,9 +307,9 @@ public class PrefixSharingHelper {
     
     public static int byteArrayToInt(byte[] array, int indexInArray) {
         return 	( array[indexInArray] << 24 )  |
-                ( array[indexInArray+1] << 16 )  |
-                ( array[indexInArray+2] << 8 )   |
-                    array[indexInArray+3];
+                ( (array[indexInArray+1] & 0xFF) << 16 )  |
+                ( (array[indexInArray+2] & 0xFF) << 8 )   |
+                    ( array[indexInArray+3] & 0xFF );
     	
     	
     }

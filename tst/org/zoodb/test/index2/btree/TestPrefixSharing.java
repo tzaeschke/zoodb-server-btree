@@ -7,9 +7,23 @@ import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 import java.util.Arrays;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 public class TestPrefixSharing {
 
+    @Test
+    public void testByteArrayToInt() {
+    	int currentByte=0;
+    	int i = Integer.MAX_VALUE;
+    	byte[] outputArray = new byte[4];
+    	
+        outputArray[currentByte] = (byte) (i >> 24);
+        outputArray[currentByte+1] = (byte) (i >> 16);
+        outputArray[currentByte+2] = (byte) (i >> 8);
+        outputArray[currentByte+3] = (byte) i;
+        
+    	assertEquals(i,PrefixSharingHelper.byteArrayToInt(outputArray, 0));
+    }
     @Test
     public void testComputePrefix() {
         long[] arr = { 1500, 1800};
@@ -71,6 +85,11 @@ public class TestPrefixSharing {
         long[] decodedArray = PrefixSharingHelper.decodeArray(bytes);
         System.out.print(Arrays.toString(decodedArray));
         assertArrayEquals(inputArray, decodedArray);
+        
+        long[] inputArray2 = {5, 7, 8};
+        decodedArray = PrefixSharingHelper.decodeArray(PrefixSharingHelper.encodeArray(inputArray2));
+        System.out.print(Arrays.toString(decodedArray));
+        assertArrayEquals(inputArray2, decodedArray);
     }
 
     @Test
