@@ -22,11 +22,12 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    public void initializeEntries(int order) {
-        initKeys(order);
-        initValues(order);
+    public void initializeEntries() {
+        int size = computeMaxPossibleNumEntries();
+        initKeys(size);
+        initValues(size);
         if (!isLeaf()) {
-            initChildren(order);
+            initChildren(size + 1);
         }
     }
 
@@ -98,15 +99,6 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    protected void resizeEntries(int order) {
-        resizeKeys(order);
-        resizeValues(order);
-        if (!isLeaf()) {
-            resizeChildren(order);
-        }
-    }
-
-    @Override
     protected boolean containsAtPosition(int position, long key, long value) {
         return this.getKey(position) == key && getValue(position) == value;
     }
@@ -120,6 +112,32 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
     @Override
     protected boolean allowNonUniqueKeys() {
     	return true;
+    }
+
+    @Override
+    public long getNonKeyEntrySizeInBytes() {
+        if (isLeaf()) {
+            return getNumKeys() * 8;
+        } else {
+            return getNumKeys() * 12;
+        }
+    }
+
+    @Override
+    protected int computeMaxPossibleNumEntries() {
+        int maxPossibleNumEntries;
+        /*
+            In the case of the best compression, all keys would have the same value.
+         */
+        if (isLeaf()) {
+            //subtract a 64 bit prefix and divide by 8 (the number of bytes in a long)
+            maxPossibleNumEntries = (pageSize - 8) >>> 3;
+        } else {
+            //inner nodes also contain children ids which are ints
+            //need to divide by 12
+            maxPossibleNumEntries = (pageSize - 8) / 12;
+        }
+        return maxPossibleNumEntries;
     }
 
     @Override

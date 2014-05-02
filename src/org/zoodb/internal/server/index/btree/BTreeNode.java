@@ -1,5 +1,6 @@
 package org.zoodb.internal.server.index.btree;
 
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 import org.zoodb.internal.util.Pair;
 
 import java.util.Observable;
@@ -13,7 +14,12 @@ public abstract class BTreeNode extends Observable {
 
 	private boolean isLeaf;
 	private boolean isRoot;
-	protected int order;
+	//protected int order;
+    protected int pageSize;
+    protected int minSize;
+
+    //It is very important always update this after modifying the keys/values/children
+    protected int currentSize;
 
 	// ToDo maybe we want to have the keys set dynamically sized somehow
 	protected int numKeys;
@@ -21,15 +27,20 @@ public abstract class BTreeNode extends Observable {
 
 	private long[] values;
 
-	public BTreeNode(int order, boolean isLeaf, boolean isRoot) {
-		this.order = order;
+	public BTreeNode(int pageSize, boolean isLeaf, boolean isRoot) {
 		this.isLeaf = isLeaf;
 		this.isRoot = isRoot;
+        this.pageSize = pageSize;
 
-		initializeEntries(order);
+        this.minSize = computeMinSize(pageSize);
+		initializeEntries();
 	}
 
-    public abstract void initializeEntries(int order);
+    public abstract long getNonKeyEntrySizeInBytes();
+
+    public abstract void initializeEntries();
+    protected abstract void initChildren(int size);
+    protected abstract int computeMaxPossibleNumEntries();
 
     public abstract BTreeNode newNode(int order, boolean isLeaf, boolean isRoot);
     public abstract boolean equalChildren(BTreeNode other);
@@ -58,8 +69,6 @@ public abstract class BTreeNode extends Observable {
     protected abstract boolean containsAtPosition(int position, long key, long value);
     protected abstract boolean smallerThanKeyValue(int position, long key, long value);
     protected abstract boolean allowNonUniqueKeys();
-    protected abstract void resizeEntries(int order);
-    protected abstract void resizeChildren(int order);
 
     public void put(long key, long value) {
         if (!isLeaf()) {
@@ -109,10 +118,8 @@ public abstract class BTreeNode extends Observable {
         if (!found) {
             //TODO need to change for key and value for non-unique
             if (closest == 0 && smallerThanKeyValue(0, key, value)) {
-            //if (closest == 0 && key < getKey(0)) {
                 return 0;
             } else if (smallerThanKeyValue(closest, key, value)) {
-                //if (key < getKey(closest)) {
                 return closest;
             }
         }
@@ -237,25 +244,19 @@ public abstract class BTreeNode extends Observable {
 		if (isRoot()) {
 			return getNumKeys() == 0;
 		}
-		if (isLeaf()) {
-			return getNumKeys() < minKeysAmount();
-		}
-		return getNumKeys() + 1 < order / 2.0;
+        return computeSize() < minSize;
 	}
 
 	public boolean hasExtraKeys() {
 		if (isRoot()) {
 			return true;
 		}
-		return getNumKeys() - 1 >= minKeysAmount();
-	}
-
-	public boolean isOverflowing() {
-		return getNumKeys() >= order;
+		return computeSize() > minSize;
 	}
 
     public boolean isFull() {
-        return getNumKeys() >= order - 1;
+        //ToDo compute
+        return computeSize() == pageSize;
     }
 
 	public boolean incrementNumKeys() {
@@ -288,17 +289,13 @@ public abstract class BTreeNode extends Observable {
 		return true;
 	}
 
-	protected void initKeys(int order) {
-		setKeys(new long[order - 1]);
+	protected void initKeys(int size) {
+		setKeys(new long[size]);
 		setNumKeys(0);
 	}
 
-    protected void initValues(int order) {
-		setValues(new long[order - 1]);
-	}
-
-    protected void initChildren(int order) {
-		setChildren(new BTreeNode[order]);
+    protected void initValues(int size) {
+		setValues(new long[size]);
 	}
 
 	public long getValue(int index) {
@@ -307,10 +304,6 @@ public abstract class BTreeNode extends Observable {
 
 	public long getKey(int index) {
 		return getKeys()[index];
-	}
-
-	public double minKeysAmount() {
-		return (order - 1) / 2.0D;
 	}
 
 	public boolean isLeaf() {
@@ -349,7 +342,11 @@ public abstract class BTreeNode extends Observable {
 		return values;
 	}
 
-	public void setNumKeys(int numKeys) {
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    public void setNumKeys(int numKeys) {
         markChanged();
 		this.numKeys = numKeys;
 	}
@@ -362,10 +359,6 @@ public abstract class BTreeNode extends Observable {
 	public void setValues(long[] values) {
         markChanged();
 		this.values = values;
-	}
-
-	public int getOrder() {
-		return order;
 	}
 
 	public void setIsRoot(boolean isRoot) {
@@ -495,7 +488,7 @@ public abstract class BTreeNode extends Observable {
             return false;
         if (getNumKeys() != bTreeNode.getNumKeys())
             return false;
-        if (order != bTreeNode.order)
+        if (pageSize != bTreeNode.pageSize)
             return false;
         if (!isLeaf() && !equalChildren(bTreeNode))
             return false;
@@ -547,27 +540,21 @@ public abstract class BTreeNode extends Observable {
         return true;
     }
 
-    public void changeOrder(int newOrder) {
-        if (newOrder == getOrder()) {
-            return;
-        }
-        resizeEntries(newOrder);
-        order = newOrder;
+    protected int computeMinSize(int pageSize) {
+        return pageSize >> 1;
     }
 
-    protected void resizeKeys(int order) {
-        long[] keys = new long[order - 1];
-        int length = Math.min(order, getOrder());
-        System.arraycopy(getKeys(), 0, keys, 0, length);
-        setKeys(keys);
+    public long computeSize() {
+        return getNonKeyEntrySizeInBytes() + getKeyArraySizeInBytes();
     }
 
-    protected void resizeValues(int order) {
-        long[] values = new long[order - 1];
-        int length = Math.min(order, getOrder());
-        System.arraycopy(getValues(), 0, values, 0, length);
-        setValues(values);
+    protected long getKeyArraySizeInBytes() {
+        //ToDo precompute the prefix
+        long prefix = PrefixSharingHelper.computePrefix(getKeys());
+        //additional metadata needed to encode the key array
+        long metadataSize = 5;
+        long sizeInBytes = (prefix >>> 3) + (((64L - prefix) * getNumKeys()) >>> 3);
+        return metadataSize + sizeInBytes;
     }
-
 
 }

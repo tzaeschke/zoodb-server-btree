@@ -1,31 +1,19 @@
 package org.zoodb.test.index2.btree;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Arrays;
-import java.util.List;
-
 import org.junit.Before;
 import org.junit.Test;
-import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeIterator;
-import org.zoodb.internal.server.index.btree.BTreeNode;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTree;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
-import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
+import org.zoodb.internal.server.index.btree.*;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 import org.zoodb.tools.ZooConfig;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.*;
 
 public class TestBTreeStorageBufferManager {
 
@@ -272,7 +260,7 @@ public class TestBTreeStorageBufferManager {
 
 		// root is empty and has no children
 		assertEquals(0, tree2.getRoot().getNumKeys());
-		BTreeNode[] emptyChildren = new BTreeNode[tree2.getRoot().getOrder()];
+		BTreeNode[] emptyChildren = new BTreeNode[tree2.getRoot().getChildren().length];
 		Arrays.fill(emptyChildren, null);
 		assertArrayEquals(emptyChildren, tree2.getRoot().getChildren());
 	}
@@ -374,12 +362,12 @@ public class TestBTreeStorageBufferManager {
 			BTreeBufferManager bufferManager) {
 		if (!prevRoot.isLeaf()) {
 			return PagedBTreeNodeFactory.constructInnerNode(bufferManager, true, true,
-					prevRoot.getOrder(), prevRoot.getPageId(),
+					prevRoot.getPageSize(), prevRoot.getPageId(),
 					prevRoot.getNumKeys(), prevRoot.getKeys(),
 					prevRoot.getValues(), prevRoot.getChildrenPageIds());
 		} else {
 			return PagedBTreeNodeFactory.constructLeaf(bufferManager, true, true,
-					prevRoot.getOrder(), prevRoot.getPageId(),
+					prevRoot.getPageSize(), prevRoot.getPageId(),
 					prevRoot.getNumKeys(), prevRoot.getKeys(),
 					prevRoot.getValues());
 

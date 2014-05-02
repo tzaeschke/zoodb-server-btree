@@ -1,12 +1,12 @@
 package org.zoodb.internal.server.index;
 
-import java.util.NoSuchElementException;
-
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
+
+import java.util.NoSuchElementException;
 
 public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBTreeNode> implements LongLongUIndex  {
 
@@ -54,7 +54,7 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
     
     @Override
 	public void clear() {
-		tree = new UniquePagedBTree(tree.getInnerNodeOrder(), tree.getLeafOrder(), new BTreeStorageBufferManager(file, isUnique()));
+		tree = new UniquePagedBTree(tree.getPageSize(), new BTreeStorageBufferManager(file, isUnique()));
 	}
 
 	@Override

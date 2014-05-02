@@ -9,12 +9,12 @@ import org.zoodb.internal.server.index.btree.PagedBTreeNode;
  */
 public class UniquePagedBTreeNode extends PagedBTreeNode {
 
-    public UniquePagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {
-        super(bufferManager, order, isLeaf, isRoot);
+    public UniquePagedBTreeNode(BTreeBufferManager bufferManager, int pageSize, boolean isLeaf, boolean isRoot) {
+        super(bufferManager, pageSize, isLeaf, isRoot);
     }
 
-    public UniquePagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot, int pageId) {
-        super(bufferManager, order, isLeaf, isRoot, pageId);
+    public UniquePagedBTreeNode(BTreeBufferManager bufferManager, int pageSize, boolean isLeaf, boolean isRoot, int pageId) {
+        super(bufferManager, pageSize, isLeaf, isRoot, pageId);
     }
 
     @Override
@@ -23,18 +23,19 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    public void initializeEntries(int order) {
-        initKeys(order);
-        if (isLeaf()) {
-            initValues(order);
+    public void initializeEntries() {
+        int size = computeMaxPossibleNumEntries();
+        initKeys(size);
+        if (!isLeaf()) {
+            initChildren(size + 1);
         } else {
-            initChildren(order);
+            initValues(size);
         }
     }
 
     @Override
-    public UniquePagedBTreeNode newNode(int order, boolean isLeaf, boolean isRoot) {
-        return new UniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot);
+    public UniquePagedBTreeNode newNode(int pageSize, boolean isLeaf, boolean isRoot) {
+        return new UniquePagedBTreeNode(bufferManager, pageSize, isLeaf, isRoot);
     }
 
     @Override
@@ -101,16 +102,6 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    protected void resizeEntries(int order) {
-        resizeKeys(order);
-        if (isLeaf()) {
-            resizeValues(order);
-        } else {
-            resizeChildren(order);
-        }
-    }
-
-    @Override
     protected boolean containsAtPosition(int position, long key, long value) {
         return this.getKey(position) == key;
     }
@@ -159,4 +150,29 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
         return ret;
     }
 
+    @Override
+    protected int computeMaxPossibleNumEntries() {
+        int maxPossibleNumEntries;
+        /*
+            In the case of the best compression, all keys would have the same value.
+         */
+        if (isLeaf()) {
+            //subtract a 64 bit prefix and divide by 8 (the number of bytes in a long)
+            maxPossibleNumEntries = (pageSize - 8) >>> 3;
+        } else {
+            //inner nodes also contain children ids which are ints
+            //need to divide by 4
+            maxPossibleNumEntries = (pageSize - 8) >>> 2;
+        }
+        return maxPossibleNumEntries;
+    }
+
+    @Override
+    public long getNonKeyEntrySizeInBytes() {
+        if (isLeaf()) {
+            return getNumKeys() * 8;
+        } else {
+            return getNumKeys() * 4;
+        }
+    }
 }

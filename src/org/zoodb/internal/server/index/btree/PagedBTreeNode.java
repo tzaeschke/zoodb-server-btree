@@ -12,12 +12,12 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	private int[] childrenPageIds;
     protected BTreeBufferManager bufferManager;
 
-    public PagedBTreeNode(int order, boolean isLeaf, boolean isRoot) {
-        super(order, isLeaf, isRoot);
+    public PagedBTreeNode(int pageSize, boolean isLeaf, boolean isRoot) {
+        super(pageSize, isLeaf, isRoot);
     }
 
-	public PagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {
-		super(order, isLeaf, isRoot);
+	public PagedBTreeNode(BTreeBufferManager bufferManager, int pageSize, boolean isLeaf, boolean isRoot) {
+		super(pageSize, isLeaf, isRoot);
 		
         markDirty();
 		this.bufferManager = bufferManager;
@@ -29,8 +29,8 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	 * Constructor when we know on which page this node lies. 
 	 * Does not save the node in the buffer managers memory.
 	 */
-    public PagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot, int pageId) {
-		super(order, isLeaf, isRoot);
+    public PagedBTreeNode(BTreeBufferManager bufferManager, int pageSize, boolean isLeaf, boolean isRoot, int pageId) {
+		super(pageSize, isLeaf, isRoot);
 
 		this.bufferManager = bufferManager;
 		this.setPageId(pageId);
@@ -41,10 +41,15 @@ public abstract class PagedBTreeNode extends BTreeNode {
         if (bufferManager != null) {
             this.addObserver(bufferManager);
         }
-		this.childrenPageIds = new int[order];
     }
 
-	public void setKey(int index, long key) {
+    @Override
+    protected void initChildren(int size) {
+        //This is called by the BTreeNode constructor
+        this.childrenPageIds = new int[size];
+    }
+
+    public void setKey(int index, long key) {
 		super.setKey(index, key);
 	}
 
@@ -62,14 +67,14 @@ public abstract class PagedBTreeNode extends BTreeNode {
 
 	@Override
 	public BTreeNode[] getChildren() {
-		BTreeNode[] children = new BTreeNode[order];
+		BTreeNode[] children = new BTreeNode[childrenPageIds.length];
 		int i = 0;
 		if(numKeys > 0) {
             for (; i < numKeys + 1; i++) {
                     children[i] = bufferManager.read(childrenPageIds[i]);
             }
         }
-		for (; i < order; i++) {
+		for (; i < childrenPageIds.length; i++) {
 			children[i] = null;
 		}
 		return children;
@@ -77,7 +82,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
 
 	@Override
 	public void setChildren(BTreeNode[] children) {
-		childrenPageIds = new int[order];
+		childrenPageIds = new int[children.length];
 
 		for (int i = 0; i < children.length; i++) {
 			if (children[i] != null) {
@@ -247,14 +252,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
     }
 
     protected abstract void copyValues(PagedBTreeNode node);
-
-    @Override
-    protected void resizeChildren(int order) {
-        int[] childrenIds = new int[order];
-        int length = Math.min(order, getOrder());
-        System.arraycopy(childrenPageIds, 0, childrenIds, 0, length);
-        childrenPageIds = childrenIds;
-    }
 
 	@Override
 	public void close() {

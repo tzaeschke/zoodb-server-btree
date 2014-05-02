@@ -1,37 +1,31 @@
 package org.zoodb.internal.server.index.btree;
 
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 import org.zoodb.internal.util.Pair;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.WeakHashMap;
 
 /**
  * Shared behaviour of unique and non-unique B+ tree.
  */
 public abstract class BTree<T extends BTreeNode> {
 
-    protected int innerNodeOrder;
-    protected int leafOrder;
     protected T root;
     protected BTreeNodeFactory nodeFactory;
-    
+    protected int pageSize;
     private long maxKey = Long.MIN_VALUE;
     private long minKey = Long.MIN_VALUE;
     
     private int modcount = 0; // number of modifications of the tree
 
-    public BTree(int innerNodeOrder, int leafOrder, BTreeNodeFactory nodeFactory) {
-        this.innerNodeOrder = innerNodeOrder;
-        this.leafOrder = leafOrder;
+    public BTree(BTreeNodeFactory nodeFactory) {
         this.nodeFactory = nodeFactory;
     }
 
-    public BTree(int order, BTreeNodeFactory nodeFactory) {
-        this.innerNodeOrder = order;
-        this.leafOrder = order;
+    public BTree(int pageSize, BTreeNodeFactory nodeFactory) {
+        this.pageSize = pageSize;
         this.nodeFactory = nodeFactory;
     }
 
@@ -51,7 +45,7 @@ public abstract class BTree<T extends BTreeNode> {
      */
     public void insert(long key, long value) {
         if (root == null) {
-            root = (T) nodeFactory.newNode(isUnique(), leafOrder, true, true);
+            root = (T) nodeFactory.newNode(isUnique(), pageSize, true, true);
         }
         Pair<LinkedList<T>, T> result = searchNodeWithHistory(key, value);
         LinkedList<T> ancestorStack = result.getA();
@@ -133,7 +127,7 @@ public abstract class BTree<T extends BTreeNode> {
      */
     private void insertInInnerNode(T left, long key, long value, T right, LinkedList<T> ancestorStack) {
         if (left.isRoot()) {
-            T newRoot = (T) nodeFactory.newNode(isUnique(), innerNodeOrder, false, true);
+            T newRoot = (T) nodeFactory.newNode(isUnique(), getPageSize(), false, true);
             swapRoot(newRoot);
             root.put(key, value, left, right);
         } else {
@@ -183,14 +177,6 @@ public abstract class BTree<T extends BTreeNode> {
         return this.root;
     }
 
-    public int getInnerNodeOrder() {
-        return innerNodeOrder;
-    }
-
-    public int getLeafOrder() {
-        return leafOrder;
-    }
-
     public String toString() {
         if(this.root != null) {
             return this.root.toString();
@@ -206,8 +192,7 @@ public abstract class BTree<T extends BTreeNode> {
 
         BTree tree = (BTree) o;
 
-        if (leafOrder != tree.getLeafOrder()) return false;
-        if (innerNodeOrder != tree.getInnerNodeOrder()) return false;
+        if (pageSize != tree.getPageSize()) return false;
         if (root != null ? !root.equals(tree.getRoot()) : tree.getRoot() != null) return false;
 
         return true;
@@ -254,22 +239,24 @@ public abstract class BTree<T extends BTreeNode> {
             throw new IllegalStateException(
                     "Should only be called on leaf nodes.");
         }
-        int order = current.getOrder();
+        int pageSize = current.getPageSize();
         int numKeys = current.getNumKeys();
-        T tempNode = (T) nodeFactory.newNode(isUnique(), leafOrder + 1, true, false);
-        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, order);
+        T tempNode = (T) nodeFactory.newNode(isUnique(), getPageSize(), true, false);
+        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, current.getKeys().length);
         tempNode.setNumKeys(numKeys);
         tempNode.put(newKey, value);
 
-        int keysInLeftNode = (int) Math.ceil((order) / 2.0);
-        int keysInRightNode = order - keysInLeftNode;
+//        int keysInLeftNode = (int) Math.ceil((order) / 2.0);
+//        int keysInRightNode = order - keysInLeftNode;
+        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(tempNode.getKeys());
+        int keysInRightNode = tempNode.getKeys().length - keysInLeftNode;
 
         // populate left node
         tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);
         current.setNumKeys(keysInLeftNode);
 
         // populate right node
-        T right = (T) nodeFactory.newNode(isUnique(), leafOrder, true, false);
+        T right = (T) nodeFactory.newNode(isUnique(), pageSize, true, false);
         tempNode.copyFromNodeToNode(keysInLeftNode, keysInLeftNode, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
@@ -290,23 +277,27 @@ public abstract class BTree<T extends BTreeNode> {
             throw new IllegalStateException(
                     "Should only be called on inner nodes.");
         }
-        int order = current.getOrder();
+        int pageSize = current.getPageSize();
         int numKeys = current.getNumKeys();
         // create a temporary node to allow the insertion
-        T tempNode = (T) nodeFactory.newNode(isUnique(), innerNodeOrder + 1, false, true);
-        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, order);
+        T tempNode = (T) nodeFactory.newNode(isUnique(), pageSize, false, true);
+        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, current.getKeys().length);
         tempNode.setNumKeys(numKeys);
         tempNode.put(key, value, newNode);
-
+        long[] newKeys = insertedOrderedInArray(key, current.getKeys(), current.getNumKeys());
         // split
-        T right = (T) nodeFactory.newNode(isUnique(), innerNodeOrder, false, false);
-        int keysInLeftNode = (int) Math.floor(order / 2.0);
+        T right = (T) nodeFactory.newNode(isUnique(), pageSize, false, false);
+        //int keysInLeftNode = (int) Math.floor(order / 2.0);
+
+        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(newKeys);
+        int keysInRightNode = newKeys.length - keysInLeftNode;
+
         // populate left node
         tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);
         current.setNumKeys(keysInLeftNode);
 
         // populate right node
-        int keysInRightNode = order - keysInLeftNode - 1;
+        //int keysInRightNode = order - keysInLeftNode - 1;
         tempNode.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
@@ -314,7 +305,6 @@ public abstract class BTree<T extends BTreeNode> {
 
         return new Pair<>(right, tempNode.getKeyValue(keysInLeftNode));
     }
-
 
     public T mergeWithRight(BTree<T> tree, T current, T right, T parent) {
         int keyIndex = parent.keyIndexOf(current, right);
@@ -332,7 +322,6 @@ public abstract class BTree<T extends BTreeNode> {
             right.increaseNumKeys(current.getNumKeys());
             tree.swapRoot(right);
             parent.close();
-            //right.changeOrder(leafOrder);
             parent = right;
         } else {
             if (right.isLeaf()) {
@@ -410,8 +399,10 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
     public void redistributeKeysFromRight(T current, T right, T parent) {
-        int totalKeys = right.getNumKeys() + current.getNumKeys();
-        int keysToMove = right.getNumKeys() - (totalKeys / 2);
+        //int totalKeys = right.getNumKeys() + current.getNumKeys();
+        //int keysToMove = right.getNumKeys() - (totalKeys / 2);
+        int splitIndexInRight = PrefixSharingHelper.computeIndexForSplit(current.getKeys(), right.getKeys());
+        int keysToMove = right.getNumKeys() - splitIndexInRight;
 
         //move key from parent to current node
         int parentKeyIndex = parent.keyIndexOf(current, right);
@@ -451,8 +442,10 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
     public void redistributeKeysFromLeft(T current, T left, T parent) {
-        int totalKeys = left.getNumKeys() + current.getNumKeys();
-        int keysToMove = left.getNumKeys() - (totalKeys / 2);
+        //int totalKeys = left.getNumKeys() + current.getNumKeys();
+        int splitIndexInLeft = PrefixSharingHelper.computeIndexForSplit(left.getKeys(), current.getKeys());
+        int keysToMove = left.getNumKeys() - splitIndexInLeft;
+        //int keysToMove = left.getNumKeys() - (totalKeys / 2);
         int parentKeyIndex = parent.keyIndexOf(left, current);
         if (current.isLeaf()) {
             //shift nodes in current node right
@@ -563,4 +556,17 @@ public abstract class BTree<T extends BTreeNode> {
     	return this.modcount;
     }
 
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    private long[] insertedOrderedInArray(long newKey, long[] keys, int size) {
+        int index = Arrays.binarySearch(keys, 0, size, newKey);
+        if (index < 0) {
+            index = - (index + 1);
+        }
+        System.arraycopy(keys, index, keys, index + 1, size);
+        keys[index] = newKey;
+        return keys;
+    }
 }

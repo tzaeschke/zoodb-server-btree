@@ -42,9 +42,9 @@ public class PrefixSharingHelper {
         long first = arr[0];
         long last = arr[arr.length - 1];
         long prefix = computePrefix(first, last);
-        System.out.println(String.format("First:\t %d\t %-72s",first, toBinaryLongString(first)));
-        System.out.println(String.format("Last:\t %d\t %-72s",last, toBinaryLongString(last)));
-        System.out.println(String.format("Prefix:\t %d\t %-72s",prefix, toBinaryLongString(first >> (64 - prefix))));
+//        System.out.println(String.format("First:\t %d\t %-72s",first, toBinaryLongString(first)));
+//        System.out.println(String.format("Last:\t %d\t %-72s",last, toBinaryLongString(last)));
+//        System.out.println(String.format("Prefix:\t %d\t %-72s",prefix, toBinaryLongString(first >> (64 - prefix))));
         return prefix;
     }
 
@@ -56,7 +56,7 @@ public class PrefixSharingHelper {
      * @param arr               The prefix shared array.
      * @return
      */
-    public static int computePrefixForSplitAfterInsert(long[] arr) {
+    public static int computeIndexForSplitAfterInsert(long[] arr) {
         /*
          *  Perform a binary search by computing the sizes of the left and right array
          *  after splitting by a certain index.

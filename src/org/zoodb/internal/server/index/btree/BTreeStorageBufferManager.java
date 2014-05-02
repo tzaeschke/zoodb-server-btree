@@ -1,11 +1,5 @@
 package org.zoodb.internal.server.index.btree;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Observable;
-
 import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
@@ -13,11 +7,15 @@ import org.zoodb.internal.server.StorageChannelInput;
 import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.util.DBLogger;
 
+import java.util.*;
+
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	private final int leafOrder;
 	private final int innerNodeOrder;
-	
+
+    private int pageSize;
+
 	private Map<Integer, PagedBTreeNode> dirtyBuffer;
 	private Map<Integer, PagedBTreeNode> cleanBuffer;
 	private final int maxCleanBufferElements = 20000;
@@ -42,7 +40,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		this.storageIn = storage.getReader(false);
 		this.storageOut = storage.getWriter(false);
 		
-    	int pageSize = this.storageFile.getPageSize();
+    	this.pageSize = this.storageFile.getPageSize();
     	this.leafOrder = computeLeafOrder(pageSize);
     	this.innerNodeOrder = computeInnerNodeOrder(pageSize, isUnique);
 	}

@@ -64,6 +64,16 @@ public class TestPrefixSharing {
         assertArrayEquals(inputArray, decodedArray);
     }
 
+    @Test
+    public void testEncodeDecodeDuplicates() {
+        long[] inputArray = {1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3,3};
+        byte[] bytes = PrefixSharingHelper.encodeArray(inputArray);
+        long[] decodedArray = PrefixSharingHelper.decodeArray(bytes);
+        System.out.print(Arrays.toString(decodedArray));
+        assertArrayEquals(inputArray, decodedArray);
+    }
+
+
     public void assertCorresSplitForRedistribute(long[] first, long[] second) {
         int splitPosition = PrefixSharingHelper.computeIndexForSplit(first, second);
         long[] firstAfterSplit = Arrays.copyOfRange(first, 0, splitPosition + 1);
@@ -74,7 +84,7 @@ public class TestPrefixSharing {
     }
 
     public void assertCorrectSplitAfterInsert(long[] arr, long[] expectedLeft, long[] expectedRight) {
-        int splitIndex = PrefixSharingHelper.computePrefixForSplitAfterInsert(arr);
+        int splitIndex = PrefixSharingHelper.computeIndexForSplitAfterInsert(arr);
         long[] arrLeft = Arrays.copyOfRange(arr, 0, splitIndex + 1);
         long[] arrRight = Arrays.copyOfRange(arr, splitIndex + 1, arr.length);
         assertArrayEquals(expectedLeft, arrLeft);
@@ -89,6 +99,27 @@ public class TestPrefixSharing {
         System.out.println("Right:\t" + Arrays.toString(arrRight));
         PrefixSharingHelper.printSharedPrefixArray(arrLeft);
         PrefixSharingHelper.printSharedPrefixArray(arrRight);
+    }
+
+    @Test
+    public void testInsertInOrderedArray() {
+        long[] keys = new long[] { 1, 3, 5, 7, 9, 0, 0, 0, 0};
+        long[] expectedKeys = new long[] { 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        keys = insertedOrderedInArray(2, keys, 5);
+        keys = insertedOrderedInArray(4, keys, 6);
+        keys = insertedOrderedInArray(6, keys, 7);
+        keys = insertedOrderedInArray(8, keys, 8);
+        assertArrayEquals(expectedKeys, keys);
+    }
+
+    private long[] insertedOrderedInArray(long newKey, long[] keys, int size) {
+        int index = Arrays.binarySearch(keys, 0, size, newKey);
+        if (index < 0) {
+            index = - (index + 1);
+        }
+        System.arraycopy(keys, index, keys, index + 1, size);
+        keys[index] = newKey;
+        return keys;
     }
 
 
