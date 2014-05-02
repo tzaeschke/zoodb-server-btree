@@ -40,7 +40,7 @@ public abstract class BTreeNode extends Observable {
 
     public abstract void initializeEntries();
     protected abstract void initChildren(int size);
-    protected abstract int computeMaxPossibleNumEntries();
+    public abstract int computeMaxPossibleNumEntries();
 
     public abstract BTreeNode newNode(int order, boolean isLeaf, boolean isRoot);
     public abstract boolean equalChildren(BTreeNode other);

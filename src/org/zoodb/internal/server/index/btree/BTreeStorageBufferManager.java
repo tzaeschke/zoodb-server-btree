@@ -84,7 +84,8 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 		PagedBTreeNode node;
 
-		boolean isLeaf = storageIn.readShort() < 0 ? true : false;
+		boolean isLeaf = storageIn.readByte() < 0 ? true : false;
+		int numKeys = storageIn.readInt();
 		
 		/* Deal with prefix-sharing encoded keys */
 		byte[] metadata = new byte[5];
@@ -95,7 +96,6 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		byte[] encodedArrayWithoutMetadata = new byte[encodedArraySize];
 		storageIn.noCheckRead(encodedArrayWithoutMetadata);
 		long[] keys = PrefixSharingHelper.decodeArray(encodedArrayWithoutMetadata, decodedArraySize, prefixLength);
-		int numKeys = decodedArraySize;
 		
 		if(isLeaf) {
 			long[] values = new long[numKeys];
@@ -104,7 +104,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 								pageSize, pageId, numKeys,
 								keys, values);
 		} else {
-			int[] childrenPageIds = new int[numKeys];
+			int[] childrenPageIds = new int[numKeys+1];
 
 			storageIn.noCheckRead(childrenPageIds);
             long[] values = null;
@@ -171,15 +171,17 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	/*
 	 * Leaf node page: 
-	 * 2 byte -1 
+	 * 1 byte -1 
+	 * 4 byte numKeys
 	 * prefixShareEncoding(keys) 
-	 * 8 byte * num_keys for values
+	 * 8 byte * numKeys for values
 	 * 
 	 * Inner node page 
-	 * 2 byte -1 
+	 * 1 byte 0 
+	 * 4 byte numKeys
 	 * prefixShareEncoding(keys) 
-	 * 8 byte * num_keys for values
-	 * 4 byte * (num_keys + 1) for childrenPageIds 
+	 * 8 byte * numKeys for values
+	 * 4 byte * (numKeys + 1) for childrenPageIds 
 	 */
 
 	int writeNodeDataToStorage(PagedBTreeNode node) {
@@ -190,12 +192,14 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		int pageId = storageOut.allocateAndSeek(dataType, previousPageId);
 
 		if (node.isLeaf()) {
-			storageOut.writeShort((short) -1);
+			storageOut.writeByte((byte) -1);
+			storageOut.writeInt(node.getNumKeys());
 			storageOut.noCheckWrite(PrefixSharingHelper.encodeArray(node.getKeys()));
 			storageOut.noCheckWrite(Arrays.copyOf(node.getValues(), node.getNumKeys()));
 
 		} else {
-			storageOut.writeShort((short) -1);
+			storageOut.writeByte((byte) 1);
+			storageOut.writeInt(node.getNumKeys());
 			storageOut.noCheckWrite(PrefixSharingHelper.encodeArray(node.getKeys()));
             if (node.getValues() != null) {
 				storageOut.noCheckWrite(Arrays.copyOf(node.getValues(), node.getNumKeys()));
@@ -367,5 +371,9 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	public StorageChannel getStorageFile() {
 		return this.storageFile;
+	}
+	
+	public int getPageSize() {
+		return this.pageSize;
 	}
 }

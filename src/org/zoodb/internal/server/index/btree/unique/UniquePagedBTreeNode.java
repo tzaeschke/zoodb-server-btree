@@ -152,7 +152,7 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    protected int computeMaxPossibleNumEntries() {
+    public int computeMaxPossibleNumEntries() {
         int maxPossibleNumEntries;
         /*
             In the case of the best compression, all keys would have the same value.
