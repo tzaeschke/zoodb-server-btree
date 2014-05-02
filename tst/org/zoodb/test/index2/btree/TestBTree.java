@@ -106,19 +106,20 @@ public class TestBTree {
 	@Test
 	public void testDeleteMassively() {
 		int pageSize = 320;
+        int numEntries = 50000;
         BTreeFactory factory = factory(pageSize, newBufferManager());
-		deleteMassively(factory);
+		deleteMassively(factory, numEntries);
 	}
 	
 	@Test
 	public void testDeleteMassivelyWithDifferentOrder() {
 		int pageSize = 256;
+        int numEntries = 50000;
         BTreeFactory factory = new BTreeFactory(pageSize, newBufferManager(), true);
-		deleteMassively(factory);
+		deleteMassively(factory, numEntries);
 	}
 	
-	public void deleteMassively(BTreeFactory factory) {
-		int numEntries = 50000;
+	public void deleteMassively(BTreeFactory factory, int numEntries) {
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries, System.nanoTime());
 
