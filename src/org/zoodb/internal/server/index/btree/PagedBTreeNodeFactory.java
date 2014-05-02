@@ -12,21 +12,21 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory<PagedBTreeNode> {
 	}
 
 	@Override
-	public PagedBTreeNode newUniqueNode(int order, boolean isLeaf, boolean isRoot) {
-		return new UniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot);
+	public PagedBTreeNode newUniqueNode(int pageSize, boolean isLeaf, boolean isRoot) {
+		return new UniquePagedBTreeNode(bufferManager, pageSize, isLeaf, isRoot);
 	}
 
     @Override
-    public PagedBTreeNode newNonUniqueNode(int order, boolean isLeaf, boolean isRoot) {
-        return new NonUniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot);
+    public PagedBTreeNode newNonUniqueNode(int pageSize, boolean isLeaf, boolean isRoot) {
+        return new NonUniquePagedBTreeNode(bufferManager, pageSize, isLeaf, isRoot);
     }
 
     @Override
-    public PagedBTreeNode newNode(boolean isUnique, int order, boolean isLeaf, boolean isRoot) {
+    public PagedBTreeNode newNode(boolean isUnique, int pageSize, boolean isLeaf, boolean isRoot) {
         if (isUnique) {
-            return newUniqueNode(order, isLeaf, isRoot);
+            return newUniqueNode(pageSize, isLeaf, isRoot);
         } else {
-            return newNonUniqueNode(order, isLeaf, isRoot);
+            return newNonUniqueNode(pageSize, isLeaf, isRoot);
         }
     }
 

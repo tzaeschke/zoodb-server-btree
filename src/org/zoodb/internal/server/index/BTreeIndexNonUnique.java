@@ -14,7 +14,7 @@ public class BTreeIndexNonUnique extends BTreeIndex<NonUniquePagedBTree, NonUniq
 
         final int leafOrder = bufferManager.getLeafOrder();
         final int innerOrder = bufferManager.getInnerNodeOrder();
-        tree = new NonUniquePagedBTree(innerOrder, leafOrder, bufferManager);
+        tree = new NonUniquePagedBTree(file.getPageSize(), bufferManager);
     }
 
     @Override
@@ -33,7 +33,7 @@ public class BTreeIndexNonUnique extends BTreeIndex<NonUniquePagedBTree, NonUniq
 
     @Override
     public void clear() {
-		tree = new NonUniquePagedBTree(tree.getInnerNodeOrder(), tree.getLeafOrder(), new BTreeStorageBufferManager(file, isUnique()));
+		tree = new NonUniquePagedBTree(tree.getPageSize(), new BTreeStorageBufferManager(file, isUnique()));
     }
 
 	public NonUniquePagedBTree getTree() {

@@ -2,6 +2,10 @@ package org.zoodb.internal.server.index.btree.prefix;
 
 public class PrefixSharingHelper {
 
+    public static final int PREFIX_SHARING_METADATA_SIZE = 5;
+    public static final int STORAGE_MANAGER_METADATA_SIZE = 2;
+    public static final int SMALLEST_POSSIBLE_COMPRESSION_SIZE = 8 + PREFIX_SHARING_METADATA_SIZE + STORAGE_MANAGER_METADATA_SIZE;
+
     /**
      * Compute the size of the bit prefix shared by the two long values.
      *
@@ -42,9 +46,9 @@ public class PrefixSharingHelper {
         long first = arr[0];
         long last = arr[arr.length - 1];
         long prefix = computePrefix(first, last);
-//        System.out.println(String.format("First:\t %d\t %-72s",first, toBinaryLongString(first)));
-//        System.out.println(String.format("Last:\t %d\t %-72s",last, toBinaryLongString(last)));
-//        System.out.println(String.format("Prefix:\t %d\t %-72s",prefix, toBinaryLongString(first >> (64 - prefix))));
+        System.out.println(String.format("First:\t %d\t %-72s",first, toBinaryLongString(first)));
+        System.out.println(String.format("Last:\t %d\t %-72s",last, toBinaryLongString(last)));
+        System.out.println(String.format("Prefix:\t %d\t %-72s",prefix, toBinaryLongString(first >> (64 - prefix))));
         return prefix;
     }
 
@@ -178,10 +182,11 @@ public class PrefixSharingHelper {
         int indexInCurrentByte = 0;
 
         /* Compute the number of bits to be stored */
-        int bitsToStore = (int) (prefix + (64 - prefix) * array.length);
-        int outputArraySize = (int) Math.ceil(bitsToStore/ 8.0);
+//        int bitsToStore = (int) (prefix + (64 - prefix) * array.length);
+//        int outputArraySize = (int) Math.ceil(bitsToStore/ 8.0);
+        int outputArraySize = computeKeyArraySizeInBytes(array, prefix);
 
-        byte[] outputArray = new byte[outputArraySize + 5];
+        byte[] outputArray = new byte[outputArraySize + PREFIX_SHARING_METADATA_SIZE];
 
         /*Write the size of the array as an int - always 4 bytes */
         outputArray[currentByte++] = (byte) (array.length >>> 24);
@@ -251,6 +256,26 @@ public class PrefixSharingHelper {
         }
 
         return decodedArray;
+    }
+
+    public static int computeKeyArraySizeInBytes(long first, long last, long arrayLength) {
+        long prefix = computePrefix(first, last);
+        return computeKeyArraySizeInBytes(prefix, arrayLength);
+    }
+
+    public static int computeKeyArraySizeInBytes(long prefix, long arrayLength) {
+        int bitsToStore = (int) (prefix + (64 - prefix) * arrayLength);
+        int keyArraySizeInBytes = (int) Math.ceil(bitsToStore/ 8.0);
+        return keyArraySizeInBytes;
+    }
+
+    public static int computeKeyArraySizeInBytes(long[] keys) {
+        long prefix = computePrefix(keys);
+        return computeKeyArraySizeInBytes(keys, prefix);
+    }
+
+    public static int computeKeyArraySizeInBytes(long[] keys, long prefix) {
+        return computeKeyArraySizeInBytes(prefix, keys.length);
     }
 
     private static int increaseIndexInCurrentByte(int indexInCurrentByte) {

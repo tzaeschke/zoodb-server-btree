@@ -6,14 +6,10 @@ import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
 public class NonUniquePagedBTree extends PagedBTree<NonUniquePagedBTreeNode> {
 
-    public NonUniquePagedBTree(int order, BTreeBufferManager bufferManager) {
-        super(order, bufferManager);
+    public NonUniquePagedBTree(int pageSize, BTreeBufferManager bufferManager) {
+        super(pageSize, bufferManager);
     }
 
-    public NonUniquePagedBTree(int innerNodeOrder, int leafOrder, BTreeBufferManager bufferManager) {
-        super(innerNodeOrder, leafOrder, bufferManager);
-    }
-    
     @Override
     public boolean isUnique() {
         return false;

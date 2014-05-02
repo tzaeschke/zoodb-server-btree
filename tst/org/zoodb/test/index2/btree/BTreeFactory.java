@@ -22,87 +22,81 @@ public class BTreeFactory {
     private BTreeBufferManager bufferManager;
     private boolean unique = true;
 
-    public BTreeFactory(int order, BTreeBufferManager bufferManager)  {
-        this.tree = new UniquePagedBTree(order, bufferManager);
+    public BTreeFactory(int pageSize, BTreeBufferManager bufferManager)  {
+        this.tree = new UniquePagedBTree(pageSize, bufferManager);
         this.nodeFactory = tree.getNodeFactory();
         this.bufferManager = bufferManager;
     }
 
-    public BTreeFactory(int order, BTreeBufferManager bufferManager, boolean unique)  {
-        createTree(order, order, bufferManager, unique);
+    public BTreeFactory(int pageSize, BTreeBufferManager bufferManager, boolean unique)  {
+        createTree(pageSize, bufferManager, unique);
         this.nodeFactory = tree.getNodeFactory();
         this.bufferManager = bufferManager;
     }
     
-    public BTreeFactory(int innerNodeOrder, int leafNodeOrder, BTreeBufferManager bufferManager, boolean unique)  {
-        createTree(innerNodeOrder, leafNodeOrder, bufferManager, unique);
-        this.nodeFactory = tree.getNodeFactory();
-        this.bufferManager = bufferManager;
-    }
-
-    public void addInnerLayer(List<List<Long>> nodeKeys) {
-		this.addLayer(false, nodeKeys);
-	}
-	
-	
-	public void addLeafLayerDefault(List<List<Long>> nodeKeys) {
-		// value is same as key
-		this.addLeafLayer(zip(nodeKeys,nodeKeys));
-	}
-	
-	public void addLeafLayer(List<List<Pair<Long,Long>>> nodeKeysValues) {
-		List<List<Long>> nodeKeys = splitList(true, nodeKeysValues);
-		splitList(true, nodeKeysValues);
-		this.addLayer(true,nodeKeys);
-		List<List<Long>> nodeValues = splitList(false, nodeKeysValues);;
-		for(int i=0; i<prevLayer.size(); i++) {
-			List<Long> values = nodeValues.get(i);
-			prevLayer.get(i).setValues(padLongArray(toPrimitives(
-									values.toArray(new Long[values.size()])), 
-									this.tree.getLeafOrder()));
-		}
-	}
-	
-	public void addLayer(boolean isLeaf, List<List<Long>> nodeKeys) {
-        int order = (isLeaf == true) ? tree.getLeafOrder() : tree.getInnerNodeOrder();
-		if(this.tree.isEmpty()) {
-			BTreeNode root = nodeFactory.newUniqueNode(this.tree.getInnerNodeOrder(), isLeaf, true);
-			root.setNumKeys(nodeKeys.get(0).size());
-			List<Long> keys = nodeKeys.get(0);
-			root.setKeys(padLongArray(toPrimitives(
-									keys.toArray(new Long[keys.size()])), 
-									order));
-			tree.setRoot(root);
-			prevLayer = new ArrayList<BTreeNode>();
-			prevLayer.add(root);
-		} else {
-			int indexLayer = 0;
-			List<BTreeNode> newLayer = new ArrayList<BTreeNode>();
-			for(BTreeNode parent : prevLayer) {
-				BTreeNode[] children = new BTreeNode[order];
-				for(int ik = 0; ik < parent.getNumKeys()+1; ik++) {
-					BTreeNode node = nodeFactory.newUniqueNode(order, isLeaf, false);
-					List<Long> keys = nodeKeys.get(indexLayer);
-					node.setKeys(padLongArray(toPrimitives(
-									keys.toArray(new Long[keys.size()])),
-                            order));
-					node.setNumKeys(keys.size());
-					children[ik] = node;
-					newLayer.add(node);
-					indexLayer++;
-				}
-				parent.setChildren(padChildrenArray(children, order));
-			}
-			this.prevLayer = newLayer;
-		}
-	}
+//    public void addInnerLayer(List<List<Long>> nodeKeys) {
+//		this.addLayer(false, nodeKeys);
+//	}
+//
+//
+//	public void addLeafLayerDefault(List<List<Long>> nodeKeys) {
+//		// value is same as key
+//		this.addLeafLayer(zip(nodeKeys,nodeKeys));
+//	}
+//
+//	public void addLeafLayer(List<List<Pair<Long,Long>>> nodeKeysValues) {
+//		List<List<Long>> nodeKeys = splitList(true, nodeKeysValues);
+//		splitList(true, nodeKeysValues);
+//		this.addLayer(true,nodeKeys);
+//		List<List<Long>> nodeValues = splitList(false, nodeKeysValues);;
+//		for(int i=0; i<prevLayer.size(); i++) {
+//			List<Long> values = nodeValues.get(i);
+//			prevLayer.get(i).setValues(padLongArray(toPrimitives(
+//									values.toArray(new Long[values.size()])),
+//									values.size()));
+//		}
+//	}
+//
+//	public void addLayer(boolean isLeaf, List<List<Long>> nodeKeys) {
+//        //int order = (isLeaf == true) ? tree.getLeafOrder() : tree.getPageSize();
+//		if(this.tree.isEmpty()) {
+//			BTreeNode root = nodeFactory.newUniqueNode(this.tree.getPageSize(), isLeaf, true);
+//			root.setNumKeys(nodeKeys.get(0).size());
+//			List<Long> keys = nodeKeys.get(0);
+//			root.setKeys(padLongArray(toPrimitives(
+//									keys.toArray(new Long[keys.size()])),
+//									keys.size()));
+//			tree.setRoot(root);
+//			prevLayer = new ArrayList<>();
+//			prevLayer.add(root);
+//		} else {
+//			int indexLayer = 0;
+//			List<BTreeNode> newLayer = new ArrayList<BTreeNode>();
+//			for(BTreeNode parent : prevLayer) {
+//				BTreeNode[] children = new BTreeNode[order];
+//				for(int ik = 0; ik < parent.getNumKeys()+1; ik++) {
+//					BTreeNode node = nodeFactory.newUniqueNode(tree.getPageSize(), isLeaf, false);
+//					List<Long> keys = nodeKeys.get(indexLayer);
+//					node.setKeys(padLongArray(toPrimitives(
+//									keys.toArray(new Long[keys.size()])),
+//                            order));
+//					node.setNumKeys(keys.size());
+//					children[ik] = node;
+//					newLayer.add(node);
+//					indexLayer++;
+//				}
+//				parent.setChildren(padChildrenArray(children, order));
+//			}
+//			this.prevLayer = newLayer;
+//		}
+//	}
 
 	public BTree getTree() {
 		return this.tree;
 	}
 	
 	public void clear() {
-        createTree(tree.getInnerNodeOrder(), tree.getLeafOrder(), bufferManager, unique);
+        createTree(tree.getPageSize(), bufferManager, unique);
 	}
 	
 	private static List<List<Pair<Long,Long>>> zip(List<List<Long>> l1, List<List<Long>> l2) {
@@ -131,23 +125,23 @@ public class BTreeFactory {
 		return ret;
 	}
 	
-	private static long[] padLongArray(long[] keys, int order) {
-		long[] paddedKeyArray = new long[order - 1];
+	private static long[] padLongArray(long[] keys, int size) {
+		long[] paddedKeyArray = new long[size - 1];
 		for (int i = 0; i < keys.length; i++) {
 			paddedKeyArray[i] = keys[i];
 		}
-		for (int i = keys.length; i < order - 1; i++) {
+		for (int i = keys.length; i < size - 1; i++) {
 			paddedKeyArray[i] = 0;
 		}
 		return paddedKeyArray;
 	}
 
-	private static BTreeNode[] padChildrenArray(BTreeNode[] children, int order) {
-		BTreeNode[] paddedNodeArray = new BTreeNode[order];
+	private static BTreeNode[] padChildrenArray(BTreeNode[] children, int size) {
+		BTreeNode[] paddedNodeArray = new BTreeNode[size];
 		for (int i = 0; i < children.length; i++) {
 			paddedNodeArray[i] = children[i];
 		}
-		for (int i = children.length; i < order; i++) {
+		for (int i = children.length; i < size; i++) {
 			paddedNodeArray[i] = null;
 		}
 		return paddedNodeArray;
@@ -161,11 +155,11 @@ public class BTreeFactory {
 	    return primitives;
 	}
 
-    private void createTree(int innerNodeOrder, int leafOrder, BTreeBufferManager bufferManager, boolean unique) {
+    private void createTree(int pageSize, BTreeBufferManager bufferManager, boolean unique) {
         if (unique) {
-            this.tree = new UniquePagedBTree(innerNodeOrder, leafOrder, bufferManager);
+            this.tree = new UniquePagedBTree(pageSize, bufferManager);
         } else {
-            this.tree = new NonUniquePagedBTree(innerNodeOrder, leafOrder, bufferManager);
+            this.tree = new NonUniquePagedBTree(pageSize, bufferManager);
         }
     }
 

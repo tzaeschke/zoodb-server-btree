@@ -1,23 +1,21 @@
 package org.zoodb.test.index2.performance;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
-
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.BTreeIndex;
 import org.zoodb.internal.server.index.BTreeIndexUnique;
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
 import org.zoodb.internal.server.index.PagedUniqueLongLong;
 import org.zoodb.internal.server.index.btree.BTreeIterator;
-import org.zoodb.internal.server.index.btree.BTreeLeafEntryIterator;
 import org.zoodb.tools.DBStatistics;
 import org.zoodb.tools.ZooConfig;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 
 public class PageUsageStats {
 
@@ -34,7 +32,7 @@ public class PageUsageStats {
 
 		ZooConfig.setFilePageSize(ZooConfig.FILE_PAGE_SIZE_DEFAULT);
 	}
-	
+
     PagedUniqueLongLong oldIndex;
     StorageChannel oldStorage; 
     BTreeIndexUnique newIndex;
@@ -58,8 +56,7 @@ public class PageUsageStats {
 	public void insertAndDelete() {
 		System.out.println("Orders (inner:leaf), Old: " + (oldIndex.getMaxInnerN() + 1) + ":"
 				+ (oldIndex.getMaxLeafN() + 1) + "\t" + "New Order: "
-				+ newIndex.getTree().getInnerNodeOrder() + ":"
-				+ newIndex.getTree().getLeafOrder());
+				+ newIndex.getTree().getPageSize());
 
 		int numElements = 100000;
 		ArrayList<LLEntry> entries = PerformanceTest

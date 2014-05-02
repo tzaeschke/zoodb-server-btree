@@ -243,7 +243,8 @@ public class TestNode {
 	public void testDifferentOrders() {
 		int innerOrder = 4;
 		int leafOrder = 3;
-        BTree tree = new UniquePagedBTree(innerOrder, leafOrder, new BTreeMemoryBufferManager());
+        int pageSize = 128;
+        BTree tree = new UniquePagedBTree(pageSize, new BTreeMemoryBufferManager());
         
         // test leaf
 		BTreeNode leaf = tree.getNodeFactory().newUniqueNode( leafOrder, true, true);

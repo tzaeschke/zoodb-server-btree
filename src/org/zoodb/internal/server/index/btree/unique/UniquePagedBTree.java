@@ -1,11 +1,11 @@
 package org.zoodb.internal.server.index.btree.unique;
 
-import java.util.NoSuchElementException;
-
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTree;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.util.Pair;
+
+import java.util.NoSuchElementException;
 
 /**
  * Abstracts the need to specify a BTreeNodeFactory, which is specific to this type of tree.
@@ -16,15 +16,11 @@ public class UniquePagedBTree extends PagedBTree<UniquePagedBTreeNode> {
 	
     private static final int NO_VALUE = 0;
 
-    public UniquePagedBTree(int order, BTreeBufferManager bufferManager) {
-        super(order, bufferManager);
+    public UniquePagedBTree(int pageSize, BTreeBufferManager bufferManager) {
+        super(pageSize, bufferManager);
     }
 
-    public UniquePagedBTree(int innerNodeOrder, int leafOrder, BTreeBufferManager bufferManager) {
-        super(innerNodeOrder, leafOrder, bufferManager);
-    }
-    
-        @Override
+    @Override
     public boolean isUnique() {
         return true;
     }

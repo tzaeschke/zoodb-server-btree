@@ -14,10 +14,10 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
     
     public BTreeIndexUnique(StorageChannel file, boolean isNew) {
     	super(file, isNew, true);
-    	
+
         final int leafOrder = bufferManager.getLeafOrder();
         final int innerOrder = bufferManager.getInnerNodeOrder();
-		tree = new UniquePagedBTree(innerOrder, leafOrder, bufferManager);
+		tree = new UniquePagedBTree(file.getPageSize(), bufferManager);
     }
 
 	public BTreeIndexUnique(StorageChannel file, boolean isNew, boolean isUnique, int rootPageId) {

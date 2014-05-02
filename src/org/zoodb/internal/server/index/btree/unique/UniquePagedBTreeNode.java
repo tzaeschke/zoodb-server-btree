@@ -3,6 +3,7 @@ package org.zoodb.internal.server.index.btree.unique;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 /**
  * Corresponds to Unique B+ tree indices.
@@ -156,23 +157,26 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
         /*
             In the case of the best compression, all keys would have the same value.
          */
+        int encodedKeyArraySize = PrefixSharingHelper.SMALLEST_POSSIBLE_COMPRESSION_SIZE;
+
         if (isLeaf()) {
             //subtract a 64 bit prefix and divide by 8 (the number of bytes in a long)
-            maxPossibleNumEntries = (pageSize - 8) >>> 3;
+            maxPossibleNumEntries = (pageSize - encodedKeyArraySize) >>> 3;
         } else {
             //inner nodes also contain children ids which are ints
             //need to divide by 4
-            maxPossibleNumEntries = (pageSize - 8) >>> 2;
+            //n * 4
+            maxPossibleNumEntries = (pageSize - encodedKeyArraySize) >>> 2;
         }
         return maxPossibleNumEntries;
     }
 
     @Override
-    public long getNonKeyEntrySizeInBytes() {
+    public long getNonKeyEntrySizeInBytes(int numKeys) {
         if (isLeaf()) {
-            return getNumKeys() * 8;
+            return numKeys * 8;
         } else {
-            return getNumKeys() * 4;
+            return (numKeys + 1) * 4;
         }
     }
 }

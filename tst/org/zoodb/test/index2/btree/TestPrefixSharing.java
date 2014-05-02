@@ -12,7 +12,7 @@ public class TestPrefixSharing {
 
     @Test
     public void testComputePrefix() {
-        long[] arr = { 1114, 1116};
+        long[] arr = { 1500, 1800};
 
         long prefix = PrefixSharingHelper.computePrefix(arr);
         System.out.println(prefix);
@@ -66,7 +66,7 @@ public class TestPrefixSharing {
 
     @Test
     public void testEncodeDecodeDuplicates() {
-        long[] inputArray = {1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3,3};
+        long[] inputArray = {1, 1};
         byte[] bytes = PrefixSharingHelper.encodeArray(inputArray);
         long[] decodedArray = PrefixSharingHelper.decodeArray(bytes);
         System.out.print(Arrays.toString(decodedArray));
@@ -101,16 +101,16 @@ public class TestPrefixSharing {
         PrefixSharingHelper.printSharedPrefixArray(arrRight);
     }
 
-    @Test
-    public void testInsertInOrderedArray() {
-        long[] keys = new long[] { 1, 3, 5, 7, 9, 0, 0, 0, 0};
-        long[] expectedKeys = new long[] { 1, 2, 3, 4, 5, 6, 7, 8, 9};
-        keys = insertedOrderedInArray(2, keys, 5);
-        keys = insertedOrderedInArray(4, keys, 6);
-        keys = insertedOrderedInArray(6, keys, 7);
-        keys = insertedOrderedInArray(8, keys, 8);
-        assertArrayEquals(expectedKeys, keys);
-    }
+//    @Test
+//    public void testInsertInOrderedArray() {
+//        long[] keys = new long[] { 1, 3, 5, 7, 9, 0, 0, 0, 0};
+//        long[] expectedKeys = new long[] { 1, 2, 3, 4, 5, 6, 7, 8, 9};
+//        keys = insertedOrderedInArray(2, keys, 5);
+//        keys = insertedOrderedInArray(4, keys, 6);
+//        keys = insertedOrderedInArray(6, keys, 7);
+//        keys = insertedOrderedInArray(8, keys, 8);
+//        assertArrayEquals(expectedKeys, keys);
+//    }
 
     private long[] insertedOrderedInArray(long newKey, long[] keys, int size) {
         int index = Arrays.binarySearch(keys, 0, size, newKey);

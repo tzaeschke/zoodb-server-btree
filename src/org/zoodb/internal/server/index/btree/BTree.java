@@ -52,9 +52,7 @@ public abstract class BTree<T extends BTreeNode> {
         T leaf = result.getB();
 
         increaseModcount();
-
-        if (leaf.isFull()) {
-            //split node
+        if (leaf.willOverflowAfterInsert(key)) {
             T rightNode = putAndSplit(leaf, key, value);
             insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
         } else {
@@ -249,7 +247,7 @@ public abstract class BTree<T extends BTreeNode> {
 //        int keysInLeftNode = (int) Math.ceil((order) / 2.0);
 //        int keysInRightNode = order - keysInLeftNode;
         int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(tempNode.getKeys());
-        int keysInRightNode = tempNode.getKeys().length - keysInLeftNode;
+        int keysInRightNode = numKeys + 1 - keysInLeftNode;
 
         // populate left node
         tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);

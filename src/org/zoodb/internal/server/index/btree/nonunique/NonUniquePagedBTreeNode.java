@@ -3,6 +3,7 @@ package org.zoodb.internal.server.index.btree.nonunique;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 import java.util.Arrays;
 
@@ -115,11 +116,12 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    public long getNonKeyEntrySizeInBytes() {
+    public long getNonKeyEntrySizeInBytes(int numKeys) {
         if (isLeaf()) {
-            return getNumKeys() * 8;
+            return numKeys * 8;
         } else {
-            return getNumKeys() * 12;
+            int numChildren = numKeys + 1;
+            return numKeys * 8 + numChildren * 4;
         }
     }
 
@@ -129,13 +131,18 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         /*
             In the case of the best compression, all keys would have the same value.
          */
+        int encodedKeyArraySize = PrefixSharingHelper.SMALLEST_POSSIBLE_COMPRESSION_SIZE;
+
         if (isLeaf()) {
             //subtract a 64 bit prefix and divide by 8 (the number of bytes in a long)
-            maxPossibleNumEntries = (pageSize - 8) >>> 3;
+
+            maxPossibleNumEntries = (pageSize - encodedKeyArraySize) >>> 3;
         } else {
             //inner nodes also contain children ids which are ints
             //need to divide by 12
-            maxPossibleNumEntries = (pageSize - 8) / 12;
+            // n * 8 value bytes
+            // (n + 1) * 4 child bytes
+            maxPossibleNumEntries = (pageSize - encodedKeyArraySize) / 12 + 4;
         }
         return maxPossibleNumEntries;
     }

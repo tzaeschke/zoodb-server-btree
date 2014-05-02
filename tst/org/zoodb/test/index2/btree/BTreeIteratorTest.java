@@ -1,25 +1,19 @@
 package org.zoodb.test.index2.btree;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.NoSuchElementException;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.zoodb.internal.server.index.LongLongIndex;
-import org.zoodb.internal.server.index.btree.AscendingBTreeLeafEntryIterator;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeLeafEntryIterator;
-import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
-import org.zoodb.internal.server.index.btree.DescendingBTreeLeafEntryIterator;
-import org.zoodb.internal.server.index.btree.PagedBTree;
+import org.zoodb.internal.server.index.btree.*;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 @RunWith(Parameterized.class)
 public class BTreeIteratorTest {
@@ -37,20 +31,20 @@ public class BTreeIteratorTest {
 				{ new UniquePagedBTree(4, new BTreeMemoryBufferManager()) } });
 	}
 
-	@Test(expected = NoSuchElementException.class)
-	public void testLeafIterate() {
-		PagedBTree<?> tree = TestBTree
-				.getTestTree(new BTreeMemoryBufferManager());
-
-		BTreeLeafEntryIterator<?> it = new AscendingBTreeLeafEntryIterator(
-				tree, 3, 15);
-
-		while (it.hasNext()) {
-			it.next().getKey();
-		}
-
-		it.next();
-	}
+//	@Test(expected = NoSuchElementException.class)
+//	public void testLeafIterate() {
+//		PagedBTree<?> tree = TestBTree
+//				.getTestTree(new BTreeMemoryBufferManager());
+//
+//		BTreeLeafEntryIterator<?> it = new AscendingBTreeLeafEntryIterator(
+//				tree, 3, 15);
+//
+//		while (it.hasNext()) {
+//			it.next().getKey();
+//		}
+//
+//		it.next();
+//	}
 
 	@Test
 	public void testAscendingIterator() {

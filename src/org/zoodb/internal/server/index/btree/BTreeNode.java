@@ -36,7 +36,7 @@ public abstract class BTreeNode extends Observable {
 		initializeEntries();
 	}
 
-    public abstract long getNonKeyEntrySizeInBytes();
+    public abstract long getNonKeyEntrySizeInBytes(int numKeys);
 
     public abstract void initializeEntries();
     protected abstract void initChildren(int size);
@@ -540,6 +540,10 @@ public abstract class BTreeNode extends Observable {
         return true;
     }
 
+    public long getNonKeyEntrySizeInBytes() {
+        return getNonKeyEntrySizeInBytes(getNumKeys());
+    }
+
     protected int computeMinSize(int pageSize) {
         return pageSize >> 1;
     }
@@ -548,13 +552,20 @@ public abstract class BTreeNode extends Observable {
         return getNonKeyEntrySizeInBytes() + getKeyArraySizeInBytes();
     }
 
-    protected long getKeyArraySizeInBytes() {
-        //ToDo precompute the prefix
-        long prefix = PrefixSharingHelper.computePrefix(getKeys());
-        //additional metadata needed to encode the key array
-        long metadataSize = 5;
-        long sizeInBytes = (prefix >>> 3) + (((64L - prefix) * getNumKeys()) >>> 3);
-        return metadataSize + sizeInBytes;
+    protected int getKeyArraySizeInBytes() {
+        //ToDo use precomputed prefix
+        return PrefixSharingHelper.computeKeyArraySizeInBytes(keys);
     }
 
+    public boolean willOverflowAfterInsert(long key) {
+        if (getNumKeys() == 0) {
+            return false;
+        }
+        long first = Math.min(getSmallestKey(), key);
+        long last = Math.max(getLargestKey(), key);
+        long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last);
+        int newPageSize = (int) (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(getNumKeys() + 1));
+        boolean willOverflow = pageSize < newPageSize;
+        return willOverflow;
+    }
 }
