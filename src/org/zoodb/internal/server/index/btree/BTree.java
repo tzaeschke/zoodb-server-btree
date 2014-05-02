@@ -396,7 +396,7 @@ public abstract class BTree<T extends BTreeNode> {
     public void redistributeKeysFromRight(T current, T right, T parent) {
         //int totalKeys = right.getNumKeys() + current.getNumKeys();
         //int keysToMove = right.getNumKeys() - (totalKeys / 2);
-        int splitIndexInRight = PrefixSharingHelper.computeIndexForSplit(current.getKeys(), right.getKeys());
+        int splitIndexInRight = PrefixSharingHelper.computeIndexForRedistributeLeftToRight(right.getKeys(), current.getKeys());
         int keysToMove = right.getNumKeys() - splitIndexInRight;
 
         //move key from parent to current node
@@ -438,7 +438,7 @@ public abstract class BTree<T extends BTreeNode> {
 
     public void redistributeKeysFromLeft(T current, T left, T parent) {
         //int totalKeys = left.getNumKeys() + current.getNumKeys();
-        int splitIndexInLeft = PrefixSharingHelper.computeIndexForSplit(left.getKeys(), current.getKeys());
+        int splitIndexInLeft = PrefixSharingHelper.computeIndexForRedistributeLeftToRight(left.getKeys(), current.getKeys());
         int keysToMove = left.getNumKeys() - splitIndexInLeft;
         //int keysToMove = left.getNumKeys() - (totalKeys / 2);
         int parentKeyIndex = parent.keyIndexOf(left, current);

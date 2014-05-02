@@ -98,13 +98,13 @@ public class PrefixSharingHelper {
      * Compute the number of keys to move from the left array to the right array.
      *
      * As a precondition, the left array should have a larger storage size than the
-     * left array.
+     * right array.
      *
      * @param first
      * @param second
      * @return
      */
-    public static int computeIndexForSplit(long[] first, long[] second) {
+    public static int computeIndexForRedistributeLeftToRight(long[] first, long[] second) {
         /*
          *  Perform a binary search on the index in the first array that would
          *  provide the optimal split point.
@@ -130,11 +130,46 @@ public class PrefixSharingHelper {
                 high = mid - 1;
             }
         }
-        System.out.println("Optimal difference: " + optimalDiff);
+        //System.out.println("Optimal difference: " + optimalDiff);
         return optimalIndex;
 
     }
 
+    /**
+     * Compute the number of keys to move from the right array to the left array.
+     *
+     * As a precondition, the right array should have a larger storage size than the
+     * left array.
+     *
+     * @param first
+     * @param second
+     * @return
+     */
+    public static int computeIndexForRedistributeRightToLeft(long[] first, long[] second) {
+        int low = 0 ;
+        int high = second.length - 1;
+        int mid = 0;
+        int optimalIndex = 0;
+        long optimalDiff = Long.MAX_VALUE;
+        while (low <= high) {
+            mid = low + ((high - low) >> 1);
+            long prefixLeft = computePrefix(first[0], second[mid]);
+            long prefixRight = computePrefix(second[mid + 1], second[second.length - 1]);
+            long sizeLeft = prefixLeft + (second.length - 1 - mid + first.length) * (64 - prefixLeft);
+            long sizeRight = prefixRight + (mid + 1) * (64 - prefixRight);
+            if (optimalDiff > Math.abs(sizeLeft - sizeRight)) {
+                optimalIndex = mid;
+                optimalDiff = Math.abs(sizeLeft - sizeRight);
+            }
+            if (sizeLeft < sizeRight) {
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        //System.out.println("Optimal difference: " + optimalDiff);
+        return optimalIndex;
+    }
     /**
      * Utility method for printing the prefix representation of an array.
      *

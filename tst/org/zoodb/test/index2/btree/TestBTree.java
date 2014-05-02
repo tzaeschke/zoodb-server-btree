@@ -105,16 +105,15 @@ public class TestBTree {
 	 */
 	@Test
 	public void testDeleteMassively() {
-		int order = 320;
-        BTreeFactory factory = factory(order, newBufferManager());
+		int pageSize = 320;
+        BTreeFactory factory = factory(pageSize, newBufferManager());
 		deleteMassively(factory);
 	}
 	
 	@Test
 	public void testDeleteMassivelyWithDifferentOrder() {
-		int leafOrder = 128;
-		int innerOrder = 256;
-        BTreeFactory factory = new BTreeFactory(ZooConfig.getFilePageSize(), newBufferManager(), true);
+		int pageSize = 256;
+        BTreeFactory factory = new BTreeFactory(pageSize, newBufferManager(), true);
 		deleteMassively(factory);
 	}
 	

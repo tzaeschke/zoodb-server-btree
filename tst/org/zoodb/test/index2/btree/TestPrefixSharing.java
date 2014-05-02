@@ -40,12 +40,21 @@ public class TestPrefixSharing {
     }
 
     @Test
-    public void testSplitRedistribute() {
+    public void testSplitRedistributeLeftToRight() {
         long[] first = { 1, 2, 3, 4, 5 };
         long[] second = { 8, 9};
         printSharedPrefixArrays(first, second);
-        assertCorresSplitForRedistribute(first, second);
+        assertCorresSplitForRedistributeLeftToRight(first, second);
     }
+
+    @Test
+    public void testSplitRedistributeRightToLeft() {
+        long[] first = { 1, 2, 3};
+        long[] second = { 4, 5, 6, 7, 8, 9};
+        printSharedPrefixArrays(first, second);
+        assertCorresSplitForRedistributeRightToLeft(first, second);
+    }
+
 
     @Test
     public void testIndividualBits() {
@@ -74,8 +83,17 @@ public class TestPrefixSharing {
     }
 
 
-    public void assertCorresSplitForRedistribute(long[] first, long[] second) {
-        int splitPosition = PrefixSharingHelper.computeIndexForSplit(first, second);
+    private void assertCorresSplitForRedistributeRightToLeft(long[] first, long[] second) {
+        int splitPosition = PrefixSharingHelper.computeIndexForRedistributeRightToLeft(first, second);
+        long[] secondAfterSplit = Arrays.copyOfRange(second, splitPosition, second.length);
+        long[] firstAfterSplit = new long[first.length + second.length - secondAfterSplit.length];
+        System.arraycopy(first, 0, firstAfterSplit, 0, first.length);
+        System.arraycopy(second, 0, firstAfterSplit, first.length, splitPosition);
+        printSharedPrefixArrays(firstAfterSplit, secondAfterSplit);
+    }
+
+    public void assertCorresSplitForRedistributeLeftToRight(long[] first, long[] second) {
+        int splitPosition = PrefixSharingHelper.computeIndexForRedistributeLeftToRight(first, second);
         long[] firstAfterSplit = Arrays.copyOfRange(first, 0, splitPosition + 1);
         long[] secondAfterSplit = new long[first.length - firstAfterSplit.length + second.length];
         System.arraycopy(first, splitPosition + 1, secondAfterSplit, 0, (first.length - firstAfterSplit.length));
