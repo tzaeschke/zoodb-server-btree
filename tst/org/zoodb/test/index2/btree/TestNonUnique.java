@@ -19,7 +19,7 @@ public class TestNonUnique {
 
     @Test
     public void testSameKey() {
-        int order = 5;
+        int order = 64;
         BTree tree = factory(order).getTree();
         tree.insert(1, 1);
         tree.insert(1, 2);
@@ -28,20 +28,22 @@ public class TestNonUnique {
 
     @Test
     public void testSameKeyReverse() {
-        int order = 5;
+        int order = 64;
         BTree tree = factory(order).getTree();
         tree.insert(1, 3);
         tree.insert(1, 2);
         assertEquals(2, tree.getRoot().getNumKeys());
     }
 
+    @Test
     public void testSameKeyValuePair() {
-        int order = 5;
+        int order = 64;
         BTree tree = factory(order).getTree();
         tree.insert(1, 1);
         tree.insert(1, 1);
         assertEquals(1, tree.getRoot().getNumKeys());
     }
+
 //
 //    @Test
 //    public void testSameKeyLeaf() {
@@ -65,14 +67,14 @@ public class TestNonUnique {
 
     @Test
     public void testInsertSplit() {
-        int order = 5;
+        int order = 64;
         BTreeFactory factory = factory(order);
         NonUniquePagedBTree tree = (NonUniquePagedBTree) factory.getTree();
 
         for (int i = 0; i < 100; i++) {
             tree.insert(1, i);
         }
-        //System.out.println(tree);
+        System.out.println(tree);
     }
 
 //    @Test

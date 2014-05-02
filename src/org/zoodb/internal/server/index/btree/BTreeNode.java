@@ -566,7 +566,7 @@ public abstract class BTreeNode extends Observable {
         int newNumKeys = getNumKeys() + 1;
         long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last, newNumKeys);
         int newPageSize = (int) (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys));
-        boolean willOverflow = pageSize < newPageSize;
+        boolean willOverflow = pageSize <= newPageSize;
         return willOverflow;
     }
 }
