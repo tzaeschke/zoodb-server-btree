@@ -40,10 +40,10 @@ public class TestBTree {
 
 	@Test
 	public void searchAfterSplit() {
-		final int pageSize = 128;
+		final int pageSize = 64;
         BTreeFactory factory = factory(pageSize, newBufferManager());
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
-        int numberOfElements = pageSize;
+        int numberOfElements = 320;
 
 		Map<Long, Long> keyValueMap = BTreeTestUtils
 				.increasingKeysRandomValues(numberOfElements);
@@ -60,17 +60,18 @@ public class TestBTree {
 
 	@Test
 	public void searchMissingSingleNode() {
-		final int order = 10000;
-        BTreeFactory factory = factory(order, newBufferManager());
+		final int pageSize = 128;
+        BTreeFactory factory = factory(pageSize, newBufferManager());
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
 
+        int numberOfElements = 512;
 		Map<Long, Long> keyValueMap = BTreeTestUtils
-				.increasingKeysRandomValues(order / 2);
+				.increasingKeysRandomValues(numberOfElements);
 		for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
 			tree.insert(entry.getKey(), entry.getValue());
 		}
 
-		int[] missingKeys = { -1, order + 1 };
+		int[] missingKeys = { -1, numberOfElements + 1 };
 		for (int key : missingKeys) {
 			assertEquals(
 					"Incorrect return value when searching for missing key.",
@@ -80,17 +81,17 @@ public class TestBTree {
 
 	@Test
 	public void searchMissingAfterSplit() {
-		final int order = 10000;
-        BTreeFactory factory = factory(order, newBufferManager());
+		final int pageSize = 1024;
+        BTreeFactory factory = factory(pageSize, newBufferManager());
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
-
+        int numberOfElements = 100000;
 		Map<Long, Long> keyValueMap = BTreeTestUtils
-				.increasingKeysRandomValues(order);
+				.increasingKeysRandomValues(numberOfElements);
 		for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
 			tree.insert(entry.getKey(), entry.getValue());
 		}
 
-		int[] missingKeys = { -1, order + 1 };
+		int[] missingKeys = { -1, numberOfElements + 1 };
 		for (int key : missingKeys) {
 			assertEquals(
 					"Incorrect return value when searching for missing key.",
@@ -306,7 +307,6 @@ public class TestBTree {
 		}
 	}
 
-
 //	public static UniquePagedBTree getTestTree(BTreeBufferManager bufferManager) {
 //		int order = 5;
 //		BTreeFactory factory = factory(order, bufferManager);
@@ -338,6 +338,6 @@ public class TestBTree {
     public static BTreeBufferManager newBufferManager() { 
     	StorageChannel storage = new StorageRootInMemory(ZooConfig.getFilePageSize());
     	boolean isUnique = true;
-		return new BTreeStorageBufferManager(storage, isUnique);
+		return new BTreeMemoryBufferManager();
     }
 }

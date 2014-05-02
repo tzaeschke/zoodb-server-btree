@@ -24,7 +24,7 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
 
     @Override
     public void initializeEntries() {
-        int size = computeMaxPossibleNumEntries();
+        int size = computeMaxPossibleNumEntries() + 1;
         initKeys(size);
         initValues(size);
         if (!isLeaf()) {
@@ -132,7 +132,9 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
             In the case of the best compression, all keys would have the same value.
          */
         int encodedKeyArraySize = PrefixSharingHelper.SMALLEST_POSSIBLE_COMPRESSION_SIZE;
-
+        if (pageSize < encodedKeyArraySize) {
+            throw new IllegalStateException("The page size is too small!");
+        }
         if (isLeaf()) {
             //subtract a 64 bit prefix and divide by 8 (the number of bytes in a long)
 
@@ -142,7 +144,7 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
             //need to divide by 12
             // n * 8 value bytes
             // (n + 1) * 4 child bytes
-            maxPossibleNumEntries = (pageSize - encodedKeyArraySize) / 12 + 4;
+            maxPossibleNumEntries = (pageSize - encodedKeyArraySize) / 12;
         }
         return maxPossibleNumEntries;
     }

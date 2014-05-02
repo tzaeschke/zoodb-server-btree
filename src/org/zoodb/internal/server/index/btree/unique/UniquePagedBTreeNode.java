@@ -25,7 +25,7 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
 
     @Override
     public void initializeEntries() {
-        int size = computeMaxPossibleNumEntries();
+        int size = computeMaxPossibleNumEntries() + 1;
         initKeys(size);
         if (!isLeaf()) {
             initChildren(size + 1);

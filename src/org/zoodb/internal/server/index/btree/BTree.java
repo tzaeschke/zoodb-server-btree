@@ -131,7 +131,7 @@ public abstract class BTree<T extends BTreeNode> {
         } else {
             T parent = ancestorStack.pop();
             //check if parent overflows
-            if (parent.isFull()) {
+            if (parent.willOverflowAfterInsert(key)) {
                 Pair<T, Pair<Long, Long> > pair = putAndSplit(parent, key, value, right);
                 T newNode = pair.getA();
                 Pair<Long, Long> keyValuePair = pair.getB();
@@ -240,12 +240,11 @@ public abstract class BTree<T extends BTreeNode> {
         int pageSize = current.getPageSize();
         int numKeys = current.getNumKeys();
         T tempNode = (T) nodeFactory.newNode(isUnique(), getPageSize(), true, false);
-        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, current.getKeys().length);
+        int childrenArraySize = current.getKeys().length + 1;
+        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, childrenArraySize);
         tempNode.setNumKeys(numKeys);
         tempNode.put(newKey, value);
 
-//        int keysInLeftNode = (int) Math.ceil((order) / 2.0);
-//        int keysInRightNode = order - keysInLeftNode;
         int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(tempNode.getKeys());
         int keysInRightNode = numKeys + 1 - keysInLeftNode;
 
@@ -279,23 +278,21 @@ public abstract class BTree<T extends BTreeNode> {
         int numKeys = current.getNumKeys();
         // create a temporary node to allow the insertion
         T tempNode = (T) nodeFactory.newNode(isUnique(), pageSize, false, true);
-        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, current.getKeys().length);
+        int childrenArraySize = current.getKeys().length + 1;
+        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, childrenArraySize);
         tempNode.setNumKeys(numKeys);
         tempNode.put(key, value, newNode);
-        long[] newKeys = insertedOrderedInArray(key, current.getKeys(), current.getNumKeys());
+
         // split
         T right = (T) nodeFactory.newNode(isUnique(), pageSize, false, false);
-        //int keysInLeftNode = (int) Math.floor(order / 2.0);
-
-        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(newKeys);
-        int keysInRightNode = newKeys.length - keysInLeftNode;
+        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(tempNode.getKeys());
+        int keysInRightNode = numKeys - keysInLeftNode;
 
         // populate left node
         tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);
         current.setNumKeys(keysInLeftNode);
 
         // populate right node
-        //int keysInRightNode = order - keysInLeftNode - 1;
         tempNode.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
