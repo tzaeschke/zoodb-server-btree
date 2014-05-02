@@ -1,5 +1,7 @@
 package org.zoodb.internal.server.index.btree.prefix;
 
+import java.util.Arrays;
+
 public class PrefixSharingHelper {
 
     public static final int PREFIX_SHARING_METADATA_SIZE = 5;

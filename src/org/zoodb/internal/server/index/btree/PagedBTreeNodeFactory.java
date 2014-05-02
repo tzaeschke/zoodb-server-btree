@@ -33,13 +33,13 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory<PagedBTreeNode> {
     public static PagedBTreeNode constructLeaf( BTreeBufferManager bufferManager,
                                                 boolean isUnique,
                                                 boolean isRoot,
-                                                int order,
+                                                int pageSize,
                                                 int pageId,
                                                 int numKeys,
                                                 long[] keys,
                                                 long[] values) {
         boolean isLeaf = true;
-        PagedBTreeNode node = createNode(bufferManager, isUnique, isRoot, isLeaf, order, pageId);
+        PagedBTreeNode node = createNode(bufferManager, isUnique, isRoot, isLeaf, pageSize, pageId);
 
 		node.setNumKeys(numKeys);
 		node.setKeys(keys);
@@ -50,14 +50,14 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory<PagedBTreeNode> {
     public static PagedBTreeNode constructInnerNode( BTreeBufferManager bufferManager,
                                                      boolean isUnique,
                                                      boolean isRoot,
-                                                     int order,
+                                                     int pageSize,
                                                      int pageId,
                                                      int numKeys,
                                                      long[] keys,
                                                      long[] values,
                                                      int[] childrenPageIds) {
         boolean isLeaf = false;
-		PagedBTreeNode node = createNode(bufferManager, isUnique, isRoot, isLeaf, order, pageId);
+		PagedBTreeNode node = createNode(bufferManager, isUnique, isRoot, isLeaf, pageSize, pageId);
 
 		node.setNumKeys(numKeys);
 		node.setKeys(keys);
@@ -72,13 +72,13 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory<PagedBTreeNode> {
                                                 boolean isUnique,
                                                 boolean isRoot,
                                                 boolean isLeaf,
-                                                int order,
+                                                int pageSize,
                                                 int pageId) {
         PagedBTreeNode node;
         if (isUnique) {
-            node = new UniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot, pageId);
+            node = new UniquePagedBTreeNode(bufferManager, pageSize, isLeaf, isRoot, pageId);
         } else {
-            node = new NonUniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot, pageId);
+            node = new NonUniquePagedBTreeNode(bufferManager, pageSize, isLeaf, isRoot, pageId);
         }
         return node;
     }
