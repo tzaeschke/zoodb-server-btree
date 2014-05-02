@@ -69,6 +69,14 @@ public class TestPrefixSharing {
         assertCorresSplitForRedistributeRightToLeft(first, second);
     }
 
+    @Test
+    public void testSplitRedistributeRightToLeftEven() {
+        long[] first = { 1 };
+        long[] second = { 1, 1, 1, 1, 1};
+        printSharedPrefixArrays(first, second);
+        assertCorresSplitForRedistributeRightToLeft(first, second);
+    }
+
 
     @Test
     public void testIndividualBits() {

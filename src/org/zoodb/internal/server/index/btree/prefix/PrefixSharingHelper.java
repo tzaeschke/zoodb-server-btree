@@ -90,7 +90,7 @@ public class PrefixSharingHelper {
                 high = mid - 1;
             }
         }
-        System.out.println("Optimal difference: " + optimalDiff);
+        //System.out.println("Optimal difference: " + optimalDiff);
         return optimalIndex;
     }
 
@@ -105,21 +105,25 @@ public class PrefixSharingHelper {
      * @return
      */
     public static int computeIndexForRedistributeLeftToRight(long[] first, long[] second) {
+        return computeIndexForRedistributeLeftToRight(first, first.length, second, second.length);
+    }
+
+    public static int computeIndexForRedistributeLeftToRight(long[] first, int firstArraySize, long[] second, int secondArraySize) {
         /*
          *  Perform a binary search on the index in the first array that would
          *  provide the optimal split point.
          */
         int low = 0 ;
-        int high = first.length - 1;
+        int high = firstArraySize - 1;
         int mid = 0;
         int optimalIndex = 0;
         long optimalDiff = Long.MAX_VALUE;
         while (low <= high) {
             mid = low + ((high - low) >> 1);
             long prefixLeft = computePrefix(first[0], first[mid]);
-            long prefixRight = computePrefix(first[mid+1], second[second.length - 1]);
+            long prefixRight = computePrefix(first[mid+1], second[secondArraySize - 1]);
             long sizeLeft = prefixLeft + (mid + 1) * (64 - prefixLeft);
-            long sizeRight = prefixRight + (first.length - 1 - mid + second.length) * (64 - prefixRight);
+            long sizeRight = prefixRight + (firstArraySize - 1 - mid + secondArraySize) * (64 - prefixRight);
             if (optimalDiff > Math.abs(sizeLeft - sizeRight)) {
                 optimalIndex = mid;
                 optimalDiff = Math.abs(sizeLeft - sizeRight);
@@ -132,7 +136,6 @@ public class PrefixSharingHelper {
         }
         //System.out.println("Optimal difference: " + optimalDiff);
         return optimalIndex;
-
     }
 
     /**
@@ -146,16 +149,20 @@ public class PrefixSharingHelper {
      * @return
      */
     public static int computeIndexForRedistributeRightToLeft(long[] first, long[] second) {
+        return computeIndexForRedistributeRightToLeft(first, first.length, second, second.length);
+    }
+
+    public static int computeIndexForRedistributeRightToLeft(long[] first, int firstArraySize, long[] second, int secondArraySize) {
         int low = 0 ;
-        int high = second.length - 1;
+        int high = secondArraySize - 1;
         int mid = 0;
         int optimalIndex = 0;
         long optimalDiff = Long.MAX_VALUE;
         while (low <= high) {
             mid = low + ((high - low) >> 1);
             long prefixLeft = computePrefix(first[0], second[mid]);
-            long prefixRight = computePrefix(second[mid + 1], second[second.length - 1]);
-            long sizeLeft = prefixLeft + (second.length - 1 - mid + first.length) * (64 - prefixLeft);
+            long prefixRight = computePrefix(second[mid + 1], second[secondArraySize - 1]);
+            long sizeLeft = prefixLeft + (secondArraySize - 1 - mid + firstArraySize) * (64 - prefixLeft);
             long sizeRight = prefixRight + (mid + 1) * (64 - prefixRight);
             if (optimalDiff > Math.abs(sizeLeft - sizeRight)) {
                 optimalIndex = mid;
@@ -167,7 +174,7 @@ public class PrefixSharingHelper {
                 high = mid - 1;
             }
         }
-        //System.out.println("Optimal difference: " + optimalDiff);
+        System.out.println("Optimal difference: " + optimalDiff);
         return optimalIndex;
     }
     /**

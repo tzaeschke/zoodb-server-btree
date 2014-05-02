@@ -40,7 +40,7 @@ public class BTreeTestUtils {
 				});
 		Random prng = new Random(seed);
 		while (randomEntryList.size() < numElements) {
-			randomEntryList.add(new LLEntry(prng.nextInt(Integer.MAX_VALUE), prng.nextInt(Integer.MAX_VALUE)));
+			randomEntryList.add(new LLEntry(prng.nextInt(2 * numElements), prng.nextInt(Integer.MAX_VALUE)));
 		}
 		return new ArrayList<>(randomEntryList);
 	}

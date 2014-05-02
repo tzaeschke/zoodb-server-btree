@@ -24,7 +24,7 @@ public class TestBTree {
 
         BTreeFactory factory = factory(pageSize, newBufferManager());
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
-        int numberOfElements = numberOfElementsFromPageSize(pageSize);
+        int numberOfElements = numberOfElementsFromPageSizeAvoidSplit(pageSize);
 		Map<Long, Long> keyValueMap = BTreeTestUtils
 				.increasingKeysRandomValues(numberOfElements);
 		for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
@@ -98,6 +98,14 @@ public class TestBTree {
 					null, tree.search(key));
 		}
 	}
+
+    @Test
+    public void testDeleteSmall() {
+        int pageSize = 128;
+        int numEntries = 128;
+        BTreeFactory factory = factory(pageSize, newBufferManager());
+        deleteMassively(factory, numEntries);
+    }
 
 	/*
 	 * Tests whether the state of the tree is correct after doing a lot of
@@ -330,7 +338,7 @@ public class TestBTree {
         return new BTreeFactory(order, bufferManager, unique);
     }
 
-    private int numberOfElementsFromPageSize(int pageSize) {
+    private int numberOfElementsFromPageSizeAvoidSplit(int pageSize) {
         //just to be safe that all of the elements fit
         return pageSize / 16;
     }
