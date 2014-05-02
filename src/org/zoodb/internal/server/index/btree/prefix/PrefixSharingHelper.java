@@ -182,9 +182,7 @@ public class PrefixSharingHelper {
         int indexInCurrentByte = 0;
 
         /* Compute the number of bits to be stored */
-//        int bitsToStore = (int) (prefix + (64 - prefix) * array.length);
-//        int outputArraySize = (int) Math.ceil(bitsToStore/ 8.0);
-        int outputArraySize = computeKeyArraySizeInBytes(array, prefix);
+        int outputArraySize = encodedArraySize(array.length, prefix);
 
         byte[] outputArray = new byte[outputArraySize + PREFIX_SHARING_METADATA_SIZE];
 
@@ -218,6 +216,13 @@ public class PrefixSharingHelper {
         }
         return outputArray;
     }
+    
+    public static int encodedArraySize(int arraySize, long prefixLength) {
+	    int bitsToStore = (int) (prefixLength + (64 - prefixLength) * arraySize);
+        int outputArraySize = (int) Math.ceil(bitsToStore/ 8.0);
+        return outputArraySize;
+    }
+    
 
     /**
      * Decoded a prefix shared encoded array
@@ -226,28 +231,33 @@ public class PrefixSharingHelper {
      */
     public static long[] decodeArray(byte[] encodedArray) {
         int currentByte = 0;
-        int decodedArraySize =  (encodedArray[currentByte] << 24 )  |
-                                (encodedArray[currentByte+1] << 16 )  |
-                                (encodedArray[currentByte+2] << 8 )   |
-                                encodedArray[currentByte+3];
+        int decodedArraySize = byteArrayToInt(encodedArray, currentByte); 
         currentByte += 4;
+        byte prefix = encodedArray[currentByte++];
+
+        return decodeArray(Arrays.copyOfRange(encodedArray, 5, encodedArray.length), decodedArraySize, prefix);
+    }
+    
+    public static long[] decodeArray(byte[] encodedArrayWithoutMetadata, int decodedArraySize, byte prefixLength) {
+    	byte[] encodedArray = encodedArrayWithoutMetadata;
+        int currentByte = 0;
         long[] decodedArray = new long[decodedArraySize];
         int indexInCurrentByte = 0;
         long prefixBits = 0;
-        byte prefix = encodedArray[currentByte++];
+        
         /* Read prefix */
-        for (int i = prefix - 1; i >= 0; i--) {
+        for (int i = prefixLength - 1; i >= 0; i--) {
             long bitValue = BitOperationsHelper.getBitValue(encodedArray[currentByte], indexInCurrentByte);
             prefixBits = BitOperationsHelper.setBitValue(prefixBits, i, bitValue);
             indexInCurrentByte = increaseIndexInCurrentByte(indexInCurrentByte);
             currentByte = updateCurrentByte(indexInCurrentByte, currentByte);
         }
 
-        prefixBits = prefixBits << (64 - prefix);
+        prefixBits = prefixBits << (64 - prefixLength);
 
         for (int i = 0; i < decodedArraySize; i++) {
             decodedArray[i] = prefixBits;
-            for (int j = 63 - prefix; j >= 0; j--) {
+            for (int j = 63 - prefixLength; j >= 0; j--) {
                 long bitValue = BitOperationsHelper.getBitValue(encodedArray[currentByte], indexInCurrentByte);
                 decodedArray[i] = BitOperationsHelper.setBitValue(decodedArray[i], j, bitValue);
                 indexInCurrentByte = increaseIndexInCurrentByte(indexInCurrentByte);
@@ -256,6 +266,15 @@ public class PrefixSharingHelper {
         }
 
         return decodedArray;
+    }
+    
+    public static int byteArrayToInt(byte[] array, int indexInArray) {
+        return 	( array[indexInArray] << 24 )  |
+                ( array[indexInArray+1] << 16 )  |
+                ( array[indexInArray+2] << 8 )   |
+                    array[indexInArray+3];
+    	
+    	
     }
 
     public static int computeKeyArraySizeInBytes(long first, long last, long arrayLength) {
