@@ -56,9 +56,9 @@ public class TestPrefixSharing {
     @Test
     public void testSplitRedistributeLeftToRight() {
         long[] first = { 1, 2, 3, 4, 5 };
-        long[] second = { 8, 9};
+        long[] second = { 6};
         printSharedPrefixArrays(first, second);
-        assertCorresSplitForRedistributeLeftToRight(first, second);
+        assertCorrectSplitForRedistributeLeftToRight(first, second);
     }
 
     @Test
@@ -66,17 +66,24 @@ public class TestPrefixSharing {
         long[] first = { 1, 2, 3};
         long[] second = { 4, 5, 6, 7, 8, 9};
         printSharedPrefixArrays(first, second);
-        assertCorresSplitForRedistributeRightToLeft(first, second);
+        assertCorrectSplitForRedistributeRightToLeft(first, second);
     }
 
     @Test
     public void testSplitRedistributeRightToLeftEven() {
-        long[] first = { 1 };
-        long[] second = { 1, 1, 1, 1, 1};
+        long[] first = { 1};
+        long[] second = { 2, 3, 4, 5, 6};
         printSharedPrefixArrays(first, second);
-        assertCorresSplitForRedistributeRightToLeft(first, second);
+        assertCorrectSplitForRedistributeRightToLeft(first, second);
     }
 
+    @Test
+    public void testErrorRedistribute() {
+        long[] first = { 44, 0, 0, 0, 0};
+        long[] second = { 46, 48, 51, 53, 0};
+        printSharedPrefixArrays(first, second);
+        assertCorrectSplitForRedistributeRightToLeft(first, 1, second, 4);
+    }
 
     @Test
     public void testIndividualBits() {
@@ -109,22 +116,28 @@ public class TestPrefixSharing {
         assertArrayEquals(inputArray, decodedArray);
     }
 
+    private void assertCorrectSplitForRedistributeRightToLeft(long[] first, long[] second) {
+        assertCorrectSplitForRedistributeRightToLeft(first, first.length, second, second.length);
+    }
 
-    private void assertCorresSplitForRedistributeRightToLeft(long[] first, long[] second) {
-        int splitPosition = PrefixSharingHelper.computeIndexForRedistributeRightToLeft(first, second);
-        long[] secondAfterSplit = Arrays.copyOfRange(second, splitPosition, second.length);
-        long[] firstAfterSplit = new long[first.length + second.length - secondAfterSplit.length];
-        System.arraycopy(first, 0, firstAfterSplit, 0, first.length);
-        System.arraycopy(second, 0, firstAfterSplit, first.length, splitPosition);
+    private void assertCorrectSplitForRedistributeRightToLeft(long[] first, int firstLength, long[] second, int secondLength){
+        int splitPosition = PrefixSharingHelper.computeIndexForRedistributeRightToLeft(first, firstLength, second, secondLength);
+        long[] secondAfterSplit = Arrays.copyOfRange(second, splitPosition + 1, secondLength);
+        long[] firstAfterSplit = new long[firstLength + splitPosition + 1];
+        System.arraycopy(first, 0, firstAfterSplit, 0, firstLength);
+        System.arraycopy(second, 0, firstAfterSplit, firstLength, splitPosition + 1);
         printSharedPrefixArrays(firstAfterSplit, secondAfterSplit);
     }
 
-    public void assertCorresSplitForRedistributeLeftToRight(long[] first, long[] second) {
-        int splitPosition = PrefixSharingHelper.computeIndexForRedistributeLeftToRight(first, second);
+    public void assertCorrectSplitForRedistributeLeftToRight(long[] first, long[] second) {
+        assertCorrectSplitForRedistributeLeftToRight(first, first.length,  second, second.length);
+    }
+    public void assertCorrectSplitForRedistributeLeftToRight(long[] first, int firstLength, long[] second, int secondLength) {
+        int splitPosition = PrefixSharingHelper.computeIndexForRedistributeLeftToRight(first, firstLength, second, secondLength);
         long[] firstAfterSplit = Arrays.copyOfRange(first, 0, splitPosition + 1);
-        long[] secondAfterSplit = new long[first.length - firstAfterSplit.length + second.length];
-        System.arraycopy(first, splitPosition + 1, secondAfterSplit, 0, (first.length - firstAfterSplit.length));
-        System.arraycopy(second, 0, secondAfterSplit, (first.length - firstAfterSplit.length), second.length);
+        long[] secondAfterSplit = new long[firstLength - firstAfterSplit.length + secondLength];
+        System.arraycopy(first, splitPosition + 1, secondAfterSplit, 0, (firstLength - firstAfterSplit.length));
+        System.arraycopy(second, 0, secondAfterSplit, (firstLength - firstAfterSplit.length), secondLength);
         printSharedPrefixArrays(firstAfterSplit, secondAfterSplit);
     }
 

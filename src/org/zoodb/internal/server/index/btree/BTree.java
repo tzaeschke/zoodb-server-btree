@@ -82,11 +82,11 @@ public abstract class BTree<T extends BTreeNode> {
                     //check if can borrow 1 value from the left or right siblings
                     T rightSibling = (T) current.rightSibling(parent);
                     T leftSibling = (T) current.leftSibling(parent);
-//                    if (leftSibling != null && leftSibling.hasExtraKeys()) {
-//                        redistributeKeysFromLeft(current, leftSibling, parent);
-//                    } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
-//                        redistributeKeysFromRight(current, rightSibling, parent);
-//                    } else {
+                    if (leftSibling != null && leftSibling.hasExtraKeys()) {
+                        redistributeKeysFromLeft(current, leftSibling, parent);
+                    } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
+                        redistributeKeysFromRight(current, rightSibling, parent);
+                    } else {
                         //at this point, both left and right sibling have the minimum number of keys
                         if (leftSibling!= null) {
                             //merge with left sibling
@@ -94,7 +94,7 @@ public abstract class BTree<T extends BTreeNode> {
                         } else {
                             //merge with right sibling
                             parent = mergeWithRight(this, current, rightSibling, parent);
-                        //}
+                        }
                     }
                 }
                 if (current.containsKeyValue(key, value)) {
@@ -398,7 +398,8 @@ public abstract class BTree<T extends BTreeNode> {
         //int keysToMove = right.getNumKeys() - (totalKeys / 2);
         int splitIndexInRight = PrefixSharingHelper.computeIndexForRedistributeRightToLeft(
                 current.getKeys(), current.getNumKeys(), right.getKeys(), right.getNumKeys());
-        int keysToMove = right.getNumKeys() - splitIndexInRight;
+        //int keysToMove = right.getNumKeys() - splitIndexInRight;
+        int keysToMove = splitIndexInRight + 1;
 
         //move key from parent to current node
         int parentKeyIndex = parent.keyIndexOf(current, right);

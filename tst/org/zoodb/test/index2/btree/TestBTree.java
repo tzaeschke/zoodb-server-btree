@@ -9,10 +9,7 @@ import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.util.Pair;
 import org.zoodb.tools.ZooConfig;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -98,6 +95,37 @@ public class TestBTree {
 					null, tree.search(key));
 		}
 	}
+
+    @Test
+    public void testMergeNotEnoughSpace() {
+        final int pageSize = 64;
+        BTreeFactory factory = factory(pageSize, newBufferManager());
+        UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
+        int numberOfElements = 1500;
+        Map<Long, Long> keyValueMap = BTreeTestUtils
+                .increasingKeysRandomValues(numberOfElements);
+        for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
+            tree.insert(entry.getKey(), entry.getValue());
+        }
+        System.out.println("Initial tree");
+        System.out.println(tree);
+
+        Random random = new Random(Calendar.getInstance().getTimeInMillis());
+        while (!keyValueMap.isEmpty()) {
+            long key = random.nextInt(numberOfElements);
+            if (keyValueMap.containsKey(key)) {
+                System.out.println("Attempting to delete " + key);
+                tree.delete(key);
+                System.out.println("After deleting " + key);
+                System.out.println(tree);
+                keyValueMap.remove(key);
+                for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
+                    assertEquals(entry.getValue(), tree.search(entry.getKey()));
+                }
+            }
+        }
+
+    }
 
     @Test
     public void testDeleteSmall() {

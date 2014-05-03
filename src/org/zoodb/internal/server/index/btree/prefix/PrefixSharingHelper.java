@@ -48,9 +48,9 @@ public class PrefixSharingHelper {
         long first = arr[0];
         long last = arr[arr.length - 1];
         long prefix = computePrefix(first, last);
-        System.out.println(String.format("First:\t %d\t %-72s",first, toBinaryLongString(first)));
-        System.out.println(String.format("Last:\t %d\t %-72s",last, toBinaryLongString(last)));
-        System.out.println(String.format("Prefix:\t %d\t %-72s",prefix, toBinaryLongString(first >> (64 - prefix))));
+//        System.out.println(String.format("First:\t %d\t %-72s",first, toBinaryLongString(first)));
+//        System.out.println(String.format("Last:\t %d\t %-72s",last, toBinaryLongString(last)));
+//        System.out.println(String.format("Prefix:\t %d\t %-72s",prefix, toBinaryLongString(first >> (64 - prefix))));
         return prefix;
     }
 
@@ -109,6 +109,11 @@ public class PrefixSharingHelper {
     }
 
     public static int computeIndexForRedistributeLeftToRight(long[] first, int firstArraySize, long[] second, int secondArraySize) {
+        if (firstArraySize == 0) {
+            return secondArraySize / 2;
+        } else if (secondArraySize == 0) {
+            return firstArraySize / 2;
+        }
         /*
          *  Perform a binary search on the index in the first array that would
          *  provide the optimal split point.
@@ -153,6 +158,11 @@ public class PrefixSharingHelper {
     }
 
     public static int computeIndexForRedistributeRightToLeft(long[] first, int firstArraySize, long[] second, int secondArraySize) {
+        if (firstArraySize == 0) {
+            return secondArraySize / 2;
+        } else if (secondArraySize == 0) {
+            return firstArraySize / 2;
+        }
         int low = 0 ;
         int high = secondArraySize - 1;
         int mid = 0;
@@ -162,8 +172,8 @@ public class PrefixSharingHelper {
             mid = low + ((high - low) >> 1);
             long prefixLeft = computePrefix(first[0], second[mid]);
             long prefixRight = computePrefix(second[mid + 1], second[secondArraySize - 1]);
-            long sizeLeft = prefixLeft + (secondArraySize - 1 - mid + firstArraySize) * (64 - prefixLeft);
-            long sizeRight = prefixRight + (mid + 1) * (64 - prefixRight);
+            long sizeLeft = prefixLeft + (mid + 1 + firstArraySize) * (64 - prefixLeft);
+            long sizeRight = prefixRight + (secondArraySize - mid - 1) * (64 - prefixRight);
             if (optimalDiff > Math.abs(sizeLeft - sizeRight)) {
                 optimalIndex = mid;
                 optimalDiff = Math.abs(sizeLeft - sizeRight);
@@ -174,7 +184,7 @@ public class PrefixSharingHelper {
                 high = mid - 1;
             }
         }
-        System.out.println("Optimal difference: " + optimalDiff);
+        //System.out.println("Optimal difference: " + optimalDiff);
         return optimalIndex;
     }
     /**
