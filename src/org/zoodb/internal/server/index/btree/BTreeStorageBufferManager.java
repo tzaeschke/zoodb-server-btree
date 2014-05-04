@@ -194,13 +194,15 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		if (node.isLeaf()) {
 			storageOut.writeByte((byte) -1);
 			storageOut.writeInt(node.getNumKeys());
-			storageOut.noCheckWrite(PrefixSharingHelper.encodeArray(node.getKeys()));
+			byte[] encodedKeys = PrefixSharingHelper.encodeArray(Arrays.copyOf(node.getKeys(), node.getNumKeys()));
+			storageOut.noCheckWrite(encodedKeys);
 			storageOut.noCheckWrite(Arrays.copyOf(node.getValues(), node.getNumKeys()));
 
 		} else {
 			storageOut.writeByte((byte) 1);
 			storageOut.writeInt(node.getNumKeys());
-			storageOut.noCheckWrite(PrefixSharingHelper.encodeArray(node.getKeys()));
+			byte[] encodedKeys = PrefixSharingHelper.encodeArray(Arrays.copyOf(node.getKeys(), node.getNumKeys()));
+			storageOut.noCheckWrite(encodedKeys);
             if (node.getValues() != null) {
 				storageOut.noCheckWrite(Arrays.copyOf(node.getValues(), node.getNumKeys()));
             }

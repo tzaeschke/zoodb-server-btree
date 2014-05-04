@@ -102,9 +102,19 @@ public class TestPrefixSharing {
         assertArrayEquals(inputArray, decodedArray);
         
         long[] inputArray2 = {5, 7, 8};
-        decodedArray = PrefixSharingHelper.decodeArray(PrefixSharingHelper.encodeArray(inputArray2));
-        System.out.print(Arrays.toString(decodedArray));
+        byte[] encodedArray = PrefixSharingHelper.encodeArray(inputArray2);
+        // [0, 0, 0, 3, 60, 0, 0, 0, 0, 0, 0, 0, -96, 30]
+        decodedArray = PrefixSharingHelper.decodeArray(encodedArray);
         assertArrayEquals(inputArray2, decodedArray);
+    }
+    
+    @Test
+    public void testEmptyEncodeDecode() {
+        long[] inputArray = {};
+        byte[] bytes = PrefixSharingHelper.encodeArray(inputArray);
+        System.out.print(Arrays.toString(bytes));
+        long[] decodedArray = PrefixSharingHelper.decodeArray(bytes);
+        assertArrayEquals(inputArray, decodedArray);
     }
 
     @Test

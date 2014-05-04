@@ -44,10 +44,14 @@ public class PrefixSharingHelper {
      * @return           The bit prefix
      */
     public static long computePrefix(long[] arr) {
-
-        long first = arr[0];
-        long last = arr[arr.length - 1];
-        long prefix = computePrefix(first, last);
+        long prefix;
+    	if(arr.length > 0) {
+            long first = arr[0];
+            long last = arr[arr.length - 1];
+            prefix = computePrefix(first, last);
+    	} else {
+    		prefix = 64;
+    	}
 //        System.out.println(String.format("First:\t %d\t %-72s",first, toBinaryLongString(first)));
 //        System.out.println(String.format("Last:\t %d\t %-72s",last, toBinaryLongString(last)));
 //        System.out.println(String.format("Prefix:\t %d\t %-72s",prefix, toBinaryLongString(first >> (64 - prefix))));
@@ -249,7 +253,12 @@ public class PrefixSharingHelper {
         /* Write the prefix size */
         outputArray[currentByte++] = (byte) prefix;
 
-        long prefixBits = prefixBits(prefix, array[0]);
+        long prefixBits;
+        if(array.length > 0) {
+            prefixBits = prefixBits(prefix, array[0]);
+        } else {
+        	prefixBits = 0;
+        }
         /* Encode the prefix*/
         for (int i = (int) (prefix - 1); i >= 0; i--) {
             long bitValue = BitOperationsHelper.getBitValue(prefixBits, i);
