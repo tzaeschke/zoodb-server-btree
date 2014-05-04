@@ -108,16 +108,16 @@ public class TestBTree {
             tree.insert(entry.getKey(), entry.getValue());
         }
         System.out.println("Initial tree");
-        System.out.println(tree);
+        //System.out.println(tree);
 
         Random random = new Random(Calendar.getInstance().getTimeInMillis());
         while (!keyValueMap.isEmpty()) {
             long key = random.nextInt(numberOfElements);
             if (keyValueMap.containsKey(key)) {
-                System.out.println("Attempting to delete " + key);
+                //System.out.println("Attempting to delete " + key);
                 tree.delete(key);
-                System.out.println("After deleting " + key);
-                System.out.println(tree);
+                //System.out.println("After deleting " + key);
+                //System.out.println(tree);
                 keyValueMap.remove(key);
                 for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
                     assertEquals(entry.getValue(), tree.search(entry.getKey()));

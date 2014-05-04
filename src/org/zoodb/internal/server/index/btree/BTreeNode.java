@@ -251,7 +251,8 @@ public abstract class BTreeNode extends Observable {
 		if (isRoot()) {
 			return true;
 		}
-		return computeSize() > minSize;
+        //ToDo need to have at least 3 keys
+		return getNumKeys() > 2 && computeSize() > minSize;
 	}
 
     public boolean isFull() {
@@ -569,4 +570,23 @@ public abstract class BTreeNode extends Observable {
         boolean willOverflow = pageSize <= newPageSize;
         return willOverflow;
     }
+
+    public boolean fitsIntoOneNodeWith(BTreeNode neighbour) {
+        if (neighbour == null || neighbour.getNumKeys() == 0 || this.getNumKeys() == 0) {
+            return false;
+        }
+        long first = Math.min(this.getSmallestKey(), neighbour.getSmallestKey());
+        long last = Math.min(this.getLargestKey(), neighbour.getLargestKey());
+        int newNumKeys = this.getNumKeys() + neighbour.getNumKeys();
+        if (!this.isLeaf()) {
+            //also take into account the key that is taken down from the parent
+            //ToDo check if this is always needed
+            newNumKeys += 1;
+        }
+        long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last, newNumKeys);
+        int newPageSize = (int) (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys));
+        boolean willOverflow = pageSize >= newPageSize;
+        return willOverflow;
+    }
+
 }

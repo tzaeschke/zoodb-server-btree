@@ -82,20 +82,32 @@ public abstract class BTree<T extends BTreeNode> {
                     //check if can borrow 1 value from the left or right siblings
                     T rightSibling = (T) current.rightSibling(parent);
                     T leftSibling = (T) current.leftSibling(parent);
-                    if (leftSibling != null && leftSibling.hasExtraKeys()) {
+                    if (current.fitsIntoOneNodeWith(leftSibling)) {
+                        //merge with left sibling
+                        parent = mergeWithLeft(this, current, leftSibling, parent);
+                    } else if (current.fitsIntoOneNodeWith(rightSibling)) {
+                        parent = mergeWithRight(this, current, rightSibling, parent);
+                    } else if (leftSibling != null && leftSibling.hasExtraKeys()) {
                         redistributeKeysFromLeft(current, leftSibling, parent);
                     } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
                         redistributeKeysFromRight(current, rightSibling, parent);
-                    } else {
-                        //at this point, both left and right sibling have the minimum number of keys
-                        if (leftSibling!= null) {
-                            //merge with left sibling
-                            parent = mergeWithLeft(this, current, leftSibling, parent);
-                        } else {
-                            //merge with right sibling
-                            parent = mergeWithRight(this, current, rightSibling, parent);
-                        }
                     }
+                    //if nothing works, we're left with an under-full node, but
+                    //there's nothing really that we can do at this point
+//                    if (leftSibling != null && leftSibling.hasExtraKeys()) {
+//                        redistributeKeysFromLeft(current, leftSibling, parent);
+//                    } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
+//                        redistributeKeysFromRight(current, rightSibling, parent);
+//                    } else {
+//                        //at this point, both left and right sibling have the minimum number of keys
+//                        if (leftSibling!= null) {
+//                            //merge with left sibling
+//                            parent = mergeWithLeft(this, current, leftSibling, parent);
+//                        } else {
+//                            //merge with right sibling
+//                            parent = mergeWithRight(this, current, rightSibling, parent);
+//                        }
+//                    }
                 }
                 if (current.containsKeyValue(key, value)) {
                     current.replaceEntry(key, value, replacementKey, replacementValue);
@@ -306,7 +318,6 @@ public abstract class BTree<T extends BTreeNode> {
 
         //check if parent needs merging -> tree gets smaller
         if (parent.isRoot() && parent.getNumKeys() == 1) {
-            //if (parent.getKey(0) != right.getKey(0)) {
             if (!current.isLeaf()) {
                 right.shiftRecordsRight(parent.getNumKeys());
                 right.migrateEntry(0, parent, 0);
@@ -351,7 +362,6 @@ public abstract class BTree<T extends BTreeNode> {
         //check if we need to merge with parent
         if (parent.isRoot() && parent.getNumKeys() == 1) {
 
-        	//if(parent.getKey(0) != current.getKey(0)) {
             if (!current.isLeaf()) {
 	            current.shiftRecordsRight(parent.getNumKeys());
 	            current.migrateEntry(0, parent, 0);
@@ -363,7 +373,6 @@ public abstract class BTree<T extends BTreeNode> {
             current.increaseNumKeys(left.getNumKeys());
             tree.swapRoot(current);
             parent.close();
-            //current.changeOrder(leafOrder);
             parent = current;
         } else {
             if (current.isLeaf()) {
@@ -502,6 +511,9 @@ public abstract class BTree<T extends BTreeNode> {
 	}
 
 	public long computeMinKey() {
+        if (getRoot().getNumKeys() == 0) {
+            return -1;
+        }
         BTreeLeafEntryIterator<T> it = new AscendingBTreeLeafEntryIterator<T>(this);
         long minKey = Long.MIN_VALUE;
         if(it.hasNext()) {
@@ -511,6 +523,10 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
     public long computeMaxKey() {
+        //ToDo cleanup code
+        if (getRoot().getNumKeys() == 0) {
+            return -1;
+        }
         BTreeLeafEntryIterator<T> it = new DescendingBTreeLeafEntryIterator<T>(this);
         long maxKey = Long.MIN_VALUE;
         if(it.hasNext()) {
