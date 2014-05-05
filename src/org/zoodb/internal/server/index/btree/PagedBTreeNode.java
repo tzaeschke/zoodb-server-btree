@@ -261,4 +261,8 @@ public abstract class PagedBTreeNode extends BTreeNode {
     public BTreeBufferManager getBufferManager() {
         return bufferManager;
     }
+    
+    public int computeSize() {
+        return bufferManager.getNodeSizeInStorage(this);
+    }
 }
