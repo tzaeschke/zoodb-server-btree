@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Observable;
 
+import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageChannelInput;
@@ -316,5 +317,26 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	
 	public int getPageSize() {
 		return this.pageSize;
+	}
+	
+	public static int pageHeaderSize() {
+		int nodeTypeIndicatorSize = 1;
+		int numKeysSize = 4;
+		
+		int size = 0;
+		size += DiskIO.PAGE_HEADER_SIZE;
+		size += nodeTypeIndicatorSize;
+		size += numKeysSize;
+		
+		return size;
+	}
+
+	@Override
+	public int getNodeSizeInStorage(PagedBTreeNode node) {
+		int size = 0;
+		size += pageHeaderSize();
+		size += node.getNonKeyEntrySizeInBytes() + node.getKeyArraySizeInBytes();
+		
+		return size;
 	}
 }

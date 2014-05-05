@@ -550,9 +550,7 @@ public abstract class BTreeNode extends Observable {
         return pageSize >> 1;
     }
 
-    public long computeSize() {
-        return getNonKeyEntrySizeInBytes() + getKeyArraySizeInBytes();
-    }
+    public abstract int computeSize();
 
     protected int getKeyArraySizeInBytes() {
         //ToDo use precomputed prefix

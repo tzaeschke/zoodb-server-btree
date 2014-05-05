@@ -29,9 +29,15 @@ public interface BTreeBufferManager extends Observer {
 	 */
 	public int getPageSize();
 	
+	/*
+	 * returns the size of the node in storage (including all metadata)
+	 */
+	public int getNodeSizeInStorage(PagedBTreeNode node);
+	
     /*
 	 * writes the node to the storage channel
 	 */
 	public void clear();
+
 
 }
