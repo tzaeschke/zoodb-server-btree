@@ -25,7 +25,7 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
 
     @Override
     public void initializeEntries() {
-        int size = computeMaxPossibleNumEntries() + 1;
+        int size = computeMaxPossibleNumEntries();
         initKeys(size);
         if (!isLeaf()) {
             initChildren(size + 1);
@@ -161,13 +161,14 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
 
         if (isLeaf()) {
             //subtract a 64 bit prefix and divide by 8 (the number of bytes in a long)
-            maxPossibleNumEntries = (pageSize - encodedKeyArraySize) >>> 3;
+            maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 3 ) + 1;
         } else {
             //inner nodes also contain children ids which are ints
             //need to divide by 4
             //n * 4
-            maxPossibleNumEntries = (pageSize - encodedKeyArraySize) >>> 2;
+            maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 2 ) + 1;
         }
+
         return maxPossibleNumEntries;
     }
 

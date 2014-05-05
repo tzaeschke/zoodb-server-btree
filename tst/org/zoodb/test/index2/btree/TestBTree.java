@@ -74,7 +74,6 @@ public class TestBTree {
 			assertEquals(
 					"Incorrect return value when searching for missing key.",
 					null, tree.search(key));
-            tree.delete(key);
 		}
 	}
 
@@ -103,7 +102,7 @@ public class TestBTree {
         final int pageSize = 64;
         BTreeFactory factory = factory(newBufferManager(pageSize));
         UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
-        int numberOfElements = 5000;
+        int numberOfElements = 50000;
         Map<Long, Long> keyValueMap = BTreeTestUtils
                 .increasingKeysRandomValues(numberOfElements);
         for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
@@ -112,8 +111,7 @@ public class TestBTree {
 //        System.out.println("Initial tree");
 //        System.out.println(tree);
 
-        //Random random = new Random(Calendar.getInstance().getTimeInMillis());
-        Random random = new Random(42);
+        Random random = new Random(Calendar.getInstance().getTimeInMillis());
         while (!keyValueMap.isEmpty()) {
             long key = random.nextInt(numberOfElements);
             if (keyValueMap.containsKey(key)) {
@@ -127,7 +125,6 @@ public class TestBTree {
                 //System.out.println(tree);
             }
         }
-
     }
     
     @Test
@@ -274,6 +271,6 @@ public class TestBTree {
     public static BTreeBufferManager newBufferManager(int pageSize) { 
     	StorageChannel storage = new StorageRootInMemory(pageSize);
     	boolean isUnique = true;
-		return new BTreeMemoryBufferManager(pageSize);
+		return new BTreeStorageBufferManager(storage, isUnique);
     }
 }

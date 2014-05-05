@@ -86,7 +86,7 @@ public class BTreeFactory {
 					newLayer.add(node);
 					indexLayer++;
 				}
-				parent.setChildren(padChildrenArray(children, parent.getNumKeys()+1));
+				parent.setChildren(padChildrenArray(children, parent.computeMaxPossibleNumEntries()+1));
 			}
 			this.prevLayer = newLayer;
 		}
