@@ -25,6 +25,11 @@ public interface BTreeBufferManager extends Observer {
 	public int write(PagedBTreeNode node);
 	
     /*
+	 * returns page size
+	 */
+	public int getPageSize();
+	
+    /*
 	 * writes the node to the storage channel
 	 */
 	public void clear();

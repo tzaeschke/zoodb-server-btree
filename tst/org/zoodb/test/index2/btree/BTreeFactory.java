@@ -23,14 +23,14 @@ public class BTreeFactory {
     private BTreeBufferManager bufferManager;
     private boolean unique = true;
 
-    public BTreeFactory(int pageSize, BTreeBufferManager bufferManager)  {
-        this.tree = new UniquePagedBTree(pageSize, bufferManager);
+    public BTreeFactory(BTreeBufferManager bufferManager)  {
+        this.tree = new UniquePagedBTree(bufferManager.getPageSize(), bufferManager);
         this.nodeFactory = tree.getNodeFactory();
         this.bufferManager = bufferManager;
     }
 
-    public BTreeFactory(int pageSize, BTreeBufferManager bufferManager, boolean unique)  {
-        createTree(pageSize, bufferManager, unique);
+    public BTreeFactory(BTreeBufferManager bufferManager, boolean unique)  {
+        createTree(bufferManager.getPageSize(), bufferManager, unique);
         this.nodeFactory = tree.getNodeFactory();
         this.bufferManager = bufferManager;
     }

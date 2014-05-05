@@ -12,8 +12,6 @@ public class BTreeIndexNonUnique extends BTreeIndex<NonUniquePagedBTree, NonUniq
     public BTreeIndexNonUnique(StorageChannel file, boolean isNew) {
         super(file, isNew, false);
 
-        final int leafOrder = bufferManager.getLeafOrder();
-        final int innerOrder = bufferManager.getInnerNodeOrder();
         tree = new NonUniquePagedBTree(file.getPageSize(), bufferManager);
     }
 

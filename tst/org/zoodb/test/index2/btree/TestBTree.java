@@ -17,9 +17,8 @@ public class TestBTree {
 
 	@Test
 	public void searchSingleNode() {
-		final int pageSize = 128;
-
-        BTreeFactory factory = factory(pageSize, newBufferManager());
+		int pageSize = 128;
+        BTreeFactory factory = factory(newBufferManager(pageSize));
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
         int numberOfElements = numberOfElementsFromPageSizeAvoidSplit(pageSize);
 		Map<Long, Long> keyValueMap = BTreeTestUtils
@@ -38,7 +37,7 @@ public class TestBTree {
 	@Test
 	public void searchAfterSplit() {
 		final int pageSize = 64;
-        BTreeFactory factory = factory(pageSize, newBufferManager());
+        BTreeFactory factory = factory(newBufferManager(pageSize));
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
         int numberOfElements = 320;
 
@@ -58,7 +57,7 @@ public class TestBTree {
 	@Test
 	public void searchMissingSingleNode() {
 		final int pageSize = 128;
-        BTreeFactory factory = factory(pageSize, newBufferManager());
+        BTreeFactory factory = factory(newBufferManager(pageSize));
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
 
         int numberOfElements = 512;
@@ -79,7 +78,7 @@ public class TestBTree {
 	@Test
 	public void searchMissingAfterSplit() {
 		final int pageSize = 1024;
-        BTreeFactory factory = factory(pageSize, newBufferManager());
+        BTreeFactory factory = factory(newBufferManager(pageSize));
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
         int numberOfElements = 100000;
 		Map<Long, Long> keyValueMap = BTreeTestUtils
@@ -99,7 +98,7 @@ public class TestBTree {
     @Test
     public void testMergeNotEnoughSpace() {
         final int pageSize = 64;
-        BTreeFactory factory = factory(pageSize, newBufferManager());
+        BTreeFactory factory = factory(newBufferManager(pageSize));
         UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
         int numberOfElements = 1500;
         Map<Long, Long> keyValueMap = BTreeTestUtils
@@ -126,12 +125,32 @@ public class TestBTree {
         }
 
     }
+    
+    @Test
+	public void testInsertCase() {
+		BTreeBufferManager bufferManager = newBufferManager(64);
+		UniquePagedBTree tree = (UniquePagedBTree) getTestTreeWithThreeLayers(bufferManager);
+
+		tree.insert(4, 4);
+		tree.insert(32, 32);
+		tree.insert(35, 35);
+	}
+	
+    @Test
+	public void testDeleteCase() {
+		UniquePagedBTree tree = (UniquePagedBTree) getTestTreeWithThreeLayers(newBufferManager(ZooConfig.getFilePageSize()));
+
+		tree.insert(4, 4);
+		tree.insert(32, 32);
+		tree.delete(16);
+		tree.delete(14);
+	}
 
     @Test
     public void testDeleteSmall() {
         int pageSize = 128;
         int numEntries = 128;
-        BTreeFactory factory = factory(pageSize, newBufferManager());
+        BTreeFactory factory = factory(newBufferManager(pageSize));
         deleteMassively(factory, numEntries);
     }
 
@@ -143,7 +162,7 @@ public class TestBTree {
 	public void testDeleteMassively() {
 		int pageSize = 320;
         int numEntries = 50000;
-        BTreeFactory factory = factory(pageSize, newBufferManager());
+        BTreeFactory factory = factory(newBufferManager(pageSize));
 		deleteMassively(factory, numEntries);
 	}
 	
@@ -151,7 +170,7 @@ public class TestBTree {
 	public void testDeleteMassivelyWithDifferentOrder() {
 		int pageSize = 256;
         int numEntries = 50000;
-        BTreeFactory factory = new BTreeFactory(pageSize, newBufferManager(), true);
+        BTreeFactory factory = new BTreeFactory(newBufferManager(pageSize), true);
 		deleteMassively(factory, numEntries);
 	}
 	
@@ -215,155 +234,27 @@ public class TestBTree {
 		
 	}
 
-//	@Test
-//	public void markDirtyTest() {
-//		BTreeBufferManager bufferManager = newBufferManager();
-//		UniquePagedBTree tree = (UniquePagedBTree) getTestTree(bufferManager);
-//		PagedBTreeNode root = tree.getRoot();
-//		assertTrue(root.isDirty());
-//		bufferManager.write( tree.getRoot());
-//		assertFalse(root.isDirty());
-//
-//		tree.insert(4, 4);
-//
-//		PagedBTreeNode lvl1child1 = (PagedBTreeNode) root.getChild(0);
-//		PagedBTreeNode lvl2child1 = (PagedBTreeNode) lvl1child1.getChild(0);
-//		assertTrue(root.isDirty());
-//		assertTrue(lvl1child1.isDirty());
-//		assertTrue(lvl2child1.isDirty());
-//
-//		PagedBTreeNode lvl2child2 = (PagedBTreeNode) lvl1child1.getChild(1);
-//		PagedBTreeNode lvl2child3 = (PagedBTreeNode) lvl1child1.getChild(2);
-//		PagedBTreeNode lvl1child2 = (PagedBTreeNode) root.getChild(1);
-//		PagedBTreeNode lvl2child4 = (PagedBTreeNode) lvl1child2.getChild(0);
-//		PagedBTreeNode lvl2child5 = (PagedBTreeNode) lvl1child2.getChild(1);
-//		PagedBTreeNode lvl2child6 = (PagedBTreeNode) lvl1child2.getChild(2);
-//		assertFalse(lvl2child2.isDirty());
-//		assertFalse(lvl2child3.isDirty());
-//		assertFalse(lvl1child2.isDirty());
-//		assertFalse(lvl2child4.isDirty());
-//		assertFalse(lvl2child5.isDirty());
-//		assertFalse(lvl2child6.isDirty());
-//
-//		bufferManager.write(root);
-//
-//		tree.insert(32, 32);
-//		PagedBTreeNode lvl2child7 = (PagedBTreeNode) lvl1child2.getChild(3);
-//		assertTrue(root.isDirty());
-//		assertTrue(lvl1child2.isDirty());
-//		assertTrue(lvl2child6.isDirty());
-//		assertTrue(lvl2child7.isDirty());
-//		assertFalse(lvl1child1.isDirty());
-//		assertFalse(lvl2child1.isDirty());
-//		assertFalse(lvl2child2.isDirty());
-//		assertFalse(lvl2child3.isDirty());
-//		assertFalse(lvl2child4.isDirty());
-//		assertFalse(lvl2child5.isDirty());
-//
-//		bufferManager.write(root);
-//		tree.delete(16);
-//		assertTrue(root.isDirty());
-//		assertTrue(lvl1child1.isDirty());
-//		assertFalse(lvl1child2.isDirty());
-//		assertFalse(lvl2child1.isDirty());
-//		assertTrue(lvl2child2.isDirty());
-//		assertTrue(lvl2child3.isDirty());
-//		assertFalse(lvl2child4.isDirty());
-//		assertFalse(lvl2child5.isDirty());
-//		assertFalse(lvl2child6.isDirty());
-//		assertFalse(lvl2child7.isDirty());
-//
-//		bufferManager.write(root);
-//		tree.delete(14);
-//		assertTrue(root.isDirty());
-//		assertTrue(lvl1child1.isDirty());
-//		assertTrue(lvl1child2.isDirty());
-//		assertFalse(lvl2child1.isDirty());
-//		assertTrue(lvl2child2.isDirty());
-//		assertTrue(lvl2child3.isDirty());
-//		assertFalse(lvl2child4.isDirty());
-//		assertFalse(lvl2child5.isDirty());
-//		assertFalse(lvl2child6.isDirty());
-//		assertFalse(lvl2child7.isDirty());
-//	}
-
-//	@Test
-//	public void closeTest() {
-//		BTreeStorageBufferManager bufferManager = (BTreeStorageBufferManager) newBufferManager();
-//
-//		UniquePagedBTree tree = (UniquePagedBTree) getTestTree(bufferManager);
-//
-//		// build list of initial nodes
-//		ArrayList<Integer> nodeList = new ArrayList<Integer>();
-//		BTreeIterator iterator = new BTreeIterator(tree);
-//		while (iterator.hasNext()) {
-//			nodeList.add(((PagedBTreeNode) iterator.next()).getPageId());
-//		}
-//
-//		tree.delete(2);
-//		tree.delete(3);
-//		closeTestHelper(tree, nodeList, bufferManager);
-//
-//		tree.delete(5);
-//		tree.delete(7);
-//		tree.delete(8);
-//		closeTestHelper(tree, nodeList, bufferManager);
-//
-//        tree.delete(24);
-//		tree.delete(27);
-//		tree.delete(29);
-//		tree.delete(33);
-//		closeTestHelper(tree, nodeList, bufferManager);
-//
-//		tree.delete(14);
-//		tree.delete(16);
-//		closeTestHelper(tree, nodeList, bufferManager);
-//
-//		tree.delete(19);
-//		tree.delete(20);
-//		tree.delete(22);
-//		closeTestHelper(tree, nodeList, bufferManager);
-//
-//	}
-
-	// test whether all of the nodes that are not in the tree anymore are also
-	// not anymore present in the BufferManager
-	private void closeTestHelper(UniquePagedBTree tree,
-			ArrayList<Integer> nodeList, BTreeStorageBufferManager bufferManager) {
-
-		ArrayList<Integer> removedNodeList = new ArrayList<Integer>(nodeList);
-		
-		BTreeIterator iterator = new BTreeIterator(tree);
-		while (iterator.hasNext()) {
-			Integer nodeId = ((PagedBTreeNode) iterator.next()).getPageId();
-			removedNodeList.remove(nodeId);
-		}
-		for (int nodeId : removedNodeList) {
-			assertEquals(null, bufferManager.readNodeFromMemory(nodeId));
-		}
+	public static PagedBTree getTestTreeWithThreeLayers(
+			BTreeBufferManager bufferManager) {
+		BTreeFactory factory = new BTreeFactory(bufferManager, true);
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
+		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 13L),
+				Arrays.asList(24L, 30L)));
+		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L, 3L),
+				Arrays.asList(5L, 7L, 8L), Arrays.asList(14L, 16L),
+				Arrays.asList(19L, 20L, 22L), Arrays.asList(24L, 27L, 29L),
+				Arrays.asList(33L, 34L, 38L, 39L)));
+		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
+		return tree;
 	}
-
-//	public static UniquePagedBTree getTestTree(BTreeBufferManager bufferManager) {
-//		int order = 5;
-//		BTreeFactory factory = factory(order, bufferManager);
-////		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
-////		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 13L),
-////				Arrays.asList(24L, 30L)));
-////		factory.addLeafLayerDefault(Arrays.asList(Arrays.asList(2L, 3L),
-////				Arrays.asList(5L, 7L, 8L), Arrays.asList(14L, 16L),
-////				Arrays.asList(19L, 20L, 22L), Arrays.asList(24L, 27L, 29L),
-////				Arrays.asList(33L, 34L, 38L, 39L)));
-//		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
-//		return tree;
-//	}
 
 	public static Pair<Long, Long> pair(long x, long y) {
 		return new Pair<Long, Long>(x, y);
 	}
 
-    private static BTreeFactory factory(int order, BTreeBufferManager bufferManager) {
+    private static BTreeFactory factory(BTreeBufferManager bufferManager) {
         boolean unique = true;
-        return new BTreeFactory(order, bufferManager, unique);
+        return new BTreeFactory(bufferManager, unique);
     }
 
     private int numberOfElementsFromPageSizeAvoidSplit(int pageSize) {
@@ -372,8 +263,13 @@ public class TestBTree {
     }
     
     public static BTreeBufferManager newBufferManager() { 
-    	StorageChannel storage = new StorageRootInMemory(ZooConfig.getFilePageSize());
+    	int pageSize = ZooConfig.getFilePageSize();
+		return newBufferManager(pageSize);
+    }
+    
+    public static BTreeBufferManager newBufferManager(int pageSize) { 
+    	StorageChannel storage = new StorageRootInMemory(pageSize);
     	boolean isUnique = true;
-		return new BTreeMemoryBufferManager();
+		return new BTreeMemoryBufferManager(pageSize);
     }
 }

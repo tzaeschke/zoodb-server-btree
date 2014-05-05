@@ -18,7 +18,7 @@ public class BTreeFactoryTest {
 		boolean isUnique = true;
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(storage, isUnique);
 		
-		BTreeFactory factory = new BTreeFactory(bufferManager.getStorageFile().getPageSize(), bufferManager, true);
+		BTreeFactory factory = new BTreeFactory(bufferManager, true);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
 
 		System.out.println(getTestTree());
@@ -29,7 +29,7 @@ public class BTreeFactoryTest {
 		boolean isUnique = true;
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(storage, isUnique);
 		
-		BTreeFactory factory = new BTreeFactory(bufferManager.getStorageFile().getPageSize(), bufferManager, true);
+		BTreeFactory factory = new BTreeFactory(bufferManager, true);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(5L, 13L),
 				Arrays.asList(24L, 30L)));

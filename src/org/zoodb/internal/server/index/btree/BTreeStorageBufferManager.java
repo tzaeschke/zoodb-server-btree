@@ -1,23 +1,19 @@
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.server.DiskIO;
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.StorageChannelInput;
-import org.zoodb.internal.server.StorageChannelOutput;
-import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
-import org.zoodb.internal.util.DBLogger;
-import org.zoodb.internal.util.PrimLongMapLI;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Observable;
 
+import org.zoodb.internal.server.DiskIO.DATA_TYPE;
+import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.StorageChannelInput;
+import org.zoodb.internal.server.StorageChannelOutput;
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
+import org.zoodb.internal.util.PrimLongMapLI;
+
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
-	private final int leafOrder;
-	private final int innerNodeOrder;
     private int pageSize;
     
 	private PrimLongMapLI<PagedBTreeNode> dirtyBuffer;
@@ -45,8 +41,6 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		this.storageOut = storage.getWriter(false);
 		
     	this.pageSize = this.storageFile.getPageSize();
-    	this.leafOrder = computeLeafOrder(pageSize);
-    	this.innerNodeOrder = computeInnerNodeOrder(pageSize, isUnique);
 	}
 
 	public BTreeStorageBufferManager(StorageChannel storage, boolean isUnique, DATA_TYPE dataType) {
@@ -212,53 +206,6 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		storageOut.flush();
 		return pageId;
 	}
-	
-    public static int computeLeafOrder(int pageSize) {
-    	int headerSize = DiskIO.PAGE_HEADER_SIZE;
-    	int leafIndicatorSize = 2;
-    	int numKeysSize = 2;
-    	
-    	int keySize = 8;
-    	int valueSize = 8;
-    	
-    	if(pageSize < headerSize + leafIndicatorSize + numKeysSize) {
-			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
-    	}
-
-    	int order = 0;
-    	pageSize -= (headerSize + leafIndicatorSize + numKeysSize);
-    	order = (int)Math.round(Math.floor(pageSize/(keySize + valueSize)));
-    	
-    	if(order < 2) {
-			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
-    	}
-
-		return order+1;
-	}
-    
-    public static int computeInnerNodeOrder(int pageSize, boolean isUnique) {
-    	int headerSize = DiskIO.PAGE_HEADER_SIZE;
-    	int numKeysSize = 2;
-    	
-    	int keySize = isUnique ? 8 : 16;
-    	int childrenSize = 4;
-    	
-    	if(pageSize < headerSize + numKeysSize) {
-			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
-    	}
-
-    	int order = 0;
-    	pageSize -= (headerSize + numKeysSize);
-    	
-    	pageSize -= childrenSize;
-    	order = (int)Math.round(Math.floor(pageSize/(keySize + childrenSize))) + 1;
-    	
-    	if(order < 2) {
-			throw DBLogger.newFatal("Illegal Page size: " + pageSize);
-    	}
-
-		return order;
-	}
 
 	@Override
 	public int save(PagedBTreeNode node) {
@@ -328,14 +275,6 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		}
 	}
 	
-	public int getLeafOrder() {
-		return leafOrder;
-	}
-
-	public int getInnerNodeOrder() {
-		return innerNodeOrder;
-	}
-
 	public PrimLongMapLI<PagedBTreeNode> getDirtyBuffer() {
 		return dirtyBuffer;
 	}

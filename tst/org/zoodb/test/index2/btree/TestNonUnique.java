@@ -19,8 +19,7 @@ public class TestNonUnique {
 
     @Test
     public void testSameKey() {
-        int order = 64;
-        BTree tree = factory(order).getTree();
+        BTree tree = factory().getTree();
         tree.insert(1, 1);
         tree.insert(1, 2);
         assertEquals(2, tree.getRoot().getNumKeys());
@@ -28,8 +27,7 @@ public class TestNonUnique {
 
     @Test
     public void testSameKeyReverse() {
-        int order = 64;
-        BTree tree = factory(order).getTree();
+        BTree tree = factory().getTree();
         tree.insert(1, 3);
         tree.insert(1, 2);
         assertEquals(2, tree.getRoot().getNumKeys());
@@ -37,8 +35,7 @@ public class TestNonUnique {
 
     @Test
     public void testSameKeyValuePair() {
-        int order = 64;
-        BTree tree = factory(order).getTree();
+        BTree tree = factory().getTree();
         tree.insert(1, 1);
         tree.insert(1, 1);
         assertEquals(1, tree.getRoot().getNumKeys());
@@ -67,8 +64,7 @@ public class TestNonUnique {
 
     @Test
     public void testInsertSplit() {
-        int order = 64;
-        BTreeFactory factory = factory(order);
+        BTreeFactory factory = factory();
         NonUniquePagedBTree tree = (NonUniquePagedBTree) factory.getTree();
 
         for (int i = 0; i < 100; i++) {
@@ -106,7 +102,7 @@ public class TestNonUnique {
         int order = 320;
         int numEntries = 1000;
         int numTimes = 200;
-        BTreeFactory factory = factory(order);
+        BTreeFactory factory = factory();
         NonUniquePagedBTree tree = (NonUniquePagedBTree) factory.getTree();
         List<LongLongIndex.LLEntry> entries = BTreeTestUtils.nonUniqueEntries(numEntries, numTimes);
 
@@ -161,8 +157,8 @@ public class TestNonUnique {
     }
 
 
-    private BTreeFactory factory(int order) {
+    private BTreeFactory factory() {
         boolean unique = false;
-        return new BTreeFactory(order, bufferManager, unique);
+        return new BTreeFactory(bufferManager, unique);
     }
 }

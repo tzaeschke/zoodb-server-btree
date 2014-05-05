@@ -12,8 +12,7 @@ public class TestUnique {
 
     @Test
     public void testSameKeyPair() {
-        int order = 5;
-        UniquePagedBTree tree = (UniquePagedBTree) factory(order).getTree();
+        UniquePagedBTree tree = (UniquePagedBTree) factory().getTree();
         tree.insert(1, 1);
         tree.insert(1, 2);
         System.out.println(tree);
@@ -22,9 +21,9 @@ public class TestUnique {
         assertEquals(new Long(3), tree.search(1));
     }
 
-    private BTreeFactory factory(int order) {
+    private BTreeFactory factory() {
         boolean unique = true;
-        return new BTreeFactory(order, bufferManager, true);
+        return new BTreeFactory(bufferManager, true);
     }
 
 }

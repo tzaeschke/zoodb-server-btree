@@ -7,11 +7,20 @@ import java.util.Observable;
 public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	private Map<Integer, PagedBTreeNode> map;
 	private int pageId;
+	private int pageSize;
 
 	public BTreeMemoryBufferManager() {
 		this.map = new HashMap<Integer, PagedBTreeNode>();
 		this.pageId = 0;
+		this.pageSize = 256;
 	}
+	
+	public BTreeMemoryBufferManager(int pageSize) {
+		this.map = new HashMap<Integer, PagedBTreeNode>();
+		this.pageId = 0;
+		this.pageSize = pageSize;
+	}
+	
 	@Override
 	public PagedBTreeNode read(int pageId) {
 		return map.get(pageId);
@@ -45,6 +54,11 @@ public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	@Override
 	public void update(Observable o, Object arg) {
 		return;
+	}
+
+	@Override
+	public int getPageSize() {
+		return this.pageSize;
 	}
 
 }
