@@ -12,6 +12,8 @@ import org.zoodb.tools.ZooConfig;
 import java.util.*;
 
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 public class TestBTree {
 
@@ -72,6 +74,7 @@ public class TestBTree {
 			assertEquals(
 					"Incorrect return value when searching for missing key.",
 					null, tree.search(key));
+            tree.delete(key);
 		}
 	}
 
@@ -100,27 +103,28 @@ public class TestBTree {
         final int pageSize = 64;
         BTreeFactory factory = factory(newBufferManager(pageSize));
         UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
-        int numberOfElements = 1500;
+        int numberOfElements = 5000;
         Map<Long, Long> keyValueMap = BTreeTestUtils
                 .increasingKeysRandomValues(numberOfElements);
         for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
             tree.insert(entry.getKey(), entry.getValue());
         }
-        System.out.println("Initial tree");
-        //System.out.println(tree);
+//        System.out.println("Initial tree");
+//        System.out.println(tree);
 
-        Random random = new Random(Calendar.getInstance().getTimeInMillis());
+        //Random random = new Random(Calendar.getInstance().getTimeInMillis());
+        Random random = new Random(42);
         while (!keyValueMap.isEmpty()) {
             long key = random.nextInt(numberOfElements);
             if (keyValueMap.containsKey(key)) {
                 //System.out.println("Attempting to delete " + key);
                 tree.delete(key);
-                //System.out.println("After deleting " + key);
-                //System.out.println(tree);
                 keyValueMap.remove(key);
                 for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
                     assertEquals(entry.getValue(), tree.search(entry.getKey()));
                 }
+                //System.out.println("After deleting " + key);
+                //System.out.println(tree);
             }
         }
 
@@ -161,7 +165,7 @@ public class TestBTree {
 	@Test
 	public void testDeleteMassively() {
 		int pageSize = 320;
-        int numEntries = 50000;
+        int numEntries = 5000000;
         BTreeFactory factory = factory(newBufferManager(pageSize));
 		deleteMassively(factory, numEntries);
 	}
@@ -169,7 +173,7 @@ public class TestBTree {
 	@Test
 	public void testDeleteMassivelyWithDifferentOrder() {
 		int pageSize = 256;
-        int numEntries = 50000;
+        int numEntries = 5000000;
         BTreeFactory factory = new BTreeFactory(newBufferManager(pageSize), true);
 		deleteMassively(factory, numEntries);
 	}
@@ -194,11 +198,11 @@ public class TestBTree {
 		for (LLEntry entry : entries) {
 			assertEquals(null, tree.search(entry.getKey()));
 		}
-		// root is empty and has no children
-		assertEquals(0, tree.getRoot().getNumKeys());
-		BTreeNode[] emptyChildren = new BTreeNode[tree.getRoot().getChildren().length];
-		Arrays.fill(emptyChildren, null);
-		assertArrayEquals(emptyChildren, tree.getRoot().getChildren());
+
+        // root is empty and has no children
+        assertEquals(0, tree.getRoot().getNumKeys());
+        assertTrue(tree.getRoot().isLeaf());
+        assertArrayEquals(null, tree.getRoot().getChildrenPageIds());
 
 		// add all entries, delete a portion of it, check that correct ones are
 		// deleted and still present respectively
@@ -249,7 +253,7 @@ public class TestBTree {
 	}
 
 	public static Pair<Long, Long> pair(long x, long y) {
-		return new Pair<Long, Long>(x, y);
+		return new Pair<>(x, y);
 	}
 
     private static BTreeFactory factory(BTreeBufferManager bufferManager) {

@@ -70,53 +70,18 @@ public abstract class BTree<T extends BTreeNode> {
 
         increaseModcount();
 
+        T leafParent = ancestorStack.peek();
         long oldValue = deleteFromLeaf(leaf, key, value);
-
-        if (!leaf.isRoot()) {
-            long replacementKey = leaf.getSmallestKey();
-            long replacementValue = leaf.getSmallestValue();
-            T current = leaf;
-            T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
-            while (current != null) {
-                if (current.isUnderfull()) {
-                    //check if can borrow 1 value from the left or right siblings
-                    T rightSibling = (T) current.rightSibling(parent);
-                    T leftSibling = (T) current.leftSibling(parent);
-                    if (current.fitsIntoOneNodeWith(leftSibling)) {
-                        //merge with left sibling
-                        parent = mergeWithLeft(this, current, leftSibling, parent);
-                    } else if (current.fitsIntoOneNodeWith(rightSibling)) {
-                        parent = mergeWithRight(this, current, rightSibling, parent);
-                    } else if (leftSibling != null && leftSibling.hasExtraKeys()) {
-                        redistributeKeysFromLeft(current, leftSibling, parent);
-                    } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
-                        redistributeKeysFromRight(current, rightSibling, parent);
-                    }
-                    //if nothing works, we're left with an under-full node, but
-                    //there's nothing really that we can do at this point
-//                    if (leftSibling != null && leftSibling.hasExtraKeys()) {
-//                        redistributeKeysFromLeft(current, leftSibling, parent);
-//                    } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
-//                        redistributeKeysFromRight(current, rightSibling, parent);
-//                    } else {
-//                        //at this point, both left and right sibling have the minimum number of keys
-//                        if (leftSibling!= null) {
-//                            //merge with left sibling
-//                            parent = mergeWithLeft(this, current, leftSibling, parent);
-//                        } else {
-//                            //merge with right sibling
-//                            parent = mergeWithRight(this, current, rightSibling, parent);
-//                        }
-//                    }
-                }
-                if (current.containsKeyValue(key, value)) {
-                    current.replaceEntry(key, value, replacementKey, replacementValue);
-                }
-                current = parent;
-                parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
+        if (!leaf.isRoot() && leaf.getNumKeys() == 0) {
+            leafParent.removeChild(leaf);
+            //System.out.println("Remove child leaf");
+            leaf.close();
+            if (ancestorStack.size() > 1) {
+                leaf = leafParent;
+                ancestorStack.pop();
             }
         }
-        
+        rebalanceAfterDelete(leaf, ancestorStack, key, value);
         if(key == minKey) {
         	minKey = computeMinKey();
         }
@@ -126,6 +91,49 @@ public abstract class BTree<T extends BTreeNode> {
         return oldValue;
     }
 
+    private void rebalanceAfterDelete(T node, LinkedList<T> ancestorStack, long key, long value) {
+        if (!node.isRoot()) {
+            long replacementKey = node.getSmallestKey();
+            long replacementValue = node.getSmallestValue();
+            T current = node;
+            T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
+
+            while (current != null) {
+                if (current.getNumKeys() == 0) {
+                    //System.out.println("Remove child inner");
+                    parent.removeChild(current);
+                    current.close();
+                } else if (current.isUnderfull()) {
+                    //check if can borrow 1 value from the left or right siblings
+                    T rightSibling = (T) current.rightSibling(parent);
+                    T leftSibling = (T) current.leftSibling(parent);
+                    if (current.fitsIntoOneNodeWith(leftSibling)) {
+                        //System.out.println("Merge with left");
+                        //merge with left sibling
+                        parent = mergeWithLeft(this, current, leftSibling, parent);
+                    } else if (current.fitsIntoOneNodeWith(rightSibling)) {
+                        //System.out.println("Merge with left");
+                        parent = mergeWithRight(this, current, rightSibling, parent);
+                    } else if (leftSibling != null && leftSibling.hasExtraKeys()) {
+                        //System.out.println("Redistribute from left");
+                        redistributeKeysFromLeft(current, leftSibling, parent);
+                    } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
+                        //System.out.println("Redistribute from right");
+                        redistributeKeysFromRight(current, rightSibling, parent);
+                    } else {
+                        System.out.println("Count not re-balance");
+                    }
+                    //if nothing works, we're left with an under-full node, but
+                    //there's nothing really that we can do at this point
+                }
+//                if (current.containsKeyValue(key, value)) {
+//                    current.replaceEntry(key, value, replacementKey, replacementValue);
+//                }
+                current = parent;
+                parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
+            }
+        }
+    }
     /**
      * Inserts the nodes left and right into the parent node. The right node is a new node, created
      * as a result of a split.
@@ -172,7 +180,8 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
     protected long deleteFromLeaf(T leaf, long key, long value) {
-        return leaf.delete(key, value);
+        long oldValue = leaf.delete(key, value);
+        return oldValue;
     }
 
     public void setRoot(BTreeNode root) {
@@ -409,11 +418,12 @@ public abstract class BTree<T extends BTreeNode> {
                 current.getKeys(), current.getNumKeys(), right.getKeys(), right.getNumKeys());
         //int keysToMove = right.getNumKeys() - splitIndexInRight;
         int keysToMove = splitIndexInRight + 1;
-
+        if (keysToMove == 0) {
+            return;
+        }
         //move key from parent to current node
         int parentKeyIndex = parent.keyIndexOf(current, right);
         if (current.isLeaf()) {
-
             int startIndexRight = 0;
             int startIndexLeft = current.getNumKeys();
             //copy from left to current
@@ -455,6 +465,9 @@ public abstract class BTree<T extends BTreeNode> {
         //int keysToMove = left.getNumKeys() - (totalKeys / 2);
         int parentKeyIndex = parent.keyIndexOf(left, current);
         if (current.isLeaf()) {
+            if (keysToMove == 0) {
+                return;
+            }
             //shift nodes in current node right
             current.shiftRecordsRight(keysToMove);
 
@@ -473,6 +486,9 @@ public abstract class BTree<T extends BTreeNode> {
             keysToMove-=1;
             if (current.getNumKeys() == 0) {
                 keysToMove--;
+            }
+            if (keysToMove == 0) {
+                return;
             }
             int startIndexLeft = left.getNumKeys() - keysToMove;
             int startIndexRight = 0;

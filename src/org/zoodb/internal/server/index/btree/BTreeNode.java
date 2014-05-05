@@ -32,8 +32,8 @@ public abstract class BTreeNode extends Observable {
 		this.isRoot = isRoot;
         this.pageSize = pageSize;
 
-        this.minSize = computeMinSize(pageSize);
-		initializeEntries();
+        initializeEntries();
+        this.minSize = keys.length >> 1;
 	}
 
     public abstract long getNonKeyEntrySizeInBytes(int numKeys);
@@ -53,7 +53,7 @@ public abstract class BTreeNode extends Observable {
     public abstract BTreeNode[] getChildren();
     public abstract void setChildren(BTreeNode[] children);
     public abstract void markChanged();
-
+    public abstract <T extends BTreeNode> void removeChild(T leaf);
     // closes (destroys) node
     public abstract void close();
     /*
@@ -244,7 +244,8 @@ public abstract class BTreeNode extends Observable {
 		if (isRoot()) {
 			return getNumKeys() == 0;
 		}
-        return computeSize() < minSize;
+        //ToDo fix this
+        return getNumKeys() <= minSize;
 	}
 
 	public boolean hasExtraKeys() {
@@ -576,7 +577,7 @@ public abstract class BTreeNode extends Observable {
             return false;
         }
         long first = Math.min(this.getSmallestKey(), neighbour.getSmallestKey());
-        long last = Math.min(this.getLargestKey(), neighbour.getLargestKey());
+        long last = Math.max(this.getLargestKey(), neighbour.getLargestKey());
         int newNumKeys = this.getNumKeys() + neighbour.getNumKeys();
         if (!this.isLeaf()) {
             //also take into account the key that is taken down from the parent
@@ -585,8 +586,7 @@ public abstract class BTreeNode extends Observable {
         }
         long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last, newNumKeys);
         int newPageSize = (int) (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys));
-        boolean willOverflow = pageSize >= newPageSize;
-        return willOverflow;
+        boolean willNotOverflow = pageSize >= newPageSize;
+        return willNotOverflow;
     }
-
 }

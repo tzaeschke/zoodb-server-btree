@@ -138,7 +138,30 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		childrenPageIds[index] = toPagedNode(child).getPageId();
 	}
 
-	@Override
+    @Override
+    public <T extends BTreeNode> void removeChild(T child) {
+        PagedBTreeNode pagedChild = toPagedNode(child);
+        int childPageId = pagedChild.getPageId();
+        int childIndex = -1;
+        for (int i = 0; i < getNumKeys() + 1; i++) {
+            if (childrenPageIds[i] == childPageId) {
+                childIndex = i;
+                break;
+            }
+        }
+        if (childIndex == this.getNumKeys()) {
+            this.decrementNumKeys();
+        } else {
+            long oldKey = this.getKey(childIndex);
+            this.shiftRecordsLeftWithIndex(childIndex, 1);
+            if (childIndex > 0) {
+                this.setKey(childIndex - 1, oldKey);
+            }
+            this.decrementNumKeys();
+        }
+    }
+
+    @Override
 	public boolean equalChildren(BTreeNode other) {
 		if(getNumKeys() > 0) {
             return arrayEquals(getChildren(), other.getChildren(), getNumKeys() + 1);
