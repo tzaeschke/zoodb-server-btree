@@ -3,6 +3,7 @@ package org.zoodb.internal.server.index.btree;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 import org.zoodb.internal.util.Pair;
 
+import java.util.NoSuchElementException;
 import java.util.Observable;
 
 /**
@@ -198,6 +199,9 @@ public abstract class BTreeNode extends Observable {
             throw new IllegalStateException("Should be a leaf node");
         }
         final int keyPos = findKeyValuePos(key, value);
+        if (keyPos == 0) {
+            throw new NoSuchElementException("key not found: " + key + " / " + value);
+        }
         int recordsToMove = getNumKeys() - keyPos;
         long oldValue = getValue(keyPos - 1);
         shiftRecords(keyPos, keyPos - 1, recordsToMove);
@@ -554,7 +558,7 @@ public abstract class BTreeNode extends Observable {
 
     protected int getKeyArraySizeInBytes() {
         //ToDo use precomputed prefix
-        return PrefixSharingHelper.computeKeyArraySizeInBytes(keys);
+        return PrefixSharingHelper.computeKeyArraySizeInBytes(getKeys(), getNumKeys());
     }
 
     public boolean willOverflowAfterInsert(long key) {
@@ -565,7 +569,8 @@ public abstract class BTreeNode extends Observable {
         long last = Math.max(getLargestKey(), key);
         int newNumKeys = getNumKeys() + 1;
         long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last, newNumKeys);
-        int newPageSize = (int) (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys));
+        //ToDo remove hard coding
+        int newPageSize = 32 + (int) (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys));
         boolean willOverflow = pageSize <= newPageSize;
         return willOverflow;
     }

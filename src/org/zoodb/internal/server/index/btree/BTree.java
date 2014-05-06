@@ -121,7 +121,7 @@ public abstract class BTree<T extends BTreeNode> {
                         //System.out.println("Redistribute from right");
                         redistributeKeysFromRight(current, rightSibling, parent);
                     } else {
-                        System.out.println("Count not re-balance");
+                        //System.out.println("Could not re-balance");
                     }
                     //if nothing works, we're left with an under-full node, but
                     //there's nothing really that we can do at this point
@@ -266,8 +266,10 @@ public abstract class BTree<T extends BTreeNode> {
         tempNode.setNumKeys(numKeys);
         tempNode.put(newKey, value);
 
-        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(tempNode.getKeys());
+        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(tempNode.getKeys(), tempNode.getNumKeys());
         int keysInRightNode = numKeys + 1 - keysInLeftNode;
+//        int keysInLeftNode = current.getNumKeys() >> 1 + 1;
+//        int keysInRightNode = current.getNumKeys() - keysInLeftNode;
 
         // populate left node
         tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);
@@ -306,9 +308,10 @@ public abstract class BTree<T extends BTreeNode> {
 
         // split
         T right = (T) nodeFactory.newNode(isUnique(), pageSize, false, false);
-        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(tempNode.getKeys());
+        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(tempNode.getKeys(), tempNode.getNumKeys());
         int keysInRightNode = numKeys - keysInLeftNode;
-
+//        int keysInLeftNode = current.getNumKeys() >> 1 + 1;
+//        int keysInRightNode = current.getNumKeys() - keysInLeftNode;
         // populate left node
         tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);
         current.setNumKeys(keysInLeftNode);

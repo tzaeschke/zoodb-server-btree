@@ -102,7 +102,7 @@ public class TestBTree {
         final int pageSize = 64;
         BTreeFactory factory = factory(newBufferManager(pageSize));
         UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
-        int numberOfElements = 50000;
+        int numberOfElements = 500;
         Map<Long, Long> keyValueMap = BTreeTestUtils
                 .increasingKeysRandomValues(numberOfElements);
         for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {

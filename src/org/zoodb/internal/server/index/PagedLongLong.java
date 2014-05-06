@@ -20,10 +20,10 @@
  */
 package org.zoodb.internal.server.index;
 
-import java.util.NoSuchElementException;
-
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
+
+import java.util.NoSuchElementException;
 
 
 /**
