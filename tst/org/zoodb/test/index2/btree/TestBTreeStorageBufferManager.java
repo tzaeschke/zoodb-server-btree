@@ -228,11 +228,11 @@ public class TestBTreeStorageBufferManager {
 		assertFalse(lvl2child5.isDirty());
 		assertFalse(lvl2child6.isDirty());
 
-		bufferManager.write(root);
+		bufferManager.write(tree.getRoot());
 
 		tree.insert(32, 32);
 		tree.insert(35, 35);
-		System.out.println(tree);
+		tree.insert(36, 36);
 		PagedBTreeNode lvl2child7 = (PagedBTreeNode) lvl1child2.getChild(3);
 		assertTrue(root.isDirty());
 		assertTrue(lvl1child2.isDirty());
@@ -245,11 +245,11 @@ public class TestBTreeStorageBufferManager {
 		assertFalse(lvl2child4.isDirty());
 		assertFalse(lvl2child5.isDirty());
 
-		bufferManager.write(root);
+		bufferManager.write(tree.getRoot());
 		tree.delete(16);
 		assertTrue(root.isDirty());
 		assertTrue(lvl1child1.isDirty());
-		assertFalse(lvl1child2.isDirty());
+		assertTrue(lvl1child2.isDirty());
 		assertFalse(lvl2child1.isDirty());
 		assertTrue(lvl2child2.isDirty());
 		assertTrue(lvl2child3.isDirty());
@@ -258,13 +258,13 @@ public class TestBTreeStorageBufferManager {
 		assertFalse(lvl2child6.isDirty());
 		assertFalse(lvl2child7.isDirty());
 
-		bufferManager.write(root);
+		bufferManager.write(tree.getRoot());
 		tree.delete(14);
-		assertTrue(root.isDirty());
-		assertTrue(lvl1child1.isDirty());
+		// root does not exist anymore
+		// lvl1child1 does not exist anymore
 		assertTrue(lvl1child2.isDirty());
-		assertFalse(lvl2child1.isDirty());
-		assertTrue(lvl2child2.isDirty());
+		// lvl2child1 does not exist anymore
+		// lvl2child2 does not exist anymore
 		assertTrue(lvl2child3.isDirty());
 		assertFalse(lvl2child4.isDirty());
 		assertFalse(lvl2child5.isDirty());
@@ -349,17 +349,16 @@ public class TestBTreeStorageBufferManager {
 		assertEquals(expectedNumWrites += 3,
 				bufferManager.getStatNWrittenPages());
 
-		System.out.println(tree);
 		tree.delete(16);
 		bufferManager.write(root);
 		assertEquals(0, bufferManager.getDirtyBuffer().size());
-		assertEquals(expectedNumWrites += 4,
+		assertEquals(expectedNumWrites += 3,
 				bufferManager.getStatNWrittenPages());
 
 		tree.delete(14);
-		bufferManager.write(root);
+		bufferManager.write(tree.getRoot());
 		assertEquals(0, bufferManager.getDirtyBuffer().size());
-		assertEquals(expectedNumWrites += 4,
+		assertEquals(expectedNumWrites += 2,
 				bufferManager.getStatNWrittenPages());
 	}
 
