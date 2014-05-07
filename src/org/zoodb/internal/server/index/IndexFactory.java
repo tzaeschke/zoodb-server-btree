@@ -31,7 +31,8 @@ public class IndexFactory {
 	 * @return a new index
 	 */
 	public static LongLongIndex createIndex(DATA_TYPE type, StorageChannel storage) {
-		return new PagedLongLong(type, storage);
+        return new BTreeIndexNonUnique(storage, true);
+		//return new PagedLongLong(type, storage);
 	}
 	
 	/**
@@ -51,7 +52,8 @@ public class IndexFactory {
 	 */
 	public static LongLongIndex.LongLongUIndex createUniqueIndex(DATA_TYPE type, 
 			StorageChannel storage) {
-		return new PagedUniqueLongLong(type, storage);
+        return new BTreeIndexUnique(storage, true);
+		//return new PagedUniqueLongLong(type, storage);
 	}
 	
 	/**

@@ -19,7 +19,7 @@ import java.util.Random;
 
 public class PageUsageStats {
 
-	private static final int PAGE_SIZE = 128;
+	private static final int PAGE_SIZE = 256;
 
 	public static void main(String[] args) {
 		ZooConfig.setFilePageSize(PAGE_SIZE);
@@ -28,7 +28,7 @@ public class PageUsageStats {
 		PageUsageStats stats = new PageUsageStats();
 		stats.insertAndDelete();
 		stats.clear();
-		stats.insertAndDeleteMultiple();
+		//stats.insertAndDeleteMultiple();
 
 		ZooConfig.setFilePageSize(ZooConfig.FILE_PAGE_SIZE_DEFAULT);
 	}
