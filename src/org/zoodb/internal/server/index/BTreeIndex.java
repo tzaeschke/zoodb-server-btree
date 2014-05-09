@@ -18,19 +18,9 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 	
     protected BTreeStorageBufferManager bufferManager;
     
-	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique) {
+	public BTreeIndex(DATA_TYPE dataType, StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
-		
-        bufferManager = new BTreeStorageBufferManager(file, isUnique);
-
-	}
-	
-	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique, int rootPageId) {
-		this(file,isNew,isUnique);
-
-		PagedBTreeNode root = bufferManager.read(rootPageId);
-		root.setIsRoot(true);
-		this.getTree().setRoot(root);
+        bufferManager = new BTreeStorageBufferManager(file, isUnique, dataType);
 	}
 	
 	public void insertLong(long key, long value) {
@@ -40,7 +30,7 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 	public void print() {
         System.out.println(getTree());
 	}
-
+	
 	public int statsGetLeavesN() {
 		return getTree().statsGetLeavesN();
 	}
@@ -77,7 +67,6 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 		return bufferManager.write(getTree().getRoot());
 	}
 
-
 	public long size() {
 		return getTree().size();
 	}
@@ -98,6 +87,12 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 	
     public BTreeStorageBufferManager getBufferManager() {
 		return bufferManager;
+	}
+    
+	protected void readAndSetRoot(int pageId) {
+        PagedBTreeNode root = bufferManager.read(pageId);
+		root.setIsRoot(true);
+		this.getTree().setRoot(root);
 	}
 
 }

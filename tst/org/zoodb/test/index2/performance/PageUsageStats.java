@@ -52,7 +52,7 @@ public class PageUsageStats {
 
 		newStorage = new StorageRootInMemory(
 				ZooConfig.getFilePageSize());
-		newIndex = new BTreeIndexUnique(newStorage, true);
+		newIndex = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX, newStorage);
 	}
 			
 	public void insertAndDelete() {
