@@ -1,12 +1,9 @@
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.util.Pair;
-
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.WeakHashMap;
+
+import org.zoodb.internal.util.Pair;
 
 /**
  * Shared behaviour of unique and non-unique B+ tree.
@@ -72,6 +69,9 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
 	protected long deleteEntry(long key, long value) {
+		if(root.getNumKeys() == 0) {
+			throw new NoSuchElementException();
+		}
         Pair<LinkedList<T>,T> pair = searchNodeWithHistory(key, value);
         T leaf = pair.getB();
         LinkedList<T> ancestorStack = pair.getA();

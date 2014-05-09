@@ -6,7 +6,6 @@ import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 
@@ -18,6 +17,7 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
     	super(dataType, file, true, true);
 		tree = new UniquePagedBTree(bufferManager.getInnerNodeOrder(), 
 				bufferManager.getLeafOrder(), bufferManager);
+        setEmptyRoot();
     }
 
 	public BTreeIndexUnique(DATA_TYPE dataType, StorageChannel file, int rootPageId) {

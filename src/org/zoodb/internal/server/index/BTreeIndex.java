@@ -7,11 +7,11 @@ import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
 import org.zoodb.internal.server.index.btree.AscendingBTreeLeafEntryIterator;
-import org.zoodb.internal.server.index.btree.BTreeLeafEntryIterator;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.DescendingBTreeLeafEntryIterator;
 import org.zoodb.internal.server.index.btree.PagedBTree;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 
 
 public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNode> extends AbstractIndex {
@@ -89,7 +89,17 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 		return bufferManager;
 	}
     
+    protected void setEmptyRoot() {
+    	PagedBTreeNode root = new PagedBTreeNodeFactory(bufferManager).newNode(isUnique(), 
+    							bufferManager.getLeafOrder(), true, true);
+		this.getTree().setRoot(root);
+    }
+    
 	protected void readAndSetRoot(int pageId) {
+		if(getTree().getRoot() != null) {
+			// remove the previous root
+			getTree().getRoot().close();
+		}
         PagedBTreeNode root = bufferManager.read(pageId);
 		root.setIsRoot(true);
 		this.getTree().setRoot(root);
