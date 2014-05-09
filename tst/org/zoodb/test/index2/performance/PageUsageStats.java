@@ -8,18 +8,15 @@ import java.util.Random;
 
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.StorageRootFile;
+import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.BTreeIndexUnique;
-import org.zoodb.internal.server.index.FreeSpaceManager;
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
 import org.zoodb.internal.server.index.PagedUniqueLongLong;
 import org.zoodb.internal.server.index.btree.BTreeIterator;
-import org.zoodb.internal.util.DBLogger;
 import org.zoodb.tools.DBStatistics;
 import org.zoodb.tools.ZooConfig;
-import org.zoodb.tools.impl.DataStoreManagerOneFile;
 
 public class PageUsageStats {
 
@@ -47,20 +44,20 @@ public class PageUsageStats {
 	}
 	
 	public StorageChannel newStorage(String filename) {
-//		return new StorageRootInMemory(
-//				ZooConfig.getFilePageSize());
-		File dbFile = new File(toPath(filename));
-		if (dbFile.exists()) {
-			dbFile.delete();
-		}
-		try {
-			dbFile.createNewFile();
-		} catch (Exception e) {
-			throw DBLogger.newUser("ZOO: Error creating DB file: " + dbFile);
-		}
-		
-		return new StorageRootFile(filename, "rw",
-					PageUsageStats.PAGE_SIZE, new FreeSpaceManager());
+		return new StorageRootInMemory(
+				ZooConfig.getFilePageSize());
+//		File dbFile = new File(toPath(filename));
+//		if (dbFile.exists()) {
+//			dbFile.delete();
+//		}
+//		try {
+//			dbFile.createNewFile();
+//		} catch (Exception e) {
+//			throw DBLogger.newUser("ZOO: Error creating DB file: " + dbFile);
+//		}
+//		
+//		return new StorageRootFile(filename, "rw",
+//					PageUsageStats.PAGE_SIZE, new FreeSpaceManager());
 	}
 	
 	private String toPath(String dbName) {
@@ -76,7 +73,6 @@ public class PageUsageStats {
 		oldStorage = newStorage("old_storage.db");
 		oldIndex = new PagedUniqueLongLong(
 				DATA_TYPE.GENERIC_INDEX, oldStorage);
-
 
 		newStorage = newStorage("new_storage.db");
 		newIndex = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX, newStorage);
