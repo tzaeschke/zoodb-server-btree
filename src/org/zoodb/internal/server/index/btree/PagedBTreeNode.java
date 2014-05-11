@@ -221,9 +221,9 @@ public abstract class PagedBTreeNode extends BTreeNode {
     }
 
     /*
-             * Mark this node dirty which must mark all parents up to the root dirty as
-             * well because they depend on this node.
-             */
+     * Mark this node dirty which must mark all parents up to the root dirty as
+     * well because they depend on this node.
+     */
 	public void markDirty() {
 		if (isDirty()) {
 			// this node is dirty, so parents must be already dirty
@@ -284,8 +284,14 @@ public abstract class PagedBTreeNode extends BTreeNode {
     public BTreeBufferManager getBufferManager() {
         return bufferManager;
     }
-    
+
+    @Override
     public int computeSize() {
         return bufferManager.getNodeSizeInStorage(this);
+    }
+
+    @Override
+    public int storageHeaderSize() {
+        return bufferManager.getNodeHeaderSizeInStorage(this);
     }
 }

@@ -62,8 +62,11 @@ public class PrefixSharingHelper {
         return prefix;
     }
 
-
     public static int computeIndexForSplitAfterInsert(long[] arr, int arrayLength) {
+        return computeIndexForSplitAfterInsert(arr, arrayLength, 0, 0, 0, Long.MAX_VALUE);
+    }
+
+    public static int computeIndexForSplitAfterInsert(long[] arr, int arrayLength, int header, int weightKey, int weightChild, long maxSize) {
          /*
          *  Perform a binary search by computing the sizes of the left and right array
          *  after splitting by a certain index.
@@ -79,13 +82,14 @@ public class PrefixSharingHelper {
             mid = low + ((high - low) >> 1);
             long prefixLeft = computePrefix(arr[0], arr[mid]);
             long prefixRight = computePrefix(arr[mid+1], arr[arrayLength - 1]);
-            long sizeLeft = prefixLeft + (mid + 1) * (64 - prefixLeft);
-            long sizeRight = prefixRight + (arrayLength - 1 - mid) * (64 - prefixRight);
+            long sizeLeft = computeArraySize(prefixLeft, (mid + 1), header, weightKey, weightChild);
+            long sizeRight = computeArraySize(prefixRight, (arrayLength - 1 - mid), header, weightKey, weightChild);
             if (optimalDiff > Math.abs(sizeLeft - sizeRight)) {
                 optimalIndex = mid;
                 optimalDiff = Math.abs(sizeLeft - sizeRight);
             }
-            if (sizeLeft < sizeRight) {
+            if ((sizeLeft < sizeRight) && sizeLeft <= maxSize) {
+                //increase sizeLeft and decrease sizeRight
                 low = mid + 1;
             } else {
                 high = mid - 1;
@@ -121,7 +125,11 @@ public class PrefixSharingHelper {
         return computeIndexForRedistributeLeftToRight(first, first.length, second, second.length);
     }
 
-    public static int computeIndexForRedistributeLeftToRight(long[] first, int firstArraySize, long[] second, int secondArraySize) {
+    public static int computeIndexForRedistributeLeftToRight(long[] first, int firstArraySize,
+                                                             long[] second, int secondArraySize,
+                                                             int header, int weightKey, int weightChild,
+                                                             int maxSize) {
+
         if (firstArraySize == 0) {
             return secondArraySize / 2;
         } else if (secondArraySize == 0) {
@@ -136,24 +144,37 @@ public class PrefixSharingHelper {
         int mid = 0;
         int optimalIndex = 0;
         long optimalDiff = Long.MAX_VALUE;
-        while (low <= high) {
+        while (low < high) {
             mid = low + ((high - low) >> 1);
             long prefixLeft = computePrefix(first[0], first[mid]);
             long prefixRight = computePrefix(first[mid+1], second[secondArraySize - 1]);
-            long sizeLeft = prefixLeft + (mid + 1) * (64 - prefixLeft);
-            long sizeRight = prefixRight + (firstArraySize - 1 - mid + secondArraySize) * (64 - prefixRight);
+            long sizeLeft = computeArraySize(prefixLeft, (mid + 1), header, weightKey, weightChild);
+            long sizeRight = computeArraySize(prefixRight, (firstArraySize - 1 - mid + secondArraySize), header, weightKey,weightChild);
             if (optimalDiff > Math.abs(sizeLeft - sizeRight)) {
                 optimalIndex = mid;
                 optimalDiff = Math.abs(sizeLeft - sizeRight);
             }
-            if (sizeLeft < sizeRight) {
-                low = mid + 1;
-            } else {
+            if (sizeLeft > sizeRight && sizeRight < maxSize) {
+                //decrease sizeLeft and increase sizeRight
                 high = mid - 1;
+            } else {
+                low = mid + 1;
             }
         }
         //System.out.println("Optimal difference: " + optimalDiff);
         return optimalIndex;
+    }
+
+    public static int computeIndexForRedistributeLeftToRight(long[] first, int firstArraySize, long[] second, int secondArraySize) {
+        return computeIndexForRedistributeLeftToRight(first, firstArraySize, second, secondArraySize, 0, 0, 0, Integer.MAX_VALUE);
+    }
+
+    private static long computeArraySize(long prefix, int elements, int header, int weightKey, int weightChild) {
+        return header + prefix + (64 - prefix) * elements + elements * weightKey + elements * weightChild;
+    }
+
+    private static long computeArraySize(long prefix, int elements, int header, int weight) {
+        return header + prefix + (64 - prefix) * elements + elements * weight;
     }
 
     /**
@@ -170,7 +191,14 @@ public class PrefixSharingHelper {
         return computeIndexForRedistributeRightToLeft(first, first.length, second, second.length);
     }
 
-    public static int computeIndexForRedistributeRightToLeft(long[] first, int firstArraySize, long[] second, int secondArraySize) {
+    public static int computeIndexForRedistributeRightToLeft(long[] first, int firstArraySize,
+                                                             long[] second, int secondArraySize) {
+        return computeIndexForRedistributeRightToLeft(first, firstArraySize, second, secondArraySize, 0, 0, 0, Integer.MAX_VALUE);
+    }
+
+    public static int computeIndexForRedistributeRightToLeft(long[] first, int firstArraySize,
+                                                             long[] second, int secondArraySize,
+                                                             int header, int weightKey, int weightChild, int maxSize) {
         if (firstArraySize == 0) {
             return secondArraySize / 2;
         } else if (secondArraySize == 0) {
@@ -185,13 +213,14 @@ public class PrefixSharingHelper {
             mid = low + ((high - low) >> 1);
             long prefixLeft = computePrefix(first[0], second[mid]);
             long prefixRight = computePrefix(second[mid + 1], second[secondArraySize - 1]);
-            long sizeLeft = prefixLeft + (mid + 1 + firstArraySize) * (64 - prefixLeft);
-            long sizeRight = prefixRight + (secondArraySize - mid - 1) * (64 - prefixRight);
+            long sizeLeft = computeArraySize(prefixLeft, (mid + 1 + firstArraySize), header, weightKey, weightChild);
+            long sizeRight = computeArraySize(prefixRight, (secondArraySize - mid - 1), header, weightKey, weightChild);
             if (optimalDiff > Math.abs(sizeLeft - sizeRight)) {
                 optimalIndex = mid;
                 optimalDiff = Math.abs(sizeLeft - sizeRight);
             }
-            if (sizeLeft < sizeRight) {
+            if (sizeLeft < sizeRight && sizeLeft < maxSize) {
+                //increase sizeLeft
                 low = mid + 1;
             } else {
                 high = mid - 1;

@@ -70,4 +70,8 @@ public class BTreeMemoryBufferManager implements BTreeBufferManager {
 		return size;
 	}
 
+    @Override
+    public int getNodeHeaderSizeInStorage(PagedBTreeNode node) {
+        return BTreeStorageBufferManager.pageHeaderSize();
+    }
 }

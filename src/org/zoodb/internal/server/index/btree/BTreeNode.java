@@ -257,7 +257,8 @@ public abstract class BTreeNode extends Observable {
 			return true;
 		}
         //ToDo need to have at least 3 keys
-		return getNumKeys() > 2 && computeSize() > minSize;
+		//return getNumKeys() > 2 && computeSize() > minSize;
+        return getNumKeys() > 2 && getNumKeys() > minSize;
 	}
 
     public boolean isFull() {
@@ -555,6 +556,7 @@ public abstract class BTreeNode extends Observable {
     }
 
     public abstract int computeSize();
+    public abstract int storageHeaderSize();
 
     protected int getKeyArraySizeInBytes() {
         //ToDo use precomputed prefix
@@ -562,6 +564,7 @@ public abstract class BTreeNode extends Observable {
     }
 
     public boolean willOverflowAfterInsert(long key) {
+        //ToDo move the implementation for this method to PagedBTreeNode
         if (getNumKeys() == 0) {
             return false;
         }
@@ -569,13 +572,13 @@ public abstract class BTreeNode extends Observable {
         long last = Math.max(getLargestKey(), key);
         int newNumKeys = getNumKeys() + 1;
         long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last, newNumKeys);
-        //ToDo remove hard coding
-        int newPageSize = 32 + (int) (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys));
+        int newPageSize = (int) (storageHeaderSize() + (storageHeaderSize() + (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys))));
         boolean willOverflow = pageSize <= newPageSize;
         return willOverflow;
     }
 
     public boolean fitsIntoOneNodeWith(BTreeNode neighbour) {
+        //ToDo move the implementation for this method to PagedBTreeNode
         if (neighbour == null || neighbour.getNumKeys() == 0 || this.getNumKeys() == 0) {
             return false;
         }
@@ -588,7 +591,7 @@ public abstract class BTreeNode extends Observable {
             newNumKeys += 1;
         }
         long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last, newNumKeys);
-        int newPageSize = 64 + (int) (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys));
+        int newPageSize = (int) (storageHeaderSize() + (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys)));
         boolean willNotOverflow = pageSize >= newPageSize;
         return willNotOverflow;
     }

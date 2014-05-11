@@ -1,10 +1,5 @@
 package org.zoodb.internal.server.index.btree;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Observable;
-
 import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
@@ -12,6 +7,11 @@ import org.zoodb.internal.server.StorageChannelInput;
 import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 import org.zoodb.internal.util.PrimLongMapLI;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Observable;
 
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
@@ -339,4 +339,9 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		
 		return size;
 	}
+
+    @Override
+    public int getNodeHeaderSizeInStorage(PagedBTreeNode node) {
+        return pageHeaderSize();
+    }
 }

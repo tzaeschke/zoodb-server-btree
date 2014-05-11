@@ -1,13 +1,20 @@
 package org.zoodb.test.index2.btree;
 
 import org.junit.Test;
+import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.LongLongIndex;
+import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.prefix.BitOperationsHelper;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 public class TestPrefixSharing {
 
@@ -124,6 +131,77 @@ public class TestPrefixSharing {
         long[] decodedArray = PrefixSharingHelper.decodeArray(bytes);
         System.out.print(Arrays.toString(decodedArray));
         assertArrayEquals(inputArray, decodedArray);
+    }
+
+    @Test
+    public void testProperSizeAfterInsert() {
+        int pageSize = 128;
+        UniquePagedBTree tree = (UniquePagedBTree) createEmptyBTree(pageSize, true);
+        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.randomUniqueEntries(1000,
+                Calendar.getInstance().getTimeInMillis());
+        for (LongLongIndex.LLEntry entry : entries) {
+            //insert a new value
+            tree.insert(entry.getKey(), entry.getValue());
+
+            //check the all nodes have proper value
+            BTreeIterator iterator = new BTreeIterator(tree);
+            while (iterator.hasNext()) {
+                BTreeNode node = iterator.next();
+                int currentNodeSize = node.computeSize();
+                assertTrue("Current node size is too large. " +
+                        "\nCurrent node size: " + currentNodeSize +
+                        "\nMaximum size: " + pageSize,
+                        currentNodeSize <= pageSize);
+            }
+        }
+    }
+
+    @Test
+    public void testProperSizeAfterInsertDelete() {
+        int pageSize = 128;
+        UniquePagedBTree tree = (UniquePagedBTree) createEmptyBTree(pageSize, true);
+        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.randomUniqueEntries(100000,
+                42);
+        for (LongLongIndex.LLEntry entry : entries) {
+            //insert a new value
+            tree.insert(entry.getKey(), entry.getValue());
+
+            //check the all nodes have proper value
+            BTreeIterator iterator = new BTreeIterator(tree);
+            while (iterator.hasNext()) {
+                BTreeNode node = iterator.next();
+                int currentNodeSize = node.computeSize();
+                assertTrue("Current node size is too large. " +
+                        "\nCurrent node size: " + currentNodeSize +
+                        "\nMaximum size: " + pageSize,
+                        currentNodeSize <= pageSize);
+            }
+        }
+
+        for (LongLongIndex.LLEntry entry : entries) {
+            //insert a new value
+            tree.delete(entry.getKey());
+            //check the all nodes have proper value
+            BTreeIterator iterator = new BTreeIterator(tree);
+            while (iterator.hasNext()) {
+                BTreeNode node = iterator.next();
+                int currentNodeSize = node.computeSize();
+                assertTrue("Current node size is too large. " +
+                        "\nCurrent node size: " + currentNodeSize +
+                        "\nMaximum size: " + pageSize,
+                        currentNodeSize <= pageSize);
+            }
+        }
+    }
+
+    private BTree createEmptyBTree(int pageSize, boolean unique) {
+        StorageChannel storage = new StorageRootInMemory(pageSize);
+        BTreeBufferManager bufferManager = new BTreeStorageBufferManager(storage, unique);
+        if (unique) {
+            return new UniquePagedBTree(pageSize, bufferManager);
+        } else {
+            return new NonUniquePagedBTree(pageSize, bufferManager);
+        }
     }
 
     private void assertCorrectSplitForRedistributeRightToLeft(long[] first, long[] second) {

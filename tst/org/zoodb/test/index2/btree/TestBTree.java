@@ -38,7 +38,7 @@ public class TestBTree {
 
 	@Test
 	public void searchAfterSplit() {
-		final int pageSize = 64;
+		final int pageSize = 128;
         BTreeFactory factory = factory(newBufferManager(pageSize));
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
         int numberOfElements = 320;
@@ -98,31 +98,26 @@ public class TestBTree {
 	}
 
     @Test
-    public void testMergeNotEnoughSpace() {
-        final int pageSize = 64;
+    public void testInsertCheckAfterEachDelete() {
+        final int pageSize = 128;
         BTreeFactory factory = factory(newBufferManager(pageSize));
         UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
-        int numberOfElements = 500;
+        int numberOfElements = 10000;
         Map<Long, Long> keyValueMap = BTreeTestUtils
                 .increasingKeysRandomValues(numberOfElements);
         for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
             tree.insert(entry.getKey(), entry.getValue());
         }
-//        System.out.println("Initial tree");
-//        System.out.println(tree);
 
         Random random = new Random(Calendar.getInstance().getTimeInMillis());
         while (!keyValueMap.isEmpty()) {
             long key = random.nextInt(numberOfElements);
             if (keyValueMap.containsKey(key)) {
-                //System.out.println("Attempting to delete " + key);
                 tree.delete(key);
                 keyValueMap.remove(key);
                 for (Map.Entry<Long, Long> entry : keyValueMap.entrySet()) {
                     assertEquals(entry.getValue(), tree.search(entry.getKey()));
                 }
-                //System.out.println("After deleting " + key);
-                //System.out.println(tree);
             }
         }
     }
@@ -161,8 +156,8 @@ public class TestBTree {
 	 */
 	@Test
 	public void testDeleteMassively() {
-		int pageSize = 320;
-        int numEntries = 5000000;
+		int pageSize = 128;
+        int numEntries = 100000;
         BTreeFactory factory = factory(newBufferManager(pageSize));
 		deleteMassively(factory, numEntries);
 	}
@@ -170,7 +165,7 @@ public class TestBTree {
 	@Test
 	public void testDeleteMassivelyWithDifferentOrder() {
 		int pageSize = 256;
-        int numEntries = 5000000;
+        int numEntries = 200000;
         BTreeFactory factory = new BTreeFactory(newBufferManager(pageSize), true);
 		deleteMassively(factory, numEntries);
 	}
@@ -196,6 +191,7 @@ public class TestBTree {
 			assertEquals(null, tree.search(entry.getKey()));
 		}
 
+        Collections.shuffle(entries, new Random(43));
         // root is empty and has no children
         assertEquals(0, tree.getRoot().getNumKeys());
         assertTrue(tree.getRoot().isLeaf());
