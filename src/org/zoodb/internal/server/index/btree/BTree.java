@@ -1,9 +1,9 @@
 package org.zoodb.internal.server.index.btree;
 
+import org.zoodb.internal.util.Pair;
+
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
-
-import org.zoodb.internal.util.Pair;
 
 /**
  * Shared behaviour of unique and non-unique B+ tree.
@@ -24,12 +24,14 @@ public abstract class BTree<T extends BTreeNode> {
         this.innerNodeOrder = innerNodeOrder;
         this.leafOrder = leafOrder;
         this.nodeFactory = nodeFactory;
+        this.root = (T) nodeFactory.newNode(isUnique(), leafOrder, true, true);
     }
 
     public BTree(int order, BTreeNodeFactory nodeFactory) {
         this.innerNodeOrder = order;
         this.leafOrder = order;
         this.nodeFactory = nodeFactory;
+        this.root = (T) nodeFactory.newNode(isUnique(), leafOrder, true, true);
     }
 
     public abstract boolean isUnique();
