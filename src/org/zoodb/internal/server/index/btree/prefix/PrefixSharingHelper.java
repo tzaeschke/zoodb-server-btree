@@ -95,7 +95,7 @@ public class PrefixSharingHelper {
                 high = mid - 1;
             }
         }
-        //System.out.println("Optimal difference: " + optimalDiff);
+
         return optimalIndex;
     }
 
@@ -146,10 +146,10 @@ public class PrefixSharingHelper {
         long optimalDiff = Long.MAX_VALUE;
         while (low < high) {
             mid = low + ((high - low) >> 1);
-            long prefixLeft = computePrefix(first[0], first[mid]);
-            long prefixRight = computePrefix(first[mid+1], second[secondArraySize - 1]);
-            long sizeLeft = computeArraySize(prefixLeft, (mid + 1), header, weightKey, weightChild);
-            long sizeRight = computeArraySize(prefixRight, (firstArraySize - 1 - mid + secondArraySize), header, weightKey,weightChild);
+            long prefixLeft = computePrefix(first[0], first[mid - 1]);
+            long prefixRight = computePrefix(first[mid], second[secondArraySize - 1]);
+            long sizeLeft = computeArraySize(prefixLeft, mid, header, weightKey, weightChild);
+            long sizeRight = computeArraySize(prefixRight, (firstArraySize - mid + secondArraySize), header, weightKey,weightChild);
             if (optimalDiff > Math.abs(sizeLeft - sizeRight)) {
                 optimalIndex = mid;
                 optimalDiff = Math.abs(sizeLeft - sizeRight);
@@ -161,7 +161,13 @@ public class PrefixSharingHelper {
                 low = mid + 1;
             }
         }
-        //System.out.println("Optimal difference: " + optimalDiff);
+
+        long prefixLeft = computePrefix(first[0], first[optimalIndex - 1]);
+        long prefixRight = computePrefix(first[optimalIndex], second[secondArraySize - 1]);
+        long sizeLeft = computeArraySize(prefixLeft, optimalIndex, header, weightKey, weightChild);
+        long sizeRight = computeArraySize(prefixRight, (firstArraySize - optimalIndex + secondArraySize), header, weightKey,weightChild);
+        assert sizeLeft <= maxSize;
+        assert sizeRight <= maxSize;
         return optimalIndex;
     }
 
@@ -170,11 +176,11 @@ public class PrefixSharingHelper {
     }
 
     private static long computeArraySize(long prefix, int elements, int header, int weightKey, int weightChild) {
-        return header + prefix + (64 - prefix) * elements + elements * weightKey + elements * weightChild;
+        return header + encodedArraySize(elements, prefix) + elements * weightKey + elements * weightChild;
     }
 
     private static long computeArraySize(long prefix, int elements, int header, int weight) {
-        return header + prefix + (64 - prefix) * elements + elements * weight;
+        return header + encodedArraySize(elements, prefix) + elements * weight;
     }
 
     /**
@@ -226,7 +232,12 @@ public class PrefixSharingHelper {
                 high = mid - 1;
             }
         }
-        //System.out.println("Optimal difference: " + optimalDiff);
+        long prefixLeft = computePrefix(first[0], second[optimalIndex]);
+        long prefixRight = computePrefix(second[optimalIndex + 1], second[secondArraySize - 1]);
+        long sizeLeft = computeArraySize(prefixLeft, (optimalIndex + 1 + firstArraySize), header, weightKey, weightChild);
+        long sizeRight = computeArraySize(prefixRight, (secondArraySize - optimalIndex - 1), header, weightKey, weightChild);
+        assert sizeLeft <= maxSize;
+        assert sizeRight <= maxSize;
         return optimalIndex;
     }
     /**
