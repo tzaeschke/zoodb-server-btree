@@ -1,22 +1,35 @@
 package org.zoodb.test.index2.btree;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 
 import static org.junit.Assert.*;
 
+@RunWith(Parameterized.class)
 public class TestNonUnique {
 
-    private BTreeBufferManager bufferManager = new BTreeMemoryBufferManager();
+    private int pageSize;
 
+    public TestNonUnique(int pageSize) {
+        this.pageSize = pageSize;
+    }
+
+    @Parameterized.Parameters
+    public static Collection data() {
+        Object[][] data = new Object[][] { {128}, {256}, {512}};
+        return Arrays.asList(data);
+    }
     @Test
     public void testSameKey() {
         BTree tree = factory().getTree();
@@ -41,27 +54,6 @@ public class TestNonUnique {
         assertEquals(1, tree.getRoot().getNumKeys());
     }
 
-//
-//    @Test
-//    public void testSameKeyLeaf() {
-//        int order = 5;
-//        BTreeFactory factory = factory(order);
-//        NonUniquePagedBTree tree = (NonUniquePagedBTree) factory.getTree();
-//        tree.insert(1, 1);
-//        tree.insert(2, 2);
-//        tree.insert(2, 3);
-//
-//        tree.delete(2, 3);
-//        factory.clear();
-//        factory.addLeafLayerDefault(
-//                Arrays.asList(
-//                        Arrays.asList(1L, 2L)
-//                )
-//        );
-//        BTree expected = factory.getTree();
-//        assertEquals(expected, tree);
-//    }
-
     @Test
     public void testInsertSplit() {
         BTreeFactory factory = factory();
@@ -73,33 +65,8 @@ public class TestNonUnique {
         System.out.println(tree);
     }
 
-//    @Test
-//    public void testDeleteLeaf() {
-//        int order = 5;
-//        BTreeFactory factory = factory(order);
-//        NonUniquePagedBTree tree = (NonUniquePagedBTree) factory.getTree();
-//
-//        tree.insert(1, 1);
-//        tree.insert(2, 2);
-//        tree.insert(2, 3);
-//        tree.insert(3, 3);
-//
-//        tree.delete(2, 3);
-//        factory.clear();
-//        factory.addLeafLayerDefault(
-//                Arrays.asList(
-//                        Arrays.asList(
-//                                1L, 2L, 3L
-//                        )
-//                )
-//        );
-//        BTree expected = factory.getTree();
-//        assertEquals(expected, tree);
-//    }
-
     @Test
     public void testInsertAndDelete() {
-        int order = 320;
         int numEntries = 1000;
         int numTimes = 200;
         BTreeFactory factory = factory();
@@ -128,9 +95,8 @@ public class TestNonUnique {
 
         // root is empty and has no children
         assertEquals(0, tree.getRoot().getNumKeys());
-        BTreeNode[] emptyChildren = new BTreeNode[order];
-        Arrays.fill(emptyChildren, null);
-        assertArrayEquals(emptyChildren, tree.getRoot().getChildren());
+        assertTrue(tree.getRoot().isLeaf());
+        assertArrayEquals(null, tree.getRoot().getChildrenPageIds());
 
         // add all entries, delete half of it, check that correct ones are
         // deleted and still present respectively
@@ -159,6 +125,9 @@ public class TestNonUnique {
 
     private BTreeFactory factory() {
         boolean unique = false;
+
+        BTreeBufferManager bufferManager =
+                new BTreeStorageBufferManager(new StorageRootInMemory(pageSize), false);
         return new BTreeFactory(bufferManager, unique);
     }
 }
