@@ -16,11 +16,12 @@ import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNode> extends AbstractIndex {
 	
     protected BTreeStorageBufferManager bufferManager;
-    protected DATA_TYPE data_type;
+    protected DATA_TYPE dataType;
     
 	public BTreeIndex(DATA_TYPE dataType, StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
         bufferManager = new BTreeStorageBufferManager(file, isUnique, dataType);
+        this.dataType = dataType;
 	}
 	
 	public void insertLong(long key, long value) {
@@ -72,7 +73,7 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 	}
 
 	public DATA_TYPE getDataType() {
-		return data_type;
+		return dataType;
 	}
 	
     public List<Integer> debugPageIds() {
@@ -89,18 +90,13 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 		return bufferManager;
 	}
     
-    protected void setEmptyRoot() {
-    	PagedBTreeNode root = new PagedBTreeNodeFactory(bufferManager).newNode(isUnique(), 
-    							bufferManager.getLeafOrder(), true, true);
-		this.getTree().setRoot(root);
-    }
-    
 	protected void readAndSetRoot(int pageId) {
 		if(getTree().getRoot() != null) {
 			// remove the previous root
 			getTree().getRoot().close();
 		}
         PagedBTreeNode root = bufferManager.read(pageId);
+
 		root.setIsRoot(true);
 		this.getTree().setRoot(root);
 	}

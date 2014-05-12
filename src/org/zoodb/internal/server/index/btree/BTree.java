@@ -50,7 +50,7 @@ public abstract class BTree<T extends BTreeNode> {
      */
     public void insert(long key, long value) {
         if (root == null) {
-            root = (T) nodeFactory.newNode(isUnique(), leafOrder, true, true);
+            setRoot((T) nodeFactory.newNode(isUnique(), leafOrder, true, true));
         }
         Pair<LinkedList<T>, T> result = searchNodeWithHistory(key, value);
         LinkedList<T> ancestorStack = result.getA();
@@ -178,7 +178,7 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
     public boolean isEmpty() {
-        return root==null;
+        return root == null;
     }
 
     public T getRoot() {
@@ -219,7 +219,7 @@ public abstract class BTree<T extends BTreeNode> {
         if (root != null) {
             root.setIsRoot(false);
         }
-        root = newRoot;
+        setRoot(newRoot);
         if (newRoot != null) {
             newRoot.setIsRoot(true);
         }

@@ -17,7 +17,6 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
     	super(dataType, file, true, true);
 		tree = new UniquePagedBTree(bufferManager.getInnerNodeOrder(), 
 				bufferManager.getLeafOrder(), bufferManager);
-        setEmptyRoot();
     }
 
 	public BTreeIndexUnique(DATA_TYPE dataType, StorageChannel file, int rootPageId) {
