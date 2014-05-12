@@ -2,10 +2,12 @@ package org.zoodb.test.index2.btree;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.btree.*;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTreeNode;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 import org.zoodb.tools.ZooConfig;
@@ -44,6 +46,31 @@ public class TestBTreeStorageBufferManager {
 					node);
 		}
 	}
+
+    @Test
+    public void testComputeSize() {
+        int pageSize = 256;
+        long[] keys = new long[] {-2139342741, -2139288335, -2139258968, -2139174228, -2139057184, -2139020661,
+                -2138955401, -2138947348, -2138906006, -2138854958, -2138810679, -2138737967,
+                -2138713939, -2138705771, -2138702613, -2138681828, -2138638271, -2138599336,
+                -2138560423, -2138384792, -2138378641};
+
+        long[] values = new long[] {1451443246,2045976137,1497430374,1772670428,-694016354,-646761731,
+                -688167221, 263241308, 780826785, 1819848219, -1429631675, -810669383, -1208608663,
+                1954442242, 386809692, -984072888, -54873685, 888823278, -671249934, -736916506, -1638116148};
+
+        StorageChannel currentStorage = new StorageRootInMemory(pageSize);
+        BTreeBufferManager currentBufferManager = new BTreeStorageBufferManager(currentStorage, true);
+        BTreeNode node = new NonUniquePagedBTreeNode(currentBufferManager, pageSize, true, false);
+
+        for (int i = 0; i < keys.length; i++) {
+            node.put(keys[i], values[i]);
+        }
+        System.out.println(node.computeSize());
+        assertTrue("The size of the root node is too large ", node.computeSize() <= pageSize);
+        currentBufferManager.write((PagedBTreeNode) node);
+    }
+
 
 	@Test
 	public void testComputeOrder() {
@@ -197,23 +224,23 @@ public class TestBTreeStorageBufferManager {
 		bufferManager.write(tree.getRoot());
 		
 		tree.delete(8);
-		assertEquals(bufferManager.getDirtyBuffer().size(),3);
-		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
-		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root.getChild(0)).getPageId()));
-		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root.getChild(0).getChild(1)).getPageId()));
+		assertEquals(bufferManager.getDirtyBuffer().size(), 3);
+		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode) root).getPageId()));
+		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode) root.getChild(0)).getPageId()));
+		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode) root.getChild(0).getChild(1)).getPageId()));
 		bufferManager.write(tree.getRoot());
 		
 		System.out.println(tree);
 		tree.delete(3);
 		System.out.println(tree);
 		assertFalse(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
-		assertFalse(bufferManager.getCleanBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
+		assertFalse(bufferManager.getCleanBuffer().containsKey(((PagedBTreeNode) root).getPageId()));
 		bufferManager.write(tree.getRoot());
-		assertFalse(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
-		assertFalse(bufferManager.getCleanBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
+		assertFalse(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode) root).getPageId()));
+		assertFalse(bufferManager.getCleanBuffer().containsKey(((PagedBTreeNode) root).getPageId()));
 	}
 	
-		@Test
+    @Test
 	public void markDirtyTest() {
 		int pageSize = 64;
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(new StorageRootInMemory(pageSize), true);

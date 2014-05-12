@@ -342,6 +342,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
     @Override
     public int getNodeHeaderSizeInStorage(PagedBTreeNode node) {
+        //ToDo compute this better, multiplying by 2 seems to work fine, but an exact size would be nice
         return pageHeaderSize();
     }
 }

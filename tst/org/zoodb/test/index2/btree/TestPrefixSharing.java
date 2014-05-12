@@ -160,7 +160,7 @@ public class TestPrefixSharing {
     public void testProperSizeAfterInsertDelete() {
         int pageSize = 128;
         UniquePagedBTree tree = (UniquePagedBTree) createEmptyBTree(pageSize, true);
-        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.randomUniqueEntries(100000,
+        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.randomUniqueEntries(5000,
                 42);
         for (LongLongIndex.LLEntry entry : entries) {
             //insert a new value
