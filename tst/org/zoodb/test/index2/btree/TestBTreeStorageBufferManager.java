@@ -192,7 +192,7 @@ public class TestBTreeStorageBufferManager {
 	@Test
 	public void bufferLocationTestTree() {
 		UniquePagedBTree tree = (UniquePagedBTree) TestBTree
-				.getTestTree(bufferManager);
+				.getTestTreeWithThreeLayers(bufferManager);
 		PagedBTreeNode root = tree.getRoot();
 		bufferManager.write(tree.getRoot());
 		

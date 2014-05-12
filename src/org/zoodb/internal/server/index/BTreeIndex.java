@@ -1,17 +1,12 @@
 package org.zoodb.internal.server.index;
 
-import java.util.List;
-
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
-import org.zoodb.internal.server.index.btree.AscendingBTreeLeafEntryIterator;
-import org.zoodb.internal.server.index.btree.BTreeLeafEntryIterator;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.DescendingBTreeLeafEntryIterator;
-import org.zoodb.internal.server.index.btree.PagedBTree;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.*;
+
+import java.util.List;
 
 
 public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNode> extends AbstractIndex {
@@ -91,7 +86,7 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 	}
     
     protected void setEmptyRoot() {
-    	PagedBTreeNode root = new PagedBTreeNodeFactory(bufferManager).newNode(isUnique(), 
+    	PagedBTreeNode root = new PagedBTreeNodeFactory(bufferManager).newNode(isUnique(),
     							bufferManager.getPageSize(), true, true);
 		this.getTree().setRoot(root);
     }

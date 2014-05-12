@@ -1,15 +1,9 @@
 package org.zoodb.test.index2.performance;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
-
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootFile;
 import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.BTreeIndex;
 import org.zoodb.internal.server.index.BTreeIndexUnique;
 import org.zoodb.internal.server.index.FreeSpaceManager;
 import org.zoodb.internal.server.index.LongLongIndex;
@@ -21,6 +15,7 @@ import org.zoodb.internal.util.DBLogger;
 import org.zoodb.tools.DBStatistics;
 import org.zoodb.tools.ZooConfig;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

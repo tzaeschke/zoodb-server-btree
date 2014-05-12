@@ -64,6 +64,9 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
 	protected long deleteEntry(long key, long value) {
+		if(root.getNumKeys() == 0) {
+			throw new NoSuchElementException();
+		}
         Pair<LinkedList<T>,T> pair = searchNodeWithHistory(key, value);
         T leaf = pair.getB();
         LinkedList<T> ancestorStack = pair.getA();
