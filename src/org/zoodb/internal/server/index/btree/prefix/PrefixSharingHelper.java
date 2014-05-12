@@ -255,7 +255,7 @@ public class PrefixSharingHelper {
             prefixRight = computePrefix(second[optimalIndex + 1], second[secondArraySize - 1]);
             sizeLeft = computeArraySize(prefixLeft, (optimalIndex + 1 + firstArraySize), header, weightKey, weightChild);
             sizeRight = computeArraySize(prefixRight, (secondArraySize - optimalIndex - 1), header, weightKey, weightChild);
-            if (sizeLeft > maxSize) {
+            if (sizeLeft > maxSize && optimalIndex > 0) {
                 optimalIndex--;
             } else if (sizeRight > maxSize) {
                 optimalIndex++;

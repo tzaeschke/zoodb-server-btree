@@ -53,8 +53,14 @@ public abstract class BTree<T extends BTreeNode> {
 
         increaseModcount();
         if (leaf.willOverflowAfterInsert(key)) {
-            T rightNode = putAndSplit(leaf, key, value);
-            insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
+//            T parent = ancestorStack.peek();
+//            T leftSibling = (T) leaf.leftSibling(parent);
+//            if (leftSibling != null && !leftSibling.willOverflowAfterInsert(leaf.getSmallestKey())) {
+//                redistributeKeysFromRight(leftSibling, leaf, parent);
+//            } else {
+                T rightNode = putAndSplit(leaf, key, value);
+                insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
+            //}
         } else {
             leaf.put(key, value);
         }
