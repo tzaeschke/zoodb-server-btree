@@ -443,7 +443,7 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
     public void redistributeKeysFromRight(T current, T right, T parent) {
-        int weightKey = (isUnique() || (!current.isLeaf())) ? 0 : 8;
+        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
         int weightChild = (current.isLeaf() ? 0 : 4);
         int header = current.storageHeaderSize();
 
@@ -497,7 +497,7 @@ public abstract class BTree<T extends BTreeNode> {
 
     public void redistributeKeysFromLeft(T current, T left, T parent) {
         //int totalKeys = left.getNumKeys() + current.getNumKeys();
-        int weightKey = (isUnique() || (!current.isLeaf())) ? 0 : 8;
+        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
         int weightChild = (current.isLeaf() ? 0 : 4);
         int header = current.storageHeaderSize();
         int splitIndexInLeft = PrefixSharingHelper.computeIndexForRedistributeLeftToRight(
