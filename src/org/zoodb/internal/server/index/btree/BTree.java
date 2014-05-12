@@ -490,7 +490,7 @@ public abstract class BTree<T extends BTreeNode> {
         }
 
         assert current.computeSize() <= current.getPageSize();
-        assert parent.computeSize() <= parent.getPageSize();
+        assert right.computeSize() <= right.getPageSize();
         assert parent.computeSize() <= parent.getPageSize();
 
     }
