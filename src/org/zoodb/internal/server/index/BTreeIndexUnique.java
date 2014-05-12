@@ -1,25 +1,26 @@
 package org.zoodb.internal.server.index;
 
+import java.util.NoSuchElementException;
+
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 
-import java.util.NoSuchElementException;
-
 public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBTreeNode> implements LongLongUIndex  {
 
     private UniquePagedBTree tree;
     
-    public BTreeIndexUnique(StorageChannel file, boolean isNew) {
-    	super(file, isNew, true);
-
-		tree = new UniquePagedBTree(file.getPageSize(), bufferManager);
+    public BTreeIndexUnique(DATA_TYPE dataType, StorageChannel file) {
+    	super(dataType, file, true, true);
+		tree = new UniquePagedBTree(bufferManager.getPageSize(), bufferManager);
+        setEmptyRoot();
     }
 
-	public BTreeIndexUnique(StorageChannel file, boolean isNew, boolean isUnique, int rootPageId) {
-		super(file, isUnique, isNew, rootPageId);
+	public BTreeIndexUnique(DATA_TYPE dataType, StorageChannel file, int rootPageId) {
+		this(dataType, file);
+        readAndSetRoot(rootPageId);
 	}
 	
     @Override
@@ -52,7 +53,7 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
     
     @Override
 	public void clear() {
-		tree = new UniquePagedBTree(tree.getPageSize(), new BTreeStorageBufferManager(file, isUnique()));
+		tree = new UniquePagedBTree(tree.getInnerNodeOrder(), tree.getLeafOrder(), new BTreeStorageBufferManager(file, isUnique()));
 	}
 
 	@Override

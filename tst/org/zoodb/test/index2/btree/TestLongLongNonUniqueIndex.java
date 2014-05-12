@@ -85,7 +85,7 @@ public class TestLongLongNonUniqueIndex {
     }
     
     private LongLongIndex createIndex(StorageChannel paf) {
-    	LongLongIndex ind = new BTreeIndexNonUnique(paf, true);
+    	LongLongIndex ind = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX, paf);
     	return ind; 
     }
     

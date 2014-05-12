@@ -9,10 +9,16 @@ public class BTreeIndexNonUnique extends BTreeIndex<NonUniquePagedBTree, NonUniq
 
     private NonUniquePagedBTree tree;
 
-    public BTreeIndexNonUnique(StorageChannel file, boolean isNew) {
-        super(file, isNew, false);
+    public BTreeIndexNonUnique(DATA_TYPE dataType, StorageChannel file) {
+        super(dataType, file, true, false);
 
-        tree = new NonUniquePagedBTree(file.getPageSize(), bufferManager);
+        tree = new NonUniquePagedBTree(bufferManager.getPageSize(), bufferManager);
+        setEmptyRoot();
+    }
+    
+    public BTreeIndexNonUnique(DATA_TYPE dataType, StorageChannel file, int rootPageId) {
+        this(dataType, file);
+        readAndSetRoot(rootPageId);
     }
 
     @Override

@@ -31,8 +31,8 @@ public class IndexFactory {
 	 * @return a new index
 	 */
 	public static LongLongIndex createIndex(DATA_TYPE type, StorageChannel storage) {
-        return new BTreeIndexNonUnique(storage, true);
-		//return new PagedLongLong(type, storage);
+//		return new PagedLongLong(type, storage);
+		return new BTreeIndexNonUnique(type, storage);
 	}
 	
 	/**
@@ -42,7 +42,8 @@ public class IndexFactory {
 	 * @return an index reconstructed from disk
 	 */
 	public static LongLongIndex loadIndex(DATA_TYPE type, StorageChannel storage, int pageId) {
-		return new PagedLongLong(type, storage, pageId);
+//		return new PagedLongLong(type, storage, pageId);
+		return new BTreeIndexNonUnique(type, storage, pageId);
 	}
 	
 	/**
@@ -52,8 +53,8 @@ public class IndexFactory {
 	 */
 	public static LongLongIndex.LongLongUIndex createUniqueIndex(DATA_TYPE type, 
 			StorageChannel storage) {
-        return new BTreeIndexUnique(storage, true);
-		//return new PagedUniqueLongLong(type, storage);
+//		return new PagedUniqueLongLong(type, storage);
+		return new BTreeIndexUnique(type, storage);
 	}
 	
 	/**
@@ -64,7 +65,8 @@ public class IndexFactory {
 	 */
 	public static LongLongIndex.LongLongUIndex loadUniqueIndex(DATA_TYPE type, 
 			StorageChannel storage, int pageId) {
-		return new PagedUniqueLongLong(type, storage, pageId);
+//		return new PagedUniqueLongLong(type, storage, pageId);
+		return new BTreeIndexUnique(type, storage, pageId);
 	}
 	
 	/**
@@ -75,7 +77,9 @@ public class IndexFactory {
 	 */
 	public static LongLongIndex.LongLongUIndex createUniqueIndex(DATA_TYPE type, 
 			StorageChannel storage, int keySize, int valSize) {
-		return new PagedUniqueLongLong(type, storage, keySize, valSize);
+//		return new PagedUniqueLongLong(type, storage, keySize, valSize);
+		return new BTreeIndexUnique(type, storage);
+//		throw new UnsupportedOperationException();
 	}
 	
 	/**
@@ -87,7 +91,9 @@ public class IndexFactory {
 	 */
 	public static LongLongIndex.LongLongUIndex loadUniqueIndex(DATA_TYPE type, 
 			StorageChannel storage, int pageId, int keySize, int valSize) {
-		return new PagedUniqueLongLong(type, storage, pageId, keySize, valSize);
+//		return new PagedUniqueLongLong(type, storage, pageId, keySize, valSize);
+		return new BTreeIndexUnique(type, storage, pageId);
+//		throw new UnsupportedOperationException();
 	}
 	
 }

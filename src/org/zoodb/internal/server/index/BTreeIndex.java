@@ -1,31 +1,26 @@
 package org.zoodb.internal.server.index;
 
+import java.util.List;
+
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
-import org.zoodb.internal.server.index.btree.*;
-
-import java.util.List;
+import org.zoodb.internal.server.index.btree.AscendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.BTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.DescendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.PagedBTree;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
 
 public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNode> extends AbstractIndex {
 	
     protected BTreeStorageBufferManager bufferManager;
     
-	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique) {
+	public BTreeIndex(DATA_TYPE dataType, StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
-		
-        bufferManager = new BTreeStorageBufferManager(file, isUnique);
-
-	}
-	
-	public BTreeIndex(StorageChannel file, boolean isNew, boolean isUnique, int rootPageId) {
-		this(file,isNew,isUnique);
-
-		PagedBTreeNode root = bufferManager.read(rootPageId);
-		root.setIsRoot(true);
-		this.getTree().setRoot(root);
+        bufferManager = new BTreeStorageBufferManager(file, isUnique, dataType);
 	}
 	
 	public void insertLong(long key, long value) {
@@ -35,7 +30,7 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 	public void print() {
         System.out.println(getTree());
 	}
-
+	
 	public int statsGetLeavesN() {
 		return getTree().statsGetLeavesN();
 	}
@@ -72,6 +67,7 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 		return bufferManager.write(getTree().getRoot());
 	}
 
+
 	public long size() {
 		return getTree().size();
 	}
@@ -92,6 +88,22 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 	
     public BTreeStorageBufferManager getBufferManager() {
 		return bufferManager;
+	}
+    
+    protected void setEmptyRoot() {
+    	PagedBTreeNode root = new PagedBTreeNodeFactory(bufferManager).newNode(isUnique(), 
+    							bufferManager.getPageSize(), true, true);
+		this.getTree().setRoot(root);
+    }
+    
+	protected void readAndSetRoot(int pageId) {
+		if(getTree().getRoot() != null) {
+			// remove the previous root
+			getTree().getRoot().close();
+		}
+        PagedBTreeNode root = bufferManager.read(pageId);
+		root.setIsRoot(true);
+		this.getTree().setRoot(root);
 	}
 
 }

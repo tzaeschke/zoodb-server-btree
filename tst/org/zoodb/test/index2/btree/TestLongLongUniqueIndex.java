@@ -79,7 +79,7 @@ public class TestLongLongUniqueIndex {
     }
     
     private LongLongIndex.LongLongUIndex createIndex(StorageChannel paf) {
-    	LongLongIndex.LongLongUIndex ind = new BTreeIndexUnique(paf, true);
+    	LongLongIndex.LongLongUIndex ind = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX, paf);
     	return ind; 
     }
     
