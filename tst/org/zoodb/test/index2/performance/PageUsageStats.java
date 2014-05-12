@@ -62,7 +62,7 @@ public class PageUsageStats {
 				+ newIndex.getTree().getInnerNodeOrder() + ":"
 				+ newIndex.getTree().getLeafOrder());
 
-		int numElements = 100000;
+		int numElements = 1000000;
 		ArrayList<LLEntry> entries = PerformanceTest
 				.randomEntriesUnique(numElements, 42);
 		

@@ -9,11 +9,11 @@ import org.junit.Test;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.BTreeIndexNonUnique;
 import org.zoodb.internal.server.index.BTreeIndexUnique;
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
-import org.zoodb.internal.server.index.btree.BTreeLeafEntryIterator;
 import org.zoodb.test.index2.performance.PerformanceTest;
 import org.zoodb.tools.ZooConfig;
 
@@ -41,14 +41,31 @@ public class TestIndex {
 		findAll(ind2, entries);
 	}
 	
-	public void testWriteReadEmpty() {
-				StorageChannel file = createPageAccessFile();
+	@Test
+	public void testWriteReadEmptyUnique() {
+		/* Unique */
+		StorageChannel file = createPageAccessFile();
 		BTreeIndexUnique ind1 = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX,
 				file);
 
 		int rootPageId = ind1.write();
 
 		BTreeIndexUnique ind2 = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX,
+				file, rootPageId);
+		assertEquals(0, ind2.getTree().getRoot().getNumKeys());
+	}
+	
+	@Test
+	public void testWriteReadEmptyNonUnique() {
+		
+		/* Non-Unique */
+		StorageChannel file = createPageAccessFile();
+		BTreeIndexNonUnique ind1 = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX,
+				file);
+
+		int rootPageId = ind1.write();
+
+		BTreeIndexNonUnique ind2 = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX,
 				file, rootPageId);
 		assertEquals(0, ind2.getTree().getRoot().getNumKeys());
 	}

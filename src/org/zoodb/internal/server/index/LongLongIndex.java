@@ -153,9 +153,9 @@ public interface LongLongIndex {
 
 	LLEntryIterator iterator(long min, long max);
 
-	AbstractPageIterator<LongLongIndex.LLEntry> descendingIterator();
+	LongLongIterator<LongLongIndex.LLEntry> descendingIterator();
 
-	AbstractPageIterator<LongLongIndex.LLEntry> descendingIterator(long max, long min);
+	LongLongIterator<LongLongIndex.LLEntry> descendingIterator(long max, long min);
 
 	long getMinKey();
 
