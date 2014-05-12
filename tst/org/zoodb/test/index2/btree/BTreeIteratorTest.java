@@ -11,6 +11,7 @@ import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.NoSuchElementException;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -27,29 +28,29 @@ public class BTreeIteratorTest {
 	@Parameterized.Parameters
 	public static Collection<Object[]> data() {
 		return Arrays.asList(new Object[][] {
-				{ new NonUniquePagedBTree(4, new BTreeMemoryBufferManager()) },
-				{ new UniquePagedBTree(4, new BTreeMemoryBufferManager()) } });
+				{ new NonUniquePagedBTree(128, new BTreeMemoryBufferManager()) },
+				{ new UniquePagedBTree(128, new BTreeMemoryBufferManager()) } });
 	}
 
-//	@Test(expected = NoSuchElementException.class)
-//	public void testLeafIterate() {
-//		PagedBTree<?> tree = TestBTree
-//				.getTestTree(new BTreeMemoryBufferManager());
-//
-//		BTreeLeafEntryIterator<?> it = new AscendingBTreeLeafEntryIterator(
-//				tree, 3, 15);
-//
-//		while (it.hasNext()) {
-//			it.next().getKey();
-//		}
-//
-//		it.next();
-//	}
+	@Test(expected = NoSuchElementException.class)
+	public void testLeafIterate() {
+		PagedBTree<?> tree = TestBTree
+				.getTestTreeWithThreeLayers(new BTreeMemoryBufferManager());
+
+		BTreeLeafEntryIterator<?> it = new AscendingBTreeLeafEntryIterator(
+				tree, 3, 15);
+
+		while (it.hasNext()) {
+			it.next().getKey();
+		}
+
+		it.next();
+	}
 
 	@Test
 	public void testAscendingIterator() {
-		int order = 4;
-		BTree tree = new NonUniquePagedBTree(order,
+		int pageSize = 128;
+		BTree tree = new NonUniquePagedBTree(pageSize,
 				new BTreeMemoryBufferManager());
 
 		ArrayList<LongLongIndex.LLEntry> entries = new ArrayList<>();
@@ -74,9 +75,9 @@ public class BTreeIteratorTest {
 
 	@Test
 	public void testDescendingIterator() {
-		int order = 4;
+		int pageSize = 128;
 
-		BTree tree = new NonUniquePagedBTree(order,
+		BTree tree = new NonUniquePagedBTree(pageSize,
 				new BTreeMemoryBufferManager());
 
 		ArrayList<LongLongIndex.LLEntry> entries = new ArrayList<>();
@@ -102,8 +103,8 @@ public class BTreeIteratorTest {
 
 	@Test
 	public void testRangeIteratorUnique() {
-		int order = 4;
-		PagedBTree<?> tree = new UniquePagedBTree(order,
+		int pageSize = 128;
+		PagedBTree<?> tree = new UniquePagedBTree(pageSize,
 				new BTreeMemoryBufferManager());
 
 		int limit = 4;
@@ -175,7 +176,7 @@ public class BTreeIteratorTest {
 
 	@Test
 	public void testRangeIteratorNonUnique() {
-		int order = 4;
+		int order = 128;
 		PagedBTree<?> tree = new NonUniquePagedBTree(order,
 				new BTreeMemoryBufferManager());
 
@@ -252,7 +253,7 @@ public class BTreeIteratorTest {
 	
 	@Test 
 	public void outsideRangeTest() {
-		int order = 4;
+		int order = 128;
 		PagedBTree<?> tree = new UniquePagedBTree(order,
 				new BTreeMemoryBufferManager());
 
@@ -284,7 +285,7 @@ public class BTreeIteratorTest {
 	
     @Test 
 	public void emptyTreeTest() {
-		int order = 4;
+		int order = 128;
 		UniquePagedBTree tree = new UniquePagedBTree(order,
 				new BTreeMemoryBufferManager());
 
