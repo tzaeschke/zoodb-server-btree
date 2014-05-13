@@ -38,9 +38,8 @@ public class TestNode {
 
 	@Test
 	public void leafPut() {
-		BTreeNode leafNode = nodeFactory.newUniqueNode( 6, true, true);
-		assertEquals(leafNode.getValues().length, 5);
-		assertEquals(leafNode.getKeys().length, 5);
+        int pageSize = 128;
+		BTreeNode leafNode = nodeFactory.newUniqueNode( pageSize, true, true);
 
 		leafNode.put(3, 3);
 		assertArrayEquals(new long[] { 3 }, getKeys(leafNode));
@@ -62,22 +61,20 @@ public class TestNode {
 
 	@Test
 	public void innerNodePut() {
-		final int order = 6;
-		BTreeNode innerNode = nodeFactory.newUniqueNode(order, false, true);
-		assertEquals(5, innerNode.getKeys().length);
-		assertEquals(order, innerNode.getChildren().length);
+		final int pageSize = 32;
+		BTreeNode innerNode = nodeFactory.newUniqueNode(pageSize, false, true);
 
-		BTreeNode child1 = nodeFactory.newUniqueNode(order, true, true);
+		BTreeNode child1 = nodeFactory.newUniqueNode(pageSize, true, true);
 		child1.put(1, 1);
-		BTreeNode child2 = nodeFactory.newUniqueNode(order, true, true);
+		BTreeNode child2 = nodeFactory.newUniqueNode(pageSize, true, true);
 		child2.put(2, 2);
-		BTreeNode child3 = nodeFactory.newUniqueNode(order, true, true);
+		BTreeNode child3 = nodeFactory.newUniqueNode(pageSize, true, true);
 		child3.put(3, 3);
-		BTreeNode child4 = nodeFactory.newUniqueNode(order, true, true);
+		BTreeNode child4 = nodeFactory.newUniqueNode(pageSize, true, true);
 		child4.put(4, 4);
-		BTreeNode child5 = nodeFactory.newUniqueNode(order, true, true);
+		BTreeNode child5 = nodeFactory.newUniqueNode(pageSize, true, true);
 		child5.put(5, 5);
-		BTreeNode child6 = nodeFactory.newUniqueNode(order, true, true);
+		BTreeNode child6 = nodeFactory.newUniqueNode(pageSize, true, true);
 		child6.put(6, 6);
 
         innerNode.put(3, NO_VALUE, child1, child4);
@@ -108,11 +105,12 @@ public class TestNode {
 
 	@Test
 	public void leafSplit() {
-		BTreeNode unevenKeysLeaf = nodeFactory.newUniqueNode(4, true, true);
+        int pageSize = 128;
+		BTreeNode unevenKeysLeaf = nodeFactory.newUniqueNode(pageSize, true, true);
 		unevenKeysLeaf.put(1, 1);
 		unevenKeysLeaf.put(2, 2);
 		unevenKeysLeaf.put(4, 4);
-        BTree tree = new UniquePagedBTree(4, new BTreeMemoryBufferManager());
+        BTree tree = new UniquePagedBTree(pageSize, new BTreeMemoryBufferManager());
 		BTreeNode right = tree.putAndSplit(unevenKeysLeaf, 3, 3);
 		assertArrayEquals(new long[] { 1, 2 }, getValues(unevenKeysLeaf));
 		assertArrayEquals(new long[] { 1, 2 }, getKeys(unevenKeysLeaf));
