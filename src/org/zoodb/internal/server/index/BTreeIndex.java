@@ -1,20 +1,26 @@
 package org.zoodb.internal.server.index;
 
+import java.util.List;
+
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
-import org.zoodb.internal.server.index.btree.*;
-
-import java.util.List;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntryIterator;
+import org.zoodb.internal.server.index.btree.AscendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.DescendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.PagedBTree;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 
 
 public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNode> extends AbstractIndex {
 	
     protected BTreeStorageBufferManager bufferManager;
+    protected DATA_TYPE data_type;
     
 	public BTreeIndex(DATA_TYPE dataType, StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
+        this.data_type = dataType;
         bufferManager = new BTreeStorageBufferManager(file, isUnique, dataType);
 	}
 	
@@ -34,19 +40,19 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 		return getTree().statsGetInnerN();
 	}
 
-	public LongLongIterator<LLEntry> iterator() {
+	public LLEntryIterator iterator() {
 		return new AscendingBTreeLeafEntryIterator<>(getTree());
 	}
 
-	public LongLongIterator<LLEntry> iterator(long min, long max) {
+	public LLEntryIterator iterator(long min, long max) {
         return new AscendingBTreeLeafEntryIterator<>(getTree(), min, max);
 	}
 
-	public LongLongIterator<LLEntry> descendingIterator() {
+	public LLEntryIterator descendingIterator() {
         return new DescendingBTreeLeafEntryIterator<>(getTree());
 	}
 
-	public LongLongIterator<LLEntry> descendingIterator(long max, long min) {
+	public LLEntryIterator descendingIterator(long max, long min) {
         return new DescendingBTreeLeafEntryIterator<>(getTree(), min, max);
 	}
 
@@ -62,13 +68,12 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 		return bufferManager.write(getTree().getRoot());
 	}
 
-
 	public long size() {
 		return getTree().size();
 	}
 
 	public DATA_TYPE getDataType() {
-		return this.getDataType();
+		return data_type;
 	}
 	
     public List<Integer> debugPageIds() {
@@ -86,8 +91,8 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 	}
     
     protected void setEmptyRoot() {
-    	PagedBTreeNode root = new PagedBTreeNodeFactory(bufferManager).newNode(isUnique(),
-    							bufferManager.getPageSize(), true, true);
+    	PagedBTreeNode root = new PagedBTreeNodeFactory(bufferManager).newNode(isUnique(), 
+    							bufferManager.getLeafOrder(), true, true);
 		this.getTree().setRoot(root);
     }
     

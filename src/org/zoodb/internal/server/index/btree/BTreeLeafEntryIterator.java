@@ -10,7 +10,7 @@ import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
 public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
-		LongLongIndex.LongLongIterator<LongLongIndex.LLEntry> {
+		LongLongIndex.LLEntryIterator {
 	protected BTree<T> tree;
 	protected T curLeaf;
 	protected int curPos;
@@ -77,6 +77,21 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 	@Override
 	public void remove() {
 		throw new UnsupportedOperationException();
+	}
+	
+	@Override
+	public boolean hasNextULL() {
+		return this.hasNext();
+	}
+
+	@Override
+	public LongLongIndex.LLEntry nextULL() {
+		return this.next();
+	}
+
+	@Override
+	public long nextKey() {
+		return this.next().getKey();
 	}
 
     protected T getLefmostLeaf(T node) {
