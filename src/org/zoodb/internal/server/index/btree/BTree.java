@@ -22,13 +22,13 @@ public abstract class BTree<T extends BTreeNode> {
 
     public BTree(BTreeNodeFactory nodeFactory) {
         this.nodeFactory = nodeFactory;
-        this.root = (T) nodeFactory.newNode(isUnique(), leafOrder, true, true);
+        this.root = (T) nodeFactory.newNode(isUnique(), getPageSize(), true, true);
     }
 
     public BTree(int pageSize, BTreeNodeFactory nodeFactory) {
         this.pageSize = pageSize;
         this.nodeFactory = nodeFactory;
-        this.root = (T) nodeFactory.newNode(isUnique(), leafOrder, true, true);
+        this.root = (T) nodeFactory.newNode(isUnique(), getPageSize(), true, true);
     }
 
     public abstract boolean isUnique();
@@ -197,7 +197,7 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
     public boolean isEmpty() {
-        return root==null;
+        return root.getNumKeys() == 0;
     }
 
     public T getRoot() {

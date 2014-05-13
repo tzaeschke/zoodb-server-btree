@@ -16,10 +16,10 @@ import java.util.List;
  * Convenience class to build a UniqueBTree layer by layer.
  */
 public class BTreeFactory {
-	
-	private BTree tree;
-	private List<BTreeNode> prevLayer;
-	private BTreeNodeFactory nodeFactory;
+
+    private BTree tree;
+    private List<BTreeNode> prevLayer;
+    private BTreeNodeFactory nodeFactory;
     private BTreeBufferManager bufferManager;
     private boolean unique = true;
 
@@ -34,127 +34,127 @@ public class BTreeFactory {
         this.nodeFactory = tree.getNodeFactory();
         this.bufferManager = bufferManager;
     }
-    
+
     public void addInnerLayer(List<List<Long>> nodeKeys) {
-		this.addLayer(false, nodeKeys);
-	}
+        this.addLayer(false, nodeKeys);
+    }
 
 
-	public void addLeafLayerDefault(List<List<Long>> nodeKeys) {
-		// value is same as key
-		this.addLeafLayer(zip(nodeKeys,nodeKeys));
-	}
+    public void addLeafLayerDefault(List<List<Long>> nodeKeys) {
+        // value is same as key
+        this.addLeafLayer(zip(nodeKeys,nodeKeys));
+    }
 
-	public void addLeafLayer(List<List<Pair<Long,Long>>> nodeKeysValues) {
-		List<List<Long>> nodeKeys = splitList(true, nodeKeysValues);
-		splitList(true, nodeKeysValues);
-		this.addLayer(true,nodeKeys);
-		List<List<Long>> nodeValues = splitList(false, nodeKeysValues);;
-		BTreeNodeFactory<?> factory = new PagedBTreeNodeFactory(bufferManager);
-		for(int i=0; i<prevLayer.size(); i++) {
-			List<Long> values = nodeValues.get(i);
-			prevLayer.get(i).setValues(padLongArray(toPrimitives(
-									values.toArray(new Long[values.size()])),
-									prevLayer.get(0).computeMaxPossibleNumEntries()));
-		}
-	}
+    public void addLeafLayer(List<List<Pair<Long,Long>>> nodeKeysValues) {
+        List<List<Long>> nodeKeys = splitList(true, nodeKeysValues);
+        splitList(true, nodeKeysValues);
+        this.addLayer(true,nodeKeys);
+        List<List<Long>> nodeValues = splitList(false, nodeKeysValues);;
+        BTreeNodeFactory<?> factory = new PagedBTreeNodeFactory(bufferManager);
+        for(int i=0; i<prevLayer.size(); i++) {
+            List<Long> values = nodeValues.get(i);
+            prevLayer.get(i).setValues(padLongArray(toPrimitives(
+                    values.toArray(new Long[values.size()])),
+                    prevLayer.get(0).computeMaxPossibleNumEntries()));
+        }
+    }
 
-	public void addLayer(boolean isLeaf, List<List<Long>> nodeKeys) {
-		if(this.tree.isEmpty()) {
-			BTreeNode root = nodeFactory.newUniqueNode(this.tree.getPageSize(), isLeaf, true);
-			root.setNumKeys(nodeKeys.get(0).size());
-			List<Long> keys = nodeKeys.get(0);
-			root.setKeys(padLongArray(toPrimitives(
-									keys.toArray(new Long[keys.size()])),
-									root.computeMaxPossibleNumEntries()));
-			tree.setRoot(root);
-			prevLayer = new ArrayList<>();
-			prevLayer.add(root);
-		} else {
-			int indexLayer = 0;
-			List<BTreeNode> newLayer = new ArrayList<BTreeNode>();
-			for(BTreeNode parent : prevLayer) {
-				BTreeNode[] children = new BTreeNode[parent.getNumKeys()+1];
-				for(int ik = 0; ik < parent.getNumKeys()+1; ik++) {
-					BTreeNode node = nodeFactory.newUniqueNode(tree.getPageSize(), isLeaf, false);
-					List<Long> keys = nodeKeys.get(indexLayer);
-					node.setKeys(padLongArray(toPrimitives(
-									keys.toArray(new Long[keys.size()])),
-									node.computeMaxPossibleNumEntries()));
-					node.setNumKeys(keys.size());
-					children[ik] = node;
-					newLayer.add(node);
-					indexLayer++;
-				}
-				parent.setChildren(padChildrenArray(children, parent.computeMaxPossibleNumEntries()+1));
-			}
-			this.prevLayer = newLayer;
-		}
-	}
+    public void addLayer(boolean isLeaf, List<List<Long>> nodeKeys) {
+        if(this.tree.isEmpty()) {
+            BTreeNode root = nodeFactory.newUniqueNode(this.tree.getPageSize(), isLeaf, true);
+            root.setNumKeys(nodeKeys.get(0).size());
+            List<Long> keys = nodeKeys.get(0);
+            root.setKeys(padLongArray(toPrimitives(
+                    keys.toArray(new Long[keys.size()])),
+                    root.computeMaxPossibleNumEntries()));
+            tree.setRoot(root);
+            prevLayer = new ArrayList<>();
+            prevLayer.add(root);
+        } else {
+            int indexLayer = 0;
+            List<BTreeNode> newLayer = new ArrayList<BTreeNode>();
+            for(BTreeNode parent : prevLayer) {
+                BTreeNode[] children = new BTreeNode[parent.getNumKeys()+1];
+                for(int ik = 0; ik < parent.getNumKeys()+1; ik++) {
+                    BTreeNode node = nodeFactory.newUniqueNode(tree.getPageSize(), isLeaf, false);
+                    List<Long> keys = nodeKeys.get(indexLayer);
+                    node.setKeys(padLongArray(toPrimitives(
+                            keys.toArray(new Long[keys.size()])),
+                            node.computeMaxPossibleNumEntries()));
+                    node.setNumKeys(keys.size());
+                    children[ik] = node;
+                    newLayer.add(node);
+                    indexLayer++;
+                }
+                parent.setChildren(padChildrenArray(children, parent.computeMaxPossibleNumEntries()+1));
+            }
+            this.prevLayer = newLayer;
+        }
+    }
 
-	public BTree getTree() {
-		return this.tree;
-	}
-	
-	public void clear() {
+    public BTree getTree() {
+        return this.tree;
+    }
+
+    public void clear() {
         createTree(tree.getPageSize(), bufferManager, unique);
-	}
-	
-	private static List<List<Pair<Long,Long>>> zip(List<List<Long>> l1, List<List<Long>> l2) {
-		List<List<Pair<Long,Long>>> ret = new ArrayList<List<Pair<Long,Long>>>();
-		for(int i = 0; i< Math.min(l1.size(), l2.size()); i++) {
-			List<Long> l1inner = l1.get(i);
-			List<Long> l2inner = l2.get(i);
-			List<Pair<Long,Long>> tmp = new ArrayList<Pair<Long,Long>>();
-			for(int j = 0; j< Math.min(l1inner.size(), l2inner.size()); j++) {
-				tmp.add(new Pair<Long,Long>(l1inner.get(j), l2inner.get(j)));
-			}
-			ret.add(tmp);
-		}
-		return ret;
-	}
-		
-	private static List<List<Long>> splitList(boolean first, List<List<Pair<Long,Long>>> list) {
-		List<List<Long>> ret = new ArrayList<List<Long>>();
-		for(List<Pair<Long,Long>> outer : list) {
-			ArrayList<Long> tmp = new ArrayList<Long>();
-			for(Pair<Long,Long> inner : outer) {
-				tmp.add(first ? inner.getA() : inner.getB());
-			}
-			ret.add(tmp);
-		}
-		return ret;
-	}
-	
-	private static long[] padLongArray(long[] keys, int size) {
-		long[] paddedKeyArray = new long[size - 1];
-		for (int i = 0; i < keys.length; i++) {
-			paddedKeyArray[i] = keys[i];
-		}
-		for (int i = keys.length; i < size - 1; i++) {
-			paddedKeyArray[i] = 0;
-		}
-		return paddedKeyArray;
-	}
+    }
 
-	private static BTreeNode[] padChildrenArray(BTreeNode[] children, int size) {
-		BTreeNode[] paddedNodeArray = new BTreeNode[size];
-		for (int i = 0; i < children.length; i++) {
-			paddedNodeArray[i] = children[i];
-		}
-		for (int i = children.length; i < size; i++) {
-			paddedNodeArray[i] = null;
-		}
-		return paddedNodeArray;
-	}
-	
-	public static long[] toPrimitives(Long... objects) {
-	    long[] primitives = new long[objects.length];
-	    for (int i = 0; i < objects.length; i++)
-	         primitives[i] = objects[i];
+    private static List<List<Pair<Long,Long>>> zip(List<List<Long>> l1, List<List<Long>> l2) {
+        List<List<Pair<Long,Long>>> ret = new ArrayList<List<Pair<Long,Long>>>();
+        for(int i = 0; i< Math.min(l1.size(), l2.size()); i++) {
+            List<Long> l1inner = l1.get(i);
+            List<Long> l2inner = l2.get(i);
+            List<Pair<Long,Long>> tmp = new ArrayList<Pair<Long,Long>>();
+            for(int j = 0; j< Math.min(l1inner.size(), l2inner.size()); j++) {
+                tmp.add(new Pair<Long,Long>(l1inner.get(j), l2inner.get(j)));
+            }
+            ret.add(tmp);
+        }
+        return ret;
+    }
 
-	    return primitives;
-	}
+    private static List<List<Long>> splitList(boolean first, List<List<Pair<Long,Long>>> list) {
+        List<List<Long>> ret = new ArrayList<List<Long>>();
+        for(List<Pair<Long,Long>> outer : list) {
+            ArrayList<Long> tmp = new ArrayList<Long>();
+            for(Pair<Long,Long> inner : outer) {
+                tmp.add(first ? inner.getA() : inner.getB());
+            }
+            ret.add(tmp);
+        }
+        return ret;
+    }
+
+    private static long[] padLongArray(long[] keys, int size) {
+        long[] paddedKeyArray = new long[size - 1];
+        for (int i = 0; i < keys.length; i++) {
+            paddedKeyArray[i] = keys[i];
+        }
+        for (int i = keys.length; i < size - 1; i++) {
+            paddedKeyArray[i] = 0;
+        }
+        return paddedKeyArray;
+    }
+
+    private static BTreeNode[] padChildrenArray(BTreeNode[] children, int size) {
+        BTreeNode[] paddedNodeArray = new BTreeNode[size];
+        for (int i = 0; i < children.length; i++) {
+            paddedNodeArray[i] = children[i];
+        }
+        for (int i = children.length; i < size; i++) {
+            paddedNodeArray[i] = null;
+        }
+        return paddedNodeArray;
+    }
+
+    public static long[] toPrimitives(Long... objects) {
+        long[] primitives = new long[objects.length];
+        for (int i = 0; i < objects.length; i++)
+            primitives[i] = objects[i];
+
+        return primitives;
+    }
 
     private void createTree(int pageSize, BTreeBufferManager bufferManager, boolean unique) {
         if (unique) {

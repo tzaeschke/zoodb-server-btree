@@ -23,7 +23,7 @@ import java.util.Random;
 
 public class PageUsageStats {
 
-	private static final int PAGE_SIZE = 4096;
+	private static final int PAGE_SIZE = 256;
 
 	public static void main(String[] args) {
 		ZooConfig.setFilePageSize(PAGE_SIZE);
