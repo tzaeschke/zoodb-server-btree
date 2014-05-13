@@ -1,5 +1,7 @@
 package org.zoodb.internal.server.index.btree;
 
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,6 +43,51 @@ public abstract class PagedBTreeNode extends BTreeNode {
         if (bufferManager != null) {
             this.addObserver(bufferManager);
         }
+    }
+
+    @Override
+    public boolean willOverflowAfterInsert(long key, long value) {
+        if (getNumKeys() == 0) {
+            return false;
+        }
+
+        //check if the node contains the key (unique tree) or key/value pair (non/unique tree)
+        int pos = this.findKeyValuePos(key, value);
+        if(checkNonUniqueKey(pos, key) && (!allowNonUniqueKeys() || checkNonUniqueKeyValue(pos,key,value))) {
+            return false;
+        }
+
+        //recompute the prefix and check the new size
+        long first = Math.min(getSmallestKey(), key);
+        long last = Math.max(getLargestKey(), key);
+        int newNumKeys = getNumKeys() + 1;
+        long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last, newNumKeys);
+        int newPageSize = (int) (storageHeaderSize() + (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys)));
+
+        boolean willOverflow = pageSize <= newPageSize;
+        return willOverflow;
+    }
+
+    @Override
+    public boolean fitsIntoOneNodeWith(BTreeNode neighbour) {
+        if (neighbour == null) {
+            return false;
+        }
+        if (neighbour.getNumKeys() == 0 || this.getNumKeys() == 0) {
+            return true;
+        }
+        long first = Math.min(this.getSmallestKey(), neighbour.getSmallestKey());
+        long last = Math.max(this.getLargestKey(), neighbour.getLargestKey());
+        int newNumKeys = this.getNumKeys() + neighbour.getNumKeys();
+        if (!this.isLeaf()) {
+            //also take into account the key that is taken down from the parent
+            //ToDo check if this is always needed
+            newNumKeys += 1;
+        }
+        long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last, newNumKeys);
+        int newPageSize = (int) (storageHeaderSize() + (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys)));
+        boolean willNotOverflow = pageSize >= newPageSize;
+        return willNotOverflow;
     }
 
     @Override

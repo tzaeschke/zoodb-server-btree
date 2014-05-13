@@ -52,7 +52,7 @@ public abstract class BTree<T extends BTreeNode> {
         T leaf = result.getB();
 
         increaseModcount();
-        if (leaf.willOverflowAfterInsert(key)) {
+        if (leaf.willOverflowAfterInsert(key, value)) {
 //            T parent = ancestorStack.peek();
 //            T leftSibling = (T) leaf.leftSibling(parent);
 //            if (leftSibling != null && !leftSibling.willOverflowAfterInsert(leaf.getSmallestKey())) {
@@ -81,6 +81,7 @@ public abstract class BTree<T extends BTreeNode> {
 
         T leafParent = ancestorStack.peek();
         long oldValue = deleteFromLeaf(leaf, key, value);
+        //ToDo should this happen?
         if (!leaf.isRoot() && leaf.getNumKeys() == 0) {
             leafParent.removeChild(leaf);
             System.out.println("Remove child leaf");
@@ -102,17 +103,16 @@ public abstract class BTree<T extends BTreeNode> {
 
     private void rebalanceAfterDelete(T node, LinkedList<T> ancestorStack, long key, long value) {
         if (!node.isRoot()) {
-            long replacementKey = node.getSmallestKey();
-            long replacementValue = node.getSmallestValue();
             T current = node;
             T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
 
             while (current != null) {
-                if (current.getNumKeys() == 0) {
-                    //System.out.println("Remove child inner");
-                    //parent.removeChild(current);
-                    current.close();
-                } else if (current.isUnderfull()) {
+//                if (current.getNumKeys() == 0) {
+//                    //System.out.println("Remove child inner");
+//                    //parent.removeChild(current);
+//                    current.close();
+//                } else
+                if (current.isUnderfull()) {
                     //check if can borrow 1 value from the left or right siblings
                     T rightSibling = (T) current.rightSibling(parent);
                     T leftSibling = (T) current.leftSibling(parent);
@@ -157,7 +157,7 @@ public abstract class BTree<T extends BTreeNode> {
         } else {
             T parent = ancestorStack.pop();
             //check if parent overflows
-            if (parent.willOverflowAfterInsert(key)) {
+            if (parent.willOverflowAfterInsert(key, value)) {
                 Pair<T, Pair<Long, Long> > pair = putAndSplit(parent, key, value, right);
                 T newNode = pair.getA();
                 Pair<Long, Long> keyValuePair = pair.getB();
@@ -594,7 +594,7 @@ public abstract class BTree<T extends BTreeNode> {
     public long computeMaxKey() {
         //ToDo cleanup code
         if (getRoot().getNumKeys() == 0) {
-            return -1;
+            return Long.MIN_VALUE;
         }
         BTreeLeafEntryIterator<T> it = new DescendingBTreeLeafEntryIterator<T>(this);
         long maxKey = Long.MIN_VALUE;

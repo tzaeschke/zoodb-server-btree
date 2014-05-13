@@ -71,6 +71,19 @@ public abstract class BTreeNode extends Observable {
     protected abstract boolean smallerThanKeyValue(int position, long key, long value);
     protected abstract boolean allowNonUniqueKeys();
 
+    public abstract int keyIndexOf(BTreeNode left, BTreeNode right);
+
+    public abstract int computeSize();
+    public abstract int storageHeaderSize();
+    public abstract boolean willOverflowAfterInsert(long key, long value);
+    public abstract boolean fitsIntoOneNodeWith(BTreeNode neighbour);
+
+    /**
+     * Insert a key/value pair into the node. The node must be guaranteed not to overflow
+     * after the key/value pair received as an argument is inserted
+     * @param key
+     * @param value
+     */
     public void put(long key, long value) {
         if (!isLeaf()) {
             throw new IllegalStateException(
@@ -91,10 +104,10 @@ public abstract class BTreeNode extends Observable {
         markChanged();
     }
     
-    private boolean checkNonUniqueKey(int pos, long key) {
+    protected boolean checkNonUniqueKey(int pos, long key) {
         return pos > 0 && getKey(pos-1) == key;
     }
-    private boolean checkNonUniqueKeyValue(int position, long key, long value) {
+    protected boolean checkNonUniqueKeyValue(int position, long key, long value) {
         return position > 0 && (getKey(position - 1) == key && getValue(position - 1) == value);
     }
 
@@ -102,6 +115,12 @@ public abstract class BTreeNode extends Observable {
         return getChild(findKeyValuePos(key, value));
     }
 
+    /**
+     * Checks if the tree contains the key/value pair received as an argument.
+     * @param key
+     * @param value
+     * @return
+     */
     public boolean containsKeyValue(long key, long value) {
         Pair<Boolean, Integer> result = binarySearch(key, value);
         return result.getA();
@@ -187,8 +206,6 @@ public abstract class BTreeNode extends Observable {
         setChild(1, right);
     }
 
-
-
     /**
      * Delete the key from the node.
      *
@@ -207,198 +224,6 @@ public abstract class BTreeNode extends Observable {
         shiftRecords(keyPos, keyPos - 1, recordsToMove);
         decrementNumKeys();
         return oldValue;
-    }
-
-    public void replaceEntry(long key, long value, long replacementKey, long replacementValue) {
-        if (replacementKey < key) {
-            throw new RuntimeException("Replacing " + key + " with "
-                    + replacementKey + " might be illegal.");
-        }
-        int pos = findKeyValuePos(key, value);
-        if (pos > -1) {
-            setEntry(pos - 1, replacementKey, replacementValue);
-        }
-    }
-
-    public BTreeNode leftSibling(BTreeNode parent) {
-        return (parent == null) ? null : parent.leftSiblingOf(this);
-    }
-
-    public BTreeNode rightSibling(BTreeNode parent) {
-        return (parent == null) ? null : parent.rightSiblingOf(this);
-    }
-
-	public void setKey(int index, long key) {
-		getKeys()[index] = key;
-
-        //signal change
-        markChanged();
-	}
-
-	public void setValue(int index, long value) {
-		getValues()[index] = value;
-
-        //signal change
-        markChanged();
-	}
-
-	public abstract int keyIndexOf(BTreeNode left, BTreeNode right);
-
-	public boolean isUnderfull() {
-		if (isRoot()) {
-			return getNumKeys() == 0;
-		}
-        //ToDo fix this
-        return getNumKeys() <= minSize;
-	}
-
-	public boolean hasExtraKeys() {
-		if (isRoot()) {
-			return true;
-		}
-        //ToDo need to have at least 3 keys
-		//return getNumKeys() > 2 && computeSize() > minSize;
-        return getNumKeys() > 2 && getNumKeys() > minSize;
-	}
-
-    public boolean isFull() {
-        //ToDo compute
-        return computeSize() == pageSize;
-    }
-
-	public boolean incrementNumKeys() {
-        markChanged();
-		return increaseNumKeys(1);
-	}
-
-	public boolean decrementNumKeys() {
-        markChanged();
-		return decreaseNumKeys(1);
-	}
-
-	public boolean increaseNumKeys(int amount) {
-        markChanged();
-		int newNumKeys = getNumKeys() + amount;
-		if (newNumKeys > getKeys().length) {
-			return false;
-		}
-		setNumKeys(newNumKeys);
-		return true;
-	}
-
-	public boolean decreaseNumKeys(int amount) {
-        markChanged();
-		int newNumKeys = getNumKeys() - amount;
-		if (newNumKeys < 0) {
-			return false;
-		}
-		setNumKeys(newNumKeys);
-		return true;
-	}
-
-	protected void initKeys(int size) {
-		setKeys(new long[size]);
-		setNumKeys(0);
-	}
-
-    protected void initValues(int size) {
-		setValues(new long[size]);
-	}
-
-	public long getValue(int index) {
-		return getValues()[index];
-	}
-
-	public long getKey(int index) {
-		return getKeys()[index];
-	}
-
-	public boolean isLeaf() {
-		return isLeaf;
-	}
-
-	public boolean isRoot() {
-		return isRoot;
-	}
-
-	public long getSmallestKey() {
-		return keys[0];
-	}
-
-	public long getLargestKey() {
-		return keys[numKeys - 1];
-	}
-
-    public long getSmallestValue() {
-        return (values != null) ? values[0] : -1;
-    }
-
-    public long getLargestValue() {
-        return (values != null) ? values[numKeys -1] : -1;
-    }
-
-	public int getNumKeys() {
-		return numKeys;
-	}
-
-	public long[] getKeys() {
-		return keys;
-	}
-
-	public long[] getValues() {
-		return values;
-	}
-
-    public int getPageSize() {
-        return pageSize;
-    }
-
-    public void setNumKeys(int numKeys) {
-        markChanged();
-		this.numKeys = numKeys;
-	}
-
-	public void setKeys(long[] keys) {
-        markChanged();
-		this.keys = keys;
-	}
-
-	public void setValues(long[] values) {
-        markChanged();
-		this.values = values;
-	}
-
-	public void setIsRoot(boolean isRoot) {
-        markChanged();
-		this.isRoot = isRoot;
-	}
-
-    public Pair<Long, Long> getKeyValue(int position) {
-        Long key = getKey(position);
-        Long value = (getValues() != null) ? getValue(position) : -1;
-        return new Pair<>(key, value);
-    }
-
-    public BTreeNode leftMostLeafOf() {
-		if(isLeaf()) {
-			return this;
-		}
-		BTreeNode node = this;
-		while(!node.isLeaf()) {
-			node = node.getChild(0);
-		}
-		return node;
-	}
-
-    public BTreeNode rightMostLeafOf() {
-        if(isLeaf()) {
-            return this;
-        }
-        BTreeNode node = this;
-        while(!node.isLeaf()) {
-            node = node.getChild(0);
-        }
-        return node;
     }
 
     /**
@@ -447,6 +272,184 @@ public abstract class BTreeNode extends Observable {
     public void shiftChildren(int startIndex, int endIndex, int amount) {
         markChanged();
         copyChildren(this, startIndex, this, endIndex, amount);
+    }
+
+    public BTreeNode leftSibling(BTreeNode parent) {
+        return (parent == null) ? null : parent.leftSiblingOf(this);
+    }
+
+    public BTreeNode rightSibling(BTreeNode parent) {
+        return (parent == null) ? null : parent.rightSiblingOf(this);
+    }
+
+    public void setKey(int index, long key) {
+        getKeys()[index] = key;
+
+        //signal change
+        markChanged();
+    }
+
+    public void setValue(int index, long value) {
+        getValues()[index] = value;
+
+        //signal change
+        markChanged();
+    }
+
+    public boolean isUnderfull() {
+        if (isRoot()) {
+            return getNumKeys() == 0;
+        }
+        //ToDo fix this
+        return getNumKeys() < (keys.length >> 1) && computeSize() < (pageSize - 32);
+    }
+
+    public boolean hasExtraKeys() {
+        if (isRoot()) {
+            return true;
+        }
+        //ToDo need to have at least 3 keys
+        return getNumKeys() > 2 && getNumKeys() > minSize;
+    }
+
+    public boolean isFull() {
+        //ToDo compute
+        return computeSize() == pageSize;
+    }
+
+    public boolean incrementNumKeys() {
+        markChanged();
+        return increaseNumKeys(1);
+    }
+
+    public boolean decrementNumKeys() {
+        markChanged();
+        return decreaseNumKeys(1);
+    }
+
+    public boolean increaseNumKeys(int amount) {
+        markChanged();
+        int newNumKeys = getNumKeys() + amount;
+        if (newNumKeys > getKeys().length) {
+            return false;
+        }
+        setNumKeys(newNumKeys);
+        return true;
+    }
+
+    public boolean decreaseNumKeys(int amount) {
+        markChanged();
+        int newNumKeys = getNumKeys() - amount;
+        if (newNumKeys < 0) {
+            return false;
+        }
+        setNumKeys(newNumKeys);
+        return true;
+    }
+
+    protected void initKeys(int size) {
+        setKeys(new long[size]);
+        setNumKeys(0);
+    }
+
+    protected void initValues(int size) {
+        setValues(new long[size]);
+    }
+
+    public long getValue(int index) {
+        return getValues()[index];
+    }
+
+    public long getKey(int index) {
+        return getKeys()[index];
+    }
+
+    public boolean isLeaf() {
+        return isLeaf;
+    }
+
+    public boolean isRoot() {
+        return isRoot;
+    }
+
+    public long getSmallestKey() {
+        return keys[0];
+    }
+
+    public long getLargestKey() {
+        return keys[numKeys - 1];
+    }
+
+    public long getSmallestValue() {
+        return (values != null) ? values[0] : -1;
+    }
+
+    public long getLargestValue() {
+        return (values != null) ? values[numKeys -1] : -1;
+    }
+
+    public int getNumKeys() {
+        return numKeys;
+    }
+
+    public long[] getKeys() {
+        return keys;
+    }
+
+    public long[] getValues() {
+        return values;
+    }
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    public void setNumKeys(int numKeys) {
+        markChanged();
+        this.numKeys = numKeys;
+    }
+
+    public void setKeys(long[] keys) {
+        markChanged();
+        this.keys = keys;
+    }
+
+    public void setValues(long[] values) {
+        markChanged();
+        this.values = values;
+    }
+
+    public void setIsRoot(boolean isRoot) {
+        markChanged();
+        this.isRoot = isRoot;
+    }
+
+    public Pair<Long, Long> getKeyValue(int position) {
+        Long key = getKey(position);
+        Long value = (getValues() != null) ? getValue(position) : -1;
+        return new Pair<>(key, value);
+    }
+
+    public BTreeNode leftMostLeafOf() {
+        if(isLeaf()) {
+            return this;
+        }
+        BTreeNode node = this;
+        while(!node.isLeaf()) {
+            node = node.getChild(0);
+        }
+        return node;
+    }
+
+    public BTreeNode rightMostLeafOf() {
+        if(isLeaf()) {
+            return this;
+        }
+        BTreeNode node = this;
+        while(!node.isLeaf()) {
+            node = node.getChild(0);
+        }
+        return node;
     }
 
     public String toString() {
@@ -555,44 +558,9 @@ public abstract class BTreeNode extends Observable {
         return pageSize >> 1;
     }
 
-    public abstract int computeSize();
-    public abstract int storageHeaderSize();
 
     protected int getKeyArraySizeInBytes() {
         //ToDo use precomputed prefix
         return PrefixSharingHelper.computeKeyArraySizeInBytes(getKeys(), getNumKeys());
-    }
-
-    public boolean willOverflowAfterInsert(long key) {
-        //ToDo move the implementation for this method to PagedBTreeNode
-        if (getNumKeys() == 0) {
-            return false;
-        }
-        long first = Math.min(getSmallestKey(), key);
-        long last = Math.max(getLargestKey(), key);
-        int newNumKeys = getNumKeys() + 1;
-        long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last, newNumKeys);
-        int newPageSize = (int) (storageHeaderSize() + (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys)));
-        boolean willOverflow = pageSize <= newPageSize;
-        return willOverflow;
-    }
-
-    public boolean fitsIntoOneNodeWith(BTreeNode neighbour) {
-        //ToDo move the implementation for this method to PagedBTreeNode
-        if (neighbour == null || neighbour.getNumKeys() == 0 || this.getNumKeys() == 0) {
-            return false;
-        }
-        long first = Math.min(this.getSmallestKey(), neighbour.getSmallestKey());
-        long last = Math.max(this.getLargestKey(), neighbour.getLargestKey());
-        int newNumKeys = this.getNumKeys() + neighbour.getNumKeys();
-        if (!this.isLeaf()) {
-            //also take into account the key that is taken down from the parent
-            //ToDo check if this is always needed
-            newNumKeys += 1;
-        }
-        long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last, newNumKeys);
-        int newPageSize = (int) (storageHeaderSize() + (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys)));
-        boolean willNotOverflow = pageSize >= newPageSize;
-        return willNotOverflow;
     }
 }
