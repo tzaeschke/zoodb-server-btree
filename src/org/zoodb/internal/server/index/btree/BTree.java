@@ -3,7 +3,6 @@ package org.zoodb.internal.server.index.btree;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 import org.zoodb.internal.util.Pair;
 
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
@@ -54,23 +53,44 @@ public abstract class BTree<T extends BTreeNode> {
         T leaf = result.getB();
 
         increaseModcount();
+
+        //check if the leaf overflows after the insertion
         if (leaf.willOverflowAfterInsert(key, value)) {
-//            T parent = ancestorStack.peek();
-//            T leftSibling = (T) leaf.leftSibling(parent);
-//            if (leftSibling != null && !leftSibling.willOverflowAfterInsert(leaf.getSmallestKey())) {
+            T parent = ancestorStack.peek();
+            T leftSibling = (T) leaf.leftSibling(parent);
+
+            //if it does, we can maybe move some keys to the left sibling
+            // instead of creating a new node
+//            if (leftSibling != null && !leftSibling.willOverflowAfterInsert(leaf.getSmallestKey(), leaf.getSmallestValue())) {
 //                redistributeKeysFromRight(leftSibling, leaf, parent);
+//                if (key < leaf.getSmallestKey()) {
+//                    leftSibling.put(key, value);
+//                } else {
+//                    leaf.put(key, value);
+//                }
 //            } else {
+
+                //if cannot redistribute to left neighbour, create a new node
+                // as a right sibling of the current node
                 T rightNode = putAndSplit(leaf, key, value);
                 insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
-            //}
+//            }
         } else {
+
+            //no overflow, simply insert in the leaf
             leaf.put(key, value);
         }
-        
-        maxKey = Math.max(maxKey, key);
-        minKey = Math.min(minKey, key);
+
+        recomputeMinAndMaxAfterInsert(key);
     }
 
+    /**
+     * Deletes a key/value pair from a tree and then
+     * performs a re-balance operation.
+     * @param key
+     * @param value
+     * @return
+     */
 	protected long deleteEntry(long key, long value) {
 		if(root.getNumKeys() == 0) {
 			throw new NoSuchElementException();
@@ -81,39 +101,32 @@ public abstract class BTree<T extends BTreeNode> {
 
         increaseModcount();
 
-        T leafParent = ancestorStack.peek();
         long oldValue = deleteFromLeaf(leaf, key, value);
-        //ToDo should this happen?
-//        if (!leaf.isRoot() && leaf.getNumKeys() == 0) {
-//            leafParent.removeChild(leaf);
-//            System.out.println("Remove child leaf");
-//            leaf.close();
-//            if (ancestorStack.size() > 1) {
-//                leaf = leafParent;
-//                ancestorStack.pop();
-//            }
-//        }
         rebalanceAfterDelete(leaf, ancestorStack, key, value);
-        if(key == minKey) {
-        	minKey = computeMinKey();
-        }
-        if(key == maxKey) {
-        	maxKey = computeMaxKey();
-        }
+
+        recomputeMinAndMax(key);
         return oldValue;
     }
 
+    /**
+     * Re-balance the key/value pairs from the tree after a deletion.
+     *
+     * If the current node is under-full, check if it can be merged with the left
+     * or the right sibling. If that is not possible, attempt to redistribute some keys
+     * from the left or right neighbour to avoid having nodes which are underfull
+     *
+     *
+     * @param node                  The node from which the deletion has been made
+     * @param ancestorStack         A stack containing the ancestor nodes of {node}
+     * @param key                   The key corresponding to the entry to be removed
+     * @param value                 The value corresponding to the entry to be removed
+     */
     private void rebalanceAfterDelete(T node, LinkedList<T> ancestorStack, long key, long value) {
         if (!node.isRoot()) {
             T current = node;
             T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
 
             while (current != null) {
-//                if (current.getNumKeys() == 0) {
-//                    //System.out.println("Remove child inner");
-//                    //parent.removeChild(current);
-//                    current.close();
-//                } else
                 if (current.isUnderfull()) {
                     //check if can borrow 1 value from the left or right siblings
                     T rightSibling = (T) current.rightSibling(parent);
@@ -172,6 +185,18 @@ public abstract class BTree<T extends BTreeNode> {
         }
     }
 
+    /**
+     * Search the leaf node containing the key/value pair received as an argument,
+     * together with a stack containing all of the parent nodes.
+     *
+     * If the current key/value pair is not contained in the tree, the leaf where
+     * the entry should be inserted is returned.
+     *
+     * @param key               The key of the entry
+     * @param value             The value of the entry
+     * @return                  A Pair object consisting of the leaf node and a stack
+     *                          containing its parents.
+     */
     protected Pair<LinkedList<T>, T> searchNodeWithHistory(long key, long value) {
         LinkedList<T> stack = new LinkedList<>();
         T current = root;
@@ -187,6 +212,18 @@ public abstract class BTree<T extends BTreeNode> {
         return new Pair<>(stack, current);
     }
 
+    /**
+     * Removed a key/value pair from a leaf node and return the previous value.
+     *
+     * The oldValue is useful for unique trees. In such a case, the
+     * value would be ignored and the removal would be done based on
+     * the key.
+     *
+     * @param leaf
+     * @param key
+     * @param value
+     * @return
+     */
     protected long deleteFromLeaf(T leaf, long key, long value) {
         long oldValue = leaf.delete(key, value);
         return oldValue;
@@ -238,28 +275,30 @@ public abstract class BTree<T extends BTreeNode> {
     public BTreeNodeFactory getNodeFactory() {
         return nodeFactory;
     }
-    
+
     /*
      * Counts number of nodes in the tree.
      * WARNING: SLOW! has to iterate over whole tree
      */
     public int size() {
-    	BTreeIterator it = new BTreeIterator(this);
-    	int counter = 0;
-    	while(it.hasNext()) {
-    		it.next();
-    		counter++;
-    	}
+        BTreeIterator it = new BTreeIterator(this);
+        int counter = 0;
+        while(it.hasNext()) {
+            it.next();
+            counter++;
+        }
 
-    	return counter;
+        return counter;
     }
 
     /**
      * Puts a new key into the node and splits accordingly. Returns the newly
      * created leaf, which is to the right.
      *
-     * @param newKey
-     * @return
+     * @param newKey                The new key to be inserted
+     * @param value                 The new value to be inserted.
+     * @return                      The newly created node, a right sibling of
+     *                              the current node.
      */
     public <T extends BTreeNode> T putAndSplit(T current, long newKey, long value) {
         if (!current.isLeaf()) {
@@ -304,8 +343,12 @@ public abstract class BTree<T extends BTreeNode> {
     /**
      * Puts a key and a new node to the inner structure of the tree.
      *
-     * @param key
-     * @param newNode
+     * @param current               The node in which to perform the insert.
+     * @param key                   The new key to be inserted
+     * @param value                 The new value to be inserted.
+     * @param newNode               The new node to be inserted together with the new key.
+     * @return                      The newly created node, a right sibling of
+     *                              the current node.
      * @return
      */
     public <T extends BTreeNode> Pair<T, Pair<Long, Long> > putAndSplit(T current, long key, long value, T newNode) {
@@ -346,41 +389,30 @@ public abstract class BTree<T extends BTreeNode> {
         return new Pair<>(right, tempNode.getKeyValue(keysInLeftNode));
     }
 
+    /**
+     * Merge the current node into the right node. After this operations is completed,
+     * the right node will contain the key/value entries corresponding to the current node
+     * together with its previous entries.
+     *
+     * The current node reference is also removed from the parent node.
+     *
+     * @param tree                  The tree on which to perform the operation
+     * @param current               The current node
+     * @param right                 The right sibling of the current node
+     * @param parent                The parent of the current node
+     * @return                      A reference to the parent node
+     */
     public T mergeWithRight(BTree<T> tree, T current, T right, T parent) {
         int keyIndex = parent.keyIndexOf(current, right);
 
         //check if parent needs merging -> tree gets smaller
         if (parent.isRoot() && parent.getNumKeys() == 1) {
-            if (!current.isLeaf()) {
-                right.shiftRecordsRight(parent.getNumKeys());
-                right.migrateEntry(0, parent, 0);
-                right.increaseNumKeys(1);
-            }
-            right.shiftRecordsRight(current.getNumKeys());
-            copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
-            right.increaseNumKeys(current.getNumKeys());
-            tree.swapRoot(right);
-            parent.close();
-            parent = right;
+            parent = rootMergeWithRight(tree, current, right, parent, keyIndex);
         } else {
             if (right.isLeaf()) {
-                //merge leaves
-                parent.shiftRecordsLeftWithIndex(keyIndex, 1);
-                parent.decreaseNumKeys(1);
-                right.shiftRecordsRight(current.getNumKeys());
-                copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
-                right.increaseNumKeys(current.getNumKeys());
+                leafMergeWithRight(current, right, parent, keyIndex);
             } else {
-                //merge inner nodes
-                right.shiftRecordsRight(1);
-                right.migrateEntry(0, parent, keyIndex);
-                right.increaseNumKeys(1);
-                parent.shiftRecordsLeftWithIndex(keyIndex, 1);
-                parent.decreaseNumKeys(1);
-
-                right.shiftRecordsRight(current.getNumKeys());
-                copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
-                right.increaseNumKeys(current.getNumKeys());
+                innerMergeWithRight(current, right, parent, keyIndex);
             }
         }
 //        if ( parent.getNumKeys() == 0 || right.getNumKeys() == 0) {
@@ -395,47 +427,33 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
+    /**
+     * Merge the current node into the left node. After this operations is completed,
+     * the current node will contain the key/value entries corresponding to the left node
+     * together with its previous entries.
+     *
+     * The left node reference is also removed from the parent node.
+     * @param tree                      The tree on which to perform the operation
+     * @param current                   The current leaf node
+     * @param left                      The sibling of the current node
+     * @param parent                    The parent of the current node
+     * @return                          A new reference to the current node
+     */
     public T  mergeWithLeft(BTree<T> tree, T current, T left, T parent) {
         int keyIndex = parent.keyIndexOf(left, current);
 
         //check if we need to merge with parent
         if (parent.getNumKeys() == 1) {
             if (parent.isRoot()) {
-                if (!current.isLeaf()) {
-                    current.shiftRecordsRight(parent.getNumKeys());
-                    current.migrateEntry(0, parent, 0);
-                    current.increaseNumKeys(parent.getNumKeys());
-                }
-
-                current.shiftRecordsRight(left.getNumKeys());
-                copyNodeToAnother(left, current, 0);
-                current.increaseNumKeys(left.getNumKeys());
-                tree.swapRoot(current);
-                parent.close();
-                parent = current;
+                parent = rootMergeWithLeft(tree, current, left, parent, keyIndex);
             } else {
                 return parent;
             }
         } else {
             if (current.isLeaf()) {
-                //leaf node merge
-                parent.shiftRecordsLeftWithIndex(keyIndex, 1);
-                parent.decreaseNumKeys(1);
-
-                current.shiftRecordsRight(left.getNumKeys());
-                copyNodeToAnother(left, current, 0);
-                current.increaseNumKeys(left.getNumKeys());
+                leafMergeWithLeft(current, left, parent, keyIndex);
             } else {
-                //inner node merge
-                //move key from parent
-                current.shiftRecordsRight(left.getNumKeys() + 1);
-                current.migrateEntry(left.getNumKeys(), parent, keyIndex);
-                parent.shiftRecordsLeftWithIndex(keyIndex, 1);
-                parent.decreaseNumKeys(1);
-
-                //copy from left node
-                copyNodeToAnother(left, current, 0);
-                current.increaseNumKeys(left.getNumKeys() + 1);
+                innerMergeWithLeft(current, left, parent, keyIndex);
             }
         }
 //        if (current.getNumKeys() == 0 || parent.getNumKeys() == 0) {
@@ -450,120 +468,252 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
+    /**
+     * Move some of the keys from the right sibling of the current node
+     * to the current node. Should be called when the node from which a
+     * deletion has been made is underfull.
+     *
+     * @param current           The current node
+     * @param right             The right sibling of the current node
+     * @param parent            The parent of the current node
+     */
     public void redistributeKeysFromRight(T current, T right, T parent) {
-        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
-        int weightChild = (current.isLeaf() ? 0 : 4);
-        int header = current.storageHeaderSize();
-
-        int splitIndexInRight = PrefixSharingHelper.computeIndexForRedistributeRightToLeft(
-                current.getKeys(), current.getNumKeys(), right.getKeys(), right.getNumKeys(), header, weightKey, weightChild, current.getPageSize());
-        int keysToMove = splitIndexInRight + 1;
+        int keysToMove = computeKeysToMoveFromRight(current, right);
         if (keysToMove == 0) {
             return;
         }
         //move key from parent to current node
         int parentKeyIndex = parent.keyIndexOf(current, right);
         if (current.isLeaf()) {
-            int startIndexRight = 0;
-            int startIndexLeft = current.getNumKeys();
-            //copy from left to current
-            copyFromRightNodeToLeftNode(right, startIndexRight, current, startIndexLeft, keysToMove, keysToMove);
-
-            //shift nodes in current node right
-            right.shiftRecordsLeft(keysToMove);
-            //fix number of keys
-            right.decreaseNumKeys(keysToMove);
-            current.increaseNumKeys(keysToMove);
-
-            parent.migrateEntry(parentKeyIndex, right, 0);
+            leafRedistributeFromRight(current, right, parent, parentKeyIndex, keysToMove);
         } else {
             keysToMove--;
-            if (keysToMove != 0) {
-                //add key from parent
-                current.migrateEntry(current.getNumKeys(), parent, parentKeyIndex);
-                current.increaseNumKeys(1);
-
-                int startIndexRight = 0;
-                int startIndexLeft = current.getNumKeys();
-
-                //copy from left to current
-                copyFromRightNodeToLeftNode(right, startIndexRight, current, startIndexLeft, keysToMove, keysToMove + 1);
-                current.increaseNumKeys(keysToMove);
-
-                //shift nodes in current node right
-                right.shiftRecordsLeft(keysToMove);
-                right.decreaseNumKeys(keysToMove);
-                parent.migrateEntry(parentKeyIndex, right, 0);
-                right.shiftRecordsLeft(1);
-                right.decreaseNumKeys(1);
-            }
+            innerRedistributeFromRight(current, right, parent, parentKeyIndex, keysToMove);
         }
 
         assert current.computeSize() <= current.getPageSize();
         assert right.computeSize() <= right.getPageSize();
         assert parent.computeSize() <= parent.getPageSize();
-
     }
 
+    /**
+     * Move some of the keys from the left sibling of the current node
+     * to the current node. Should be called when the node from which a
+     * deletion has been made is underfull.
+     *
+     * @param current           The current node
+     * @param left              The left sibling of the current node
+     * @param parent            The parent of the current node
+     */
     public void redistributeKeysFromLeft(T current, T left, T parent) {
-        //int totalKeys = left.getNumKeys() + current.getNumKeys();
-        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
-        int weightChild = (current.isLeaf() ? 0 : 4);
-        int header = current.storageHeaderSize();
-        int splitIndexInLeft = PrefixSharingHelper.computeIndexForRedistributeLeftToRight(
-                left.getKeys(), left.getNumKeys(), current.getKeys(), current.getNumKeys(),
-                header, weightKey, weightChild, current.getPageSize());
 
-        int keysToMove = left.getNumKeys() - splitIndexInLeft;
+        int keysToMove = computeKeysToMoveFromLeft(current, left);
         int parentKeyIndex = parent.keyIndexOf(left, current);
         if (current.isLeaf()) {
             if (keysToMove == 0) {
                 return;
             }
-            //shift nodes in current node right
-            current.shiftRecordsRight(keysToMove);
-
-            int startIndexLeft = left.getNumKeys() - keysToMove;
-            int startIndexRight = 0;
-            //copy from left to current
-            copyRedistributeFromLeftNodeToRightNode(left, startIndexLeft, current, startIndexRight, keysToMove, keysToMove);
-
-            //fix number of keys
-            left.decreaseNumKeys(keysToMove);
-            current.increaseNumKeys(keysToMove);
-
-            //move key from parent to current node
-            parent.migrateEntry(parentKeyIndex, current, 0);
+            leafRedistributeFromLeft(current, left, parent, parentKeyIndex, keysToMove);
         } else {
-            keysToMove-=1;
-            if (current.getNumKeys() == 0) {
-                keysToMove--;
-            }
+            keysToMove = (current.getNumKeys() == 0) ? keysToMove - 2 : keysToMove - 1;
             if (keysToMove <= 0) {
                 return;
             }
-            int startIndexLeft = left.getNumKeys() - keysToMove;
-            int startIndexRight = 0;
-
-            current.shiftRecordsRight(1);
-            current.increaseNumKeys(1);
-            current.migrateEntry(0, parent, parentKeyIndex);
-            //shift nodes in current node right
-            current.shiftRecordsRight(keysToMove);
-
-            //copy k keys and k+1 children from left
-            left.copyFromNodeToNode(startIndexLeft, startIndexLeft, current, startIndexRight, startIndexRight, keysToMove, keysToMove + 1);
-            current.increaseNumKeys(keysToMove);
-            left.decreaseNumKeys(keysToMove);
-            //move the biggest key to parent
-            parent.migrateEntry(parentKeyIndex, left, left.getNumKeys() - 1);
-            left.decreaseNumKeys(1);
+            innerRedistributeFromLeft(current, left, parent, parentKeyIndex, keysToMove);
         }
 
         assert current.computeSize() <= current.getPageSize();
         assert left.computeSize() <= left.getPageSize();
         assert parent.computeSize() <= parent.getPageSize();
+    }
 
+    private int computeKeysToMoveFromLeft(T current, T left) {
+        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
+        int weightChild = (current.isLeaf() ? 0 : 4);
+        int header = current.storageHeaderSize();
+
+        int splitIndexInLeft = PrefixSharingHelper.computeIndexForRedistributeLeftToRight(
+                left.getKeys(), left.getNumKeys(), current.getKeys(), current.getNumKeys(),
+                header, weightKey, weightChild, current.getPageSize());
+
+        int keysToMove = left.getNumKeys() - splitIndexInLeft;
+        return keysToMove;
+    }
+
+    private int computeKeysToMoveFromRight(T current, T right) {
+        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
+        int weightChild = (current.isLeaf() ? 0 : 4);
+        int header = current.storageHeaderSize();
+
+        int splitIndexInRight = PrefixSharingHelper.computeIndexForRedistributeRightToLeft(
+                current.getKeys(), current.getNumKeys(), right.getKeys(), right.getNumKeys(),
+                header, weightKey, weightChild, current.getPageSize());
+
+        int keysToMove = splitIndexInRight + 1;
+        return keysToMove;
+    }
+
+    private T leafRedistributeFromLeft(T current, T left, T parent, int parentKeyIndex, int keysToMove) {
+        //shift nodes in current node right
+        current.shiftRecordsRight(keysToMove);
+
+        int startIndexLeft = left.getNumKeys() - keysToMove;
+        int startIndexRight = 0;
+        //copy from left to current
+        copyRedistributeFromLeftNodeToRightNode(left, startIndexLeft, current, startIndexRight, keysToMove, keysToMove);
+
+        //fix number of keys
+        left.decreaseNumKeys(keysToMove);
+        current.increaseNumKeys(keysToMove);
+
+        //move key from parent to current node
+        parent.migrateEntry(parentKeyIndex, current, 0);
+
+        return parent;
+    }
+
+    private T innerRedistributeFromLeft(T current, T left, T parent, int parentKeyIndex, int keysToMove) {
+        int startIndexLeft = left.getNumKeys() - keysToMove;
+        int startIndexRight = 0;
+
+        current.shiftRecordsRight(1);
+        current.increaseNumKeys(1);
+        current.migrateEntry(0, parent, parentKeyIndex);
+        //shift nodes in current node right
+        current.shiftRecordsRight(keysToMove);
+
+        //copy k keys and k+1 children from left
+        left.copyFromNodeToNode(startIndexLeft, startIndexLeft, current,
+                startIndexRight, startIndexRight, keysToMove, keysToMove + 1);
+        current.increaseNumKeys(keysToMove);
+        left.decreaseNumKeys(keysToMove);
+        //move the biggest key to parent
+        parent.migrateEntry(parentKeyIndex, left, left.getNumKeys() - 1);
+        left.decreaseNumKeys(1);
+
+        return parent;
+    }
+
+    private T leafRedistributeFromRight(T current, T right, T parent, int parentKeyIndex, int keysToMove) {
+        int startIndexRight = 0;
+        int startIndexLeft = current.getNumKeys();
+        //copy from left to current
+        copyFromRightNodeToLeftNode(right, startIndexRight, current, startIndexLeft, keysToMove, keysToMove);
+
+        //shift nodes in current node right
+        right.shiftRecordsLeft(keysToMove);
+        //fix number of keys
+        right.decreaseNumKeys(keysToMove);
+        current.increaseNumKeys(keysToMove);
+
+        parent.migrateEntry(parentKeyIndex, right, 0);
+        return parent;
+    }
+
+    private T innerRedistributeFromRight(T current, T right, T parent, int parentKeyIndex, int keysToMove) {
+        if (keysToMove != 0) {
+            //add key from parent
+            current.migrateEntry(current.getNumKeys(), parent, parentKeyIndex);
+            current.increaseNumKeys(1);
+
+            int startIndexRight = 0;
+            int startIndexLeft = current.getNumKeys();
+
+            //copy from left to current
+            copyFromRightNodeToLeftNode(right, startIndexRight, current, startIndexLeft, keysToMove, keysToMove + 1);
+            current.increaseNumKeys(keysToMove);
+
+            //shift nodes in current node right
+            right.shiftRecordsLeft(keysToMove);
+            right.decreaseNumKeys(keysToMove);
+            parent.migrateEntry(parentKeyIndex, right, 0);
+            right.shiftRecordsLeft(1);
+            right.decreaseNumKeys(1);
+        }
+        return parent;
+    }
+
+    private T leafMergeWithLeft(T current, T left, T parent, int keyIndex) {
+        //leaf node merge
+        parent.shiftRecordsLeftWithIndex(keyIndex, 1);
+        parent.decreaseNumKeys(1);
+
+        current.shiftRecordsRight(left.getNumKeys());
+        copyNodeToAnother(left, current, 0);
+        current.increaseNumKeys(left.getNumKeys());
+
+        return parent;
+    }
+
+    private T innerMergeWithLeft(T current, T left, T parent, int keyIndex) {
+        //inner node merge
+        //move key from parent
+        current.shiftRecordsRight(left.getNumKeys() + 1);
+        current.migrateEntry(left.getNumKeys(), parent, keyIndex);
+        parent.shiftRecordsLeftWithIndex(keyIndex, 1);
+        parent.decreaseNumKeys(1);
+
+        //copy from left node
+        copyNodeToAnother(left, current, 0);
+        current.increaseNumKeys(left.getNumKeys() + 1);
+        return parent;
+    }
+
+    private T rootMergeWithRight(BTree<T> tree, T current, T right, T parent, int keyIndex) {
+        if (!current.isLeaf()) {
+            right.shiftRecordsRight(parent.getNumKeys());
+            right.migrateEntry(0, parent, 0);
+            right.increaseNumKeys(1);
+        }
+        right.shiftRecordsRight(current.getNumKeys());
+        copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
+        right.increaseNumKeys(current.getNumKeys());
+        tree.swapRoot(right);
+        parent.close();
+        parent = right;
+
+        return parent;
+    }
+
+    private T rootMergeWithLeft(BTree<T> tree, T current, T left, T parent, int keyIndex) {
+        if (!current.isLeaf()) {
+            current.shiftRecordsRight(parent.getNumKeys());
+            current.migrateEntry(0, parent, 0);
+            current.increaseNumKeys(parent.getNumKeys());
+        }
+
+        current.shiftRecordsRight(left.getNumKeys());
+        copyNodeToAnother(left, current, 0);
+        current.increaseNumKeys(left.getNumKeys());
+        tree.swapRoot(current);
+        parent.close();
+        parent = current;
+
+        return parent;
+    }
+
+    private T leafMergeWithRight(T current, T right, T parent, int keyIndex) {
+        //merge leaves
+        parent.shiftRecordsLeftWithIndex(keyIndex, 1);
+        parent.decreaseNumKeys(1);
+        right.shiftRecordsRight(current.getNumKeys());
+        copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
+        right.increaseNumKeys(current.getNumKeys());
+        return parent;
+    }
+
+    private T innerMergeWithRight(T current, T right, T parent, int keyIndex) {
+        //merge inner nodes
+        right.shiftRecordsRight(1);
+        right.migrateEntry(0, parent, keyIndex);
+        right.increaseNumKeys(1);
+        parent.shiftRecordsLeftWithIndex(keyIndex, 1);
+        parent.decreaseNumKeys(1);
+
+        right.shiftRecordsRight(current.getNumKeys());
+        copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
+        right.increaseNumKeys(current.getNumKeys());
+        return parent;
     }
 
     public void copyMergeFromLeftNodeToRightNode(T src, int srcStart, T dest, int destStart, int keys, int children) {
@@ -584,6 +734,7 @@ public abstract class BTree<T extends BTreeNode> {
 	}
 
 	public long computeMinKey() {
+        //Todo make this faster by executing this code right when the deletion is done
         if (getRoot().getNumKeys() == 0) {
             return -1;
         }
@@ -647,13 +798,17 @@ public abstract class BTree<T extends BTreeNode> {
         return pageSize;
     }
 
-    private long[] insertedOrderedInArray(long newKey, long[] keys, int size) {
-        int index = Arrays.binarySearch(keys, 0, size, newKey);
-        if (index < 0) {
-            index = - (index + 1);
+    private void recomputeMinAndMaxAfterInsert(long newKey) {
+        minKey = Math.min(newKey, minKey);
+        maxKey = Math.max(newKey, maxKey);
+    }
+
+    private void recomputeMinAndMax(long deletedKey) {
+        if(deletedKey == minKey) {
+            minKey = computeMinKey();
         }
-        System.arraycopy(keys, index, keys, index + 1, size);
-        keys[index] = newKey;
-        return keys;
+        if(deletedKey == maxKey) {
+            maxKey = computeMaxKey();
+        }
     }
 }
