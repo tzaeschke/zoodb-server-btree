@@ -309,7 +309,7 @@ public abstract class BTreeNode extends Observable {
             return true;
         }
         //ToDo need to have at least 3 keys
-        return getNumKeys() > 2 && getNumKeys() > minSize;
+        return getNumKeys() > 2 && computeSize() < (0.75 * getPageSize());
     }
 
     public boolean isFull() {
