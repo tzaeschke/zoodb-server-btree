@@ -568,7 +568,6 @@ public abstract class BTree<T extends BTreeNode> {
 
         //move key from parent to current node
         parent.migrateEntry(parentKeyIndex, current, 0);
-
         return parent;
     }
 

@@ -100,6 +100,8 @@ public abstract class BTreeNode extends Observable {
         setKey(pos, key);
         setValue(pos, value);
 
+        recomputeSize();
+
         //signal change
         markChanged();
     }
@@ -179,6 +181,8 @@ public abstract class BTreeNode extends Observable {
         }
         setEntry(pos, key, value);
         incrementNumKeys();
+
+        recomputeSize();
     }
 
     /**
@@ -204,6 +208,8 @@ public abstract class BTreeNode extends Observable {
 
         setChild(0, left);
         setChild(1, right);
+
+        recomputeSize();
     }
 
     /**
@@ -223,6 +229,8 @@ public abstract class BTreeNode extends Observable {
         long oldValue = getValue(keyPos - 1);
         shiftRecords(keyPos, keyPos - 1, recordsToMove);
         decrementNumKeys();
+
+        recomputeSize();
         return oldValue;
     }
 
@@ -301,7 +309,7 @@ public abstract class BTreeNode extends Observable {
             return getNumKeys() == 0;
         }
         //ToDo fix this
-        return getNumKeys() < (keys.length >> 1) && computeSize() < (pageSize - 32);
+        return getNumKeys() < (keys.length >> 1) && getCurrentSize() < (pageSize - 32);
     }
 
     public boolean hasExtraKeys() {
@@ -309,12 +317,11 @@ public abstract class BTreeNode extends Observable {
             return true;
         }
         //ToDo need to have at least 3 keys
-        return getNumKeys() > 2 && computeSize() < (0.75 * getPageSize());
+        return getNumKeys() > 2 && getCurrentSize() < (0.75 * getPageSize());
     }
 
     public boolean isFull() {
-        //ToDo compute
-        return computeSize() == pageSize;
+        return getCurrentSize() == pageSize;
     }
 
     public boolean incrementNumKeys() {
@@ -329,6 +336,8 @@ public abstract class BTreeNode extends Observable {
 
     public boolean increaseNumKeys(int amount) {
         markChanged();
+        recomputeSize();
+
         int newNumKeys = getNumKeys() + amount;
         if (newNumKeys > getKeys().length) {
             return false;
@@ -339,6 +348,7 @@ public abstract class BTreeNode extends Observable {
 
     public boolean decreaseNumKeys(int amount) {
         markChanged();
+        recomputeSize();
         int newNumKeys = getNumKeys() - amount;
         if (newNumKeys < 0) {
             return false;
@@ -554,13 +564,18 @@ public abstract class BTreeNode extends Observable {
         return getNonKeyEntrySizeInBytes(getNumKeys());
     }
 
-    protected int computeMinSize(int pageSize) {
-        return pageSize >> 1;
-    }
-
-
     protected int getKeyArraySizeInBytes() {
         //ToDo use precomputed prefix
         return PrefixSharingHelper.computeKeyArraySizeInBytes(getKeys(), getNumKeys());
     }
+
+    public void recomputeSize() {
+        this.currentSize = computeSize();
+    }
+
+    public int getCurrentSize() {
+        return currentSize;
+    }
+
+
 }

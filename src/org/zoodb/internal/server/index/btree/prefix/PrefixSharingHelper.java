@@ -16,26 +16,26 @@ public class PrefixSharingHelper {
      * @return
      */
     public static long computePrefix(long first, long last) {
-        if (first == last) {
-            return 64;
-        }
-        long prefix = 0;
-        long low = 0;
-        long high = 63;
-        long mid = 0;
-        while (low <= high) {
-            mid = low + ((high - low) >> 1);
-            long firstPrefix = first >> (64 - mid);
-            long lastPrefix = last >> (64 - mid);
-            if (firstPrefix == lastPrefix) {
-                low = mid + 1;
-                prefix = mid;
-            } else {
-                high = mid - 1;
-            }
-        }
-        return prefix;
-        //return Long.numberOfLeadingZeros(first ^ last);
+//        if (first == last) {
+//            return 64;
+//        }
+//        long prefix = 0;
+//        long low = 0;
+//        long high = 63;
+//        long mid = 0;
+//        while (low <= high) {
+//            mid = low + ((high - low) >> 1);
+//            long firstPrefix = first >> (64 - mid);
+//            long lastPrefix = last >> (64 - mid);
+//            if (firstPrefix == lastPrefix) {
+//                low = mid + 1;
+//                prefix = mid;
+//            } else {
+//                high = mid - 1;
+//            }
+//        }
+//        return prefix;
+        return Long.numberOfLeadingZeros(first ^ last);
     }
 
     /**

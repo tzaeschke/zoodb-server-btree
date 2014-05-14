@@ -43,7 +43,9 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         long value = source.getValue(sourcePos);
         setKey(destinationPos, key);
         setValue(destinationPos, value);
-        
+
+        recomputeSize();
+
         markDirty();
     }
 

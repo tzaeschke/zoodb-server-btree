@@ -43,7 +43,8 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     public void migrateEntry(int destinationPos, BTreeNode source, int sourcePos) {
         long key = source.getKey(sourcePos);
         setKey(destinationPos, key);
-        
+
+        recomputeSize();
         markDirty();
     }
 
