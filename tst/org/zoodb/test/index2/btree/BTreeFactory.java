@@ -67,6 +67,7 @@ public class BTreeFactory {
             root.setKeys(padLongArray(toPrimitives(
                     keys.toArray(new Long[keys.size()])),
                     root.computeMaxPossibleNumEntries()));
+            tree.getRoot().close();
             tree.setRoot(root);
             prevLayer = new ArrayList<>();
             prevLayer.add(root);

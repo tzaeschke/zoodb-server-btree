@@ -419,10 +419,9 @@ public abstract class BTreeNode extends Observable {
         this.values = values;
     }
 
-    public void setIsRoot(boolean isRoot) {
-        markChanged();
-        this.isRoot = isRoot;
-    }
+	public void setIsRoot(boolean isRoot) {
+		this.isRoot = isRoot;
+	}
 
     public Pair<Long, Long> getKeyValue(int position) {
         Long key = getKey(position);

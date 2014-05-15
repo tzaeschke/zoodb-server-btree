@@ -6,6 +6,11 @@ import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
 public class NonUniquePagedBTree extends PagedBTree<NonUniquePagedBTreeNode> {
 
+	public NonUniquePagedBTree(NonUniquePagedBTreeNode root,
+			int pageSize, BTreeBufferManager bufferManager) {
+		super(root, pageSize, bufferManager);
+	}
+
     public NonUniquePagedBTree(int pageSize, BTreeBufferManager bufferManager) {
         super(pageSize, bufferManager);
     }
@@ -42,5 +47,4 @@ public class NonUniquePagedBTree extends PagedBTree<NonUniquePagedBTreeNode> {
     public long delete(long key, long value) {
         return deleteEntry(key, value);
     }
-
 }

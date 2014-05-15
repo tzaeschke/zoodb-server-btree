@@ -1,22 +1,32 @@
 package org.zoodb.test.index2.btree;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.btree.*;
-import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
-import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTreeNode;
-import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
-import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
-import org.zoodb.tools.ZooConfig;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import org.junit.Before;
+import org.junit.Test;
+import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeIterator;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTree;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
+import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTreeNode;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
+import org.zoodb.tools.ZooConfig;
 
 public class TestBTreeStorageBufferManager {
 
@@ -158,9 +168,37 @@ public class TestBTreeStorageBufferManager {
 
 		bufferManager.remove(pageId);
 		assertEquals(2, storage.statsGetPageCount());
-		// System.out.println(storage.getFsm().debugPageIds());
-		// assertTrue(storage.getFsm().debugIsPageIdInFreeList(pageId));
-		// assertEquals(null, bufferManager.getMemoryBuffer().get(pageId));
+		assertTrue(storage.getFsm().debugIsPageIdInFreeList(pageId));
+	}
+	
+	@Test
+	public void testClose() {
+		int numEntries = 10000;
+		UniquePagedBTree tree = new UniquePagedBTree(bufferManager.getPageSize(), bufferManager);
+		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries,
+				42);
+
+		for (LLEntry entry : entries) {
+			tree.insert(entry.getKey(), entry.getValue());
+		}
+		tree.write();
+		
+		// collect all page ids
+		List<Integer> pageIds = new ArrayList<Integer>();
+		BTreeIterator it = new BTreeIterator(tree);
+		while(it.hasNext()) {
+			pageIds.add(((PagedBTreeNode)it.next()).getPageId());
+		}
+				
+		for (LLEntry entry : entries) {
+			tree.delete(entry.getKey());
+		}
+		tree.write();
+		
+		// check whether pages are freed
+		for(Integer pageId : pageIds) {
+			assertTrue(storage.getFsm().debugIsPageIdInFreeList(pageId));
+		}
 	}
 
 	@Test
@@ -223,16 +261,16 @@ public class TestBTreeStorageBufferManager {
 		PagedBTreeNode root = tree.getRoot();
 		bufferManager.write(tree.getRoot());
 		
+		System.out.println(tree);
 		tree.delete(8);
-		assertEquals(bufferManager.getDirtyBuffer().size(), 3);
-		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode) root).getPageId()));
-		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode) root.getChild(0)).getPageId()));
-		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode) root.getChild(0).getChild(1)).getPageId()));
+		System.out.println(tree);
+
+		assertEquals(2, bufferManager.getDirtyBuffer().size());
+//		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root.getChild(0)).getPageId()));
+		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root.getChild(0).getChild(1)).getPageId()));
 		bufferManager.write(tree.getRoot());
 		
-		System.out.println(tree);
 		tree.delete(3);
-		System.out.println(tree);
 		assertFalse(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
 		assertFalse(bufferManager.getCleanBuffer().containsKey(((PagedBTreeNode) root).getPageId()));
 		bufferManager.write(tree.getRoot());
@@ -264,7 +302,7 @@ public class TestBTreeStorageBufferManager {
 		PagedBTreeNode lvl2child4 = (PagedBTreeNode) lvl1child2.getChild(0);
 		PagedBTreeNode lvl2child5 = (PagedBTreeNode) lvl1child2.getChild(1);
 		PagedBTreeNode lvl2child6 = (PagedBTreeNode) lvl1child2.getChild(2);
-		assertFalse(lvl2child2.isDirty());
+//		assertFalse(lvl2child2.isDirty());
 		assertFalse(lvl2child3.isDirty());
 		assertFalse(lvl1child2.isDirty());
 		assertFalse(lvl2child4.isDirty());
@@ -292,10 +330,10 @@ public class TestBTreeStorageBufferManager {
 		tree.delete(16);
 		assertTrue(root.isDirty());
 		assertTrue(lvl1child1.isDirty());
-		assertTrue(lvl1child2.isDirty());
+//		assertTrue(lvl1child2.isDirty());
 		assertFalse(lvl2child1.isDirty());
-		assertTrue(lvl2child2.isDirty());
-		assertTrue(lvl2child3.isDirty());
+//		assertTrue(lvl2child2.isDirty());
+//		assertTrue(lvl2child3.isDirty());
 		assertFalse(lvl2child4.isDirty());
 		assertFalse(lvl2child5.isDirty());
 		assertFalse(lvl2child6.isDirty());
@@ -305,10 +343,10 @@ public class TestBTreeStorageBufferManager {
 		tree.delete(14);
 		// root does not exist anymore
 		// lvl1child1 does not exist anymore
-		assertTrue(lvl1child2.isDirty());
+//		assertTrue(lvl1child2.isDirty());
 		// lvl2child1 does not exist anymore
 		// lvl2child2 does not exist anymore
-		assertTrue(lvl2child3.isDirty());
+//		assertTrue(lvl2child3.isDirty());
 		assertFalse(lvl2child4.isDirty());
 		assertFalse(lvl2child5.isDirty());
 		assertFalse(lvl2child6.isDirty());
@@ -414,19 +452,16 @@ public class TestBTreeStorageBufferManager {
 		BTreeStorageBufferManager bufferManager2 = new BTreeStorageBufferManager(
 				storage, true);
 
-		UniquePagedBTree tree2 = new UniquePagedBTree(pageSize, bufferManager2);
-
-		insertDeleteMassively(factory, tree2, bufferManager2);
+		insertDeleteMassively(factory, bufferManager2);
 
 		this.resetStorage();
 		UniquePagedBTree tree = new UniquePagedBTree(pageSize, bufferManager);
 		bufferManager2 = new BTreeStorageBufferManager(storage, true);
-		tree2 = new UniquePagedBTree(pageSize, bufferManager2);
-		insertDeleteMassively2(tree, tree2, bufferManager2);
+		insertDeleteMassively2(tree, bufferManager2);
 	}
 
 	public void insertDeleteMassively(BTreeFactory factory,
-			UniquePagedBTree tree2, BTreeStorageBufferManager bufferManager2) {
+			BTreeStorageBufferManager bufferManager2) {
 		int numEntries = 10000;
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries,
@@ -437,7 +472,10 @@ public class TestBTreeStorageBufferManager {
 		}
 
 		tree.write();
-		tree2.setRoot(constructRootWithNewBufferManager(tree.getRoot(),bufferManager2));
+		assertEquals(0, bufferManager2.getDirtyBuffer().size());
+		
+		UniquePagedBTree tree2 = new UniquePagedBTree(tree.getRoot(), tree.getPageSize(),
+				bufferManager2);
 
 		// check whether all entries are inserted
 		for (LLEntry entry : entries) {
@@ -452,7 +490,8 @@ public class TestBTreeStorageBufferManager {
 		}
 
 		tree.write();
-		tree2.setRoot(constructRootWithNewBufferManager(tree.getRoot(),bufferManager2));
+		tree2 = new UniquePagedBTree(tree.getRoot(), tree.getPageSize(),
+				bufferManager2);
 
 		for (LLEntry entry : entries) {
 			assertEquals(null, tree2.search(entry.getKey()));
@@ -465,7 +504,7 @@ public class TestBTreeStorageBufferManager {
 	}
 
 	public void insertDeleteMassively2(UniquePagedBTree tree,
-			UniquePagedBTree tree2, BTreeStorageBufferManager bufferManager2) {
+			BTreeStorageBufferManager bufferManager2) {
 		int numEntries = 10000;
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries,
 				42);
@@ -487,7 +526,8 @@ public class TestBTreeStorageBufferManager {
 		}
 
 		tree.write();
-		tree2.setRoot(constructRootWithNewBufferManager(tree.getRoot(),bufferManager2));
+		UniquePagedBTree tree2 = new UniquePagedBTree(tree.getRoot(), tree.getPageSize(),
+				bufferManager2);
 
 		i = 0;
 		for (LLEntry entry : entries) {

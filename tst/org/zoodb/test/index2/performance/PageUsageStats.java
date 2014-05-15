@@ -12,6 +12,7 @@ import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
 import org.zoodb.internal.server.index.PagedUniqueLongLong;
 import org.zoodb.internal.server.index.btree.BTreeIterator;
 import org.zoodb.internal.util.DBLogger;
+import org.zoodb.test.index2.btree.TestIndex;
 import org.zoodb.tools.DBStatistics;
 import org.zoodb.tools.ZooConfig;
 
@@ -48,11 +49,11 @@ public class PageUsageStats {
 	
 	
     public void clear() {
-		oldStorage = newDiskStorage("old_storage.db");
+		oldStorage = TestIndex.newDiskStorage("old_storage.db");
 		oldIndex = new PagedUniqueLongLong(
 				DATA_TYPE.GENERIC_INDEX, oldStorage);
 
-		newStorage = newDiskStorage("new_storage.db");
+		newStorage = TestIndex.newDiskStorage("new_storage.db");
 		newIndex = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX, newStorage);
 	}
 			
@@ -213,55 +214,9 @@ public class PageUsageStats {
 				+ String.valueOf(newStorage.statsGetReadCount() + ")"));
 	}
 	
-    public static StorageChannel newDiskStorage(String filename) {
-	    String dbPath = toPath(filename);
-        String folderPath = dbPath.substring(0, dbPath.lastIndexOf(File.separator));
-        File dbDir = new File(folderPath);
-        if (!dbDir.exists()) {
-            createDbFolder(dbDir);
-        }
-
-		filename = toPath(filename);
-		File dbFile = new File(filename);
-		if (dbFile.exists()) {
-			dbFile.delete();
-		}
-		try {
-			dbFile.createNewFile();
-		} catch (Exception e) {
-			throw DBLogger.newUser(dbFile.getPath() + " "+ e.toString());
-		}
-		
-		FreeSpaceManager fsm = new FreeSpaceManager();
-		StorageChannel file = new StorageRootFile(filename, "rw",
-					ZooConfig.getFilePageSize(), fsm);
-        fsm.initBackingIndexNew(file);
-		
-		return file;
-	}
-
     public static StorageChannel newMemoryStorage() {
         return new StorageRootInMemory(
                             ZooConfig.getFilePageSize());
     }
-
-    public static void createDbFolder(File dbDir) {
-		if (dbDir.exists()) {
-		    return;
-			//throw new JDOUserException("ZOO: Repository exists: " + dbFolder);
-		}
-		boolean r = dbDir.mkdirs();
-		if (!r) {
-			throw DBLogger.newUser("Could not create folders: " + dbDir.getAbsolutePath());
-		}
-	}
-	
-	public static String toPath(String dbName) {
-	    if (dbName.contains("\\") || dbName.contains("/") || dbName.contains(File.separator)) {
-	        return dbName;
-	    }
-	    String DEFAULT_FOLDER = System.getProperty("user.home") + File.separator + "zoodb"; 
-	    return DEFAULT_FOLDER + File.separator + dbName;
-	}
 	
 }
