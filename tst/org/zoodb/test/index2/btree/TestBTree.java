@@ -453,7 +453,6 @@ public class TestBTree {
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
 		
 		tree.delete(11);
-        System.out.println(tree);
 	}
 	
 	/*

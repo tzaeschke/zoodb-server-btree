@@ -4,6 +4,12 @@ public abstract class PagedBTree<T extends PagedBTreeNode> extends BTree<T> {
 
     private BTreeBufferManager bufferManager;
 
+	public PagedBTree(T root, int innerNodeOrder, int leafOrder,
+			BTreeBufferManager bufferManager) {
+		super(root, innerNodeOrder, leafOrder, new PagedBTreeNodeFactory(bufferManager));
+        this.bufferManager = bufferManager;
+	}
+	
 	public PagedBTree(int innerNodeOrder, int leafOrder,
 			BTreeBufferManager bufferManager) {
 		super(innerNodeOrder, leafOrder, new PagedBTreeNodeFactory(bufferManager));

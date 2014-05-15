@@ -67,6 +67,7 @@ public class BTreeFactory {
         int order = (isLeaf == true) ? tree.getLeafOrder() : tree.getInnerNodeOrder();
 		if(this.tree.isEmpty()) {
 			BTreeNode root = nodeFactory.newUniqueNode(this.tree.getInnerNodeOrder(), isLeaf, true);
+			tree.getRoot().close();
 			root.setNumKeys(nodeKeys.get(0).size());
 			List<Long> keys = nodeKeys.get(0);
 			root.setKeys(padLongArray(toPrimitives(

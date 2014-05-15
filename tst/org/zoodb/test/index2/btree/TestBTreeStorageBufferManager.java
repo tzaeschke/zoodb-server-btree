@@ -183,15 +183,13 @@ public class TestBTreeStorageBufferManager {
 		bufferManager.write(tree.getRoot());
 		
 		tree.delete(8);
-		assertEquals(bufferManager.getDirtyBuffer().size(),3);
+		assertEquals(3, bufferManager.getDirtyBuffer().size());
 		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
 		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root.getChild(0)).getPageId()));
 		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root.getChild(0).getChild(1)).getPageId()));
 		bufferManager.write(tree.getRoot());
 		
-		System.out.println(tree);
 		tree.delete(3);
-		System.out.println(tree);
 		assertFalse(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
 		assertFalse(bufferManager.getCleanBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
 		bufferManager.write(tree.getRoot());
@@ -249,21 +247,18 @@ public class TestBTreeStorageBufferManager {
 				bufferManager, true);
 		BTreeStorageBufferManager bufferManager2 = new BTreeStorageBufferManager(
 				storage, true);
-		UniquePagedBTree tree2 = new UniquePagedBTree(innerOrder, leafOrder,
-				bufferManager2);
 
-		insertDeleteMassively(factory, tree2, bufferManager2);
+		insertDeleteMassively(factory, bufferManager2);
 
 		this.resetStorage();
 		UniquePagedBTree tree = new UniquePagedBTree(innerOrder, leafOrder,
 				bufferManager);
 		bufferManager2 = new BTreeStorageBufferManager(storage, true);
-		tree2 = new UniquePagedBTree(innerOrder, leafOrder, bufferManager2);
-		insertDeleteMassively2(tree, tree2, bufferManager2);
+		insertDeleteMassively2(tree, bufferManager2);
 	}
 
 	public void insertDeleteMassively(BTreeFactory factory,
-			UniquePagedBTree tree2, BTreeStorageBufferManager bufferManager2) {
+			BTreeStorageBufferManager bufferManager2) {
 		int numEntries = 10000;
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries,
@@ -274,7 +269,10 @@ public class TestBTreeStorageBufferManager {
 		}
 
 		tree.write();
-		tree2.setRoot(constructRootWithNewBufferManager(tree.getRoot(),bufferManager2));
+		assertEquals(0, bufferManager2.getDirtyBuffer().size());
+		
+		UniquePagedBTree tree2 = new UniquePagedBTree(tree.getRoot(), tree.getInnerNodeOrder(), tree.getLeafOrder(),
+				bufferManager2);
 
 		// check whether all entries are inserted
 		for (LLEntry entry : entries) {
@@ -289,7 +287,8 @@ public class TestBTreeStorageBufferManager {
 		}
 
 		tree.write();
-		tree2.setRoot(constructRootWithNewBufferManager(tree.getRoot(),bufferManager2));
+		tree2 = new UniquePagedBTree(tree.getRoot(), tree.getInnerNodeOrder(), tree.getLeafOrder(),
+				bufferManager2);
 
 		for (LLEntry entry : entries) {
 			assertEquals(null, tree2.search(entry.getKey()));
@@ -303,7 +302,7 @@ public class TestBTreeStorageBufferManager {
 	}
 
 	public void insertDeleteMassively2(UniquePagedBTree tree,
-			UniquePagedBTree tree2, BTreeStorageBufferManager bufferManager2) {
+			BTreeStorageBufferManager bufferManager2) {
 		int numEntries = 10000;
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries,
 				42);
@@ -325,7 +324,8 @@ public class TestBTreeStorageBufferManager {
 		}
 
 		tree.write();
-		tree2.setRoot(constructRootWithNewBufferManager(tree.getRoot(),bufferManager2));
+		UniquePagedBTree tree2 = new UniquePagedBTree(tree.getRoot(), tree.getInnerNodeOrder(), tree.getLeafOrder(),
+				bufferManager2);
 
 		i = 0;
 		for (LLEntry entry : entries) {

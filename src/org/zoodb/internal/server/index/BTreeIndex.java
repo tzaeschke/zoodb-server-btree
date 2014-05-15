@@ -89,16 +89,4 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
     public BTreeStorageBufferManager getBufferManager() {
 		return bufferManager;
 	}
-    
-	protected void readAndSetRoot(int pageId) {
-		if(getTree().getRoot() != null) {
-			// remove the previous root
-			getTree().getRoot().close();
-		}
-        PagedBTreeNode root = bufferManager.read(pageId);
-
-		root.setIsRoot(true);
-		this.getTree().setRoot(root);
-	}
-
 }

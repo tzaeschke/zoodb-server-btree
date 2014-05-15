@@ -19,19 +19,21 @@ public abstract class BTree<T extends BTreeNode> {
     private long minKey = Long.MIN_VALUE;
     
     private int modcount = 0; // number of modifications of the tree
-
-    public BTree(int innerNodeOrder, int leafOrder, BTreeNodeFactory nodeFactory) {
+    
+    public BTree(T root, int innerNodeOrder, int leafOrder, BTreeNodeFactory nodeFactory) {
+        this.root = root;
         this.innerNodeOrder = innerNodeOrder;
         this.leafOrder = leafOrder;
         this.nodeFactory = nodeFactory;
-        this.root = (T) nodeFactory.newNode(isUnique(), leafOrder, true, true);
+    }
+
+    public BTree(int innerNodeOrder, int leafOrder, BTreeNodeFactory nodeFactory) {
+    	this(null, innerNodeOrder, leafOrder, nodeFactory);
+    	this.root = (T) nodeFactory.newNode(isUnique(), leafOrder, true, true);
     }
 
     public BTree(int order, BTreeNodeFactory nodeFactory) {
-        this.innerNodeOrder = order;
-        this.leafOrder = order;
-        this.nodeFactory = nodeFactory;
-        this.root = (T) nodeFactory.newNode(isUnique(), leafOrder, true, true);
+    	this(order, order, nodeFactory);
     }
 
     public abstract boolean isUnique();
@@ -52,7 +54,7 @@ public abstract class BTree<T extends BTreeNode> {
         if (root == null) {
             setRoot((T) nodeFactory.newNode(isUnique(), leafOrder, true, true));
         }
-        Pair<LinkedList<T>, T> result = searchNodeWithHistory(key, value);
+        Pair<LinkedList<T>, T> result = searchNodeWithHistory(key, value, true);
         LinkedList<T> ancestorStack = result.getA();
         T leaf = result.getB();
 
@@ -74,7 +76,7 @@ public abstract class BTree<T extends BTreeNode> {
 		if(root.getNumKeys() == 0) {
 			throw new NoSuchElementException();
 		}
-        Pair<LinkedList<T>,T> pair = searchNodeWithHistory(key, value);
+        Pair<LinkedList<T>,T> pair = searchNodeWithHistory(key, value, true);
         T leaf = pair.getB();
         LinkedList<T> ancestorStack = pair.getA();
 
@@ -154,7 +156,13 @@ public abstract class BTree<T extends BTreeNode> {
         }
     }
 
-    protected Pair<LinkedList<T>, T> searchNodeWithHistory(long key, long value) {
+    /**
+     *
+     * @param key              
+     * @param value             
+     * @param markChanged     If true all ancestors are marked changed
+     */
+    protected Pair<LinkedList<T>, T> searchNodeWithHistory(long key, long value, boolean markChanged) {
         LinkedList<T> stack = new LinkedList<>();
         T current = root;
         
@@ -162,7 +170,9 @@ public abstract class BTree<T extends BTreeNode> {
         	throw new NoSuchElementException();
         }
         while (!current.isLeaf()) {
-            current.markChanged();
+        	if(markChanged) {
+	            current.markChanged();
+        	}
             stack.push(current);
             current = current.findChild(key, value);
         }
@@ -178,7 +188,7 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
     public boolean isEmpty() {
-        return root == null;
+        return root.getNumKeys() == 0;
     }
 
     public T getRoot() {

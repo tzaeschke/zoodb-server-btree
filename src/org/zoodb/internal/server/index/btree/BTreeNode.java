@@ -369,7 +369,6 @@ public abstract class BTreeNode extends Observable {
 	}
 
 	public void setIsRoot(boolean isRoot) {
-        markChanged();
 		this.isRoot = isRoot;
 	}
 

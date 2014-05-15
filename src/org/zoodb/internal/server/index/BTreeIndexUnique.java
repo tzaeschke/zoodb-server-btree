@@ -19,10 +19,15 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
 				bufferManager.getLeafOrder(), bufferManager);
     }
 
-	public BTreeIndexUnique(DATA_TYPE dataType, StorageChannel file, int rootPageId) {
-		this(dataType, file);
-        readAndSetRoot(rootPageId);
-	}
+    public BTreeIndexUnique(DATA_TYPE dataType, StorageChannel file, int rootPageId) {
+        super(dataType, file, true, true);
+        
+        UniquePagedBTreeNode root = (UniquePagedBTreeNode)bufferManager.read(rootPageId);
+        root.setIsRoot(true);
+        
+        tree = new UniquePagedBTree(root, bufferManager.getInnerNodeOrder(), 
+        						bufferManager.getLeafOrder(), bufferManager);
+    }
 	
     @Override
 	public LLEntry findValue(long key) {
