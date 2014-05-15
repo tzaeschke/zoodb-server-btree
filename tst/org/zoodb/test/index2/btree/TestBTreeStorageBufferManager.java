@@ -5,14 +5,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
@@ -117,9 +116,40 @@ public class TestBTreeStorageBufferManager {
 
 		bufferManager.remove(pageId);
 		assertEquals(2, storage.statsGetPageCount());
-		// System.out.println(storage.getFsm().debugPageIds());
-		// assertTrue(storage.getFsm().debugIsPageIdInFreeList(pageId));
-		// assertEquals(null, bufferManager.getMemoryBuffer().get(pageId));
+		assertTrue(storage.getFsm().debugIsPageIdInFreeList(pageId));
+	}
+	
+	@Test
+	public void testClose() {
+		int innerOrder = bufferManager.getInnerNodeOrder();
+		int leafOrder = bufferManager.getLeafOrder();
+
+		int numEntries = 10000;
+		UniquePagedBTree tree = new UniquePagedBTree(innerOrder, leafOrder, bufferManager);
+		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries,
+				42);
+
+		for (LLEntry entry : entries) {
+			tree.insert(entry.getKey(), entry.getValue());
+		}
+		tree.write();
+		
+		// collect all page ids
+		List<Integer> pageIds = new ArrayList<Integer>();
+		BTreeIterator it = new BTreeIterator(tree);
+		while(it.hasNext()) {
+			pageIds.add(((PagedBTreeNode)it.next()).getPageId());
+		}
+				
+		for (LLEntry entry : entries) {
+			tree.delete(entry.getKey());
+		}
+		tree.write();
+		
+		// check whether pages are freed
+		for(Integer pageId : pageIds) {
+			assertTrue(storage.getFsm().debugIsPageIdInFreeList(pageId));
+		}
 	}
 
 	@Test
