@@ -67,6 +67,7 @@ public class BTreeFactory {
             root.setKeys(padLongArray(toPrimitives(
                     keys.toArray(new Long[keys.size()])),
                     root.computeMaxPossibleNumEntries()));
+            root.recomputeSize();
             tree.getRoot().close();
             tree.setRoot(root);
             prevLayer = new ArrayList<>();
@@ -83,11 +84,13 @@ public class BTreeFactory {
                             keys.toArray(new Long[keys.size()])),
                             node.computeMaxPossibleNumEntries()));
                     node.setNumKeys(keys.size());
+                    node.recomputeSize();
                     children[ik] = node;
                     newLayer.add(node);
                     indexLayer++;
                 }
                 parent.setChildren(padChildrenArray(children, parent.computeMaxPossibleNumEntries()+1));
+                parent.recomputeSize();
             }
             this.prevLayer = newLayer;
         }

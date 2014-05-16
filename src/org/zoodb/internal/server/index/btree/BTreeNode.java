@@ -100,10 +100,9 @@ public abstract class BTreeNode extends Observable {
         setKey(pos, key);
         setValue(pos, value);
 
-        recomputeSize();
-
         //signal change
         markChanged();
+        recomputeSize();
     }
     
     protected boolean checkNonUniqueKey(int pos, long key) {
@@ -208,8 +207,6 @@ public abstract class BTreeNode extends Observable {
 
         setChild(0, left);
         setChild(1, right);
-
-        recomputeSize();
     }
 
     /**
@@ -230,7 +227,6 @@ public abstract class BTreeNode extends Observable {
         shiftRecords(keyPos, keyPos - 1, recordsToMove);
         decrementNumKeys();
 
-        recomputeSize();
         return oldValue;
     }
 
@@ -336,7 +332,6 @@ public abstract class BTreeNode extends Observable {
 
     public boolean increaseNumKeys(int amount) {
         markChanged();
-        recomputeSize();
 
         int newNumKeys = getNumKeys() + amount;
         if (newNumKeys > getKeys().length) {
@@ -348,7 +343,6 @@ public abstract class BTreeNode extends Observable {
 
     public boolean decreaseNumKeys(int amount) {
         markChanged();
-        recomputeSize();
         int newNumKeys = getNumKeys() - amount;
         if (newNumKeys < 0) {
             return false;

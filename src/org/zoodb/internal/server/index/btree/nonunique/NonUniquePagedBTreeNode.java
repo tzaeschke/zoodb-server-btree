@@ -44,8 +44,6 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         setKey(destinationPos, key);
         setValue(destinationPos, value);
 
-        recomputeSize();
-
         markDirty();
     }
 

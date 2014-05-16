@@ -44,7 +44,6 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
         long key = source.getKey(sourcePos);
         setKey(destinationPos, key);
 
-        recomputeSize();
         markDirty();
     }
 

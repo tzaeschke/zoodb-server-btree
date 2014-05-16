@@ -191,7 +191,7 @@ public class TestBTree {
 			assertEquals(null, tree.search(entry.getKey()));
 		}
 
-        Collections.shuffle(entries, new Random(43));
+        Collections.shuffle(entries, new Random(Calendar.getInstance().getTimeInMillis()));
         // root is empty and has no children
         assertEquals(0, tree.getRoot().getNumKeys());
         assertTrue(tree.getRoot().isLeaf());

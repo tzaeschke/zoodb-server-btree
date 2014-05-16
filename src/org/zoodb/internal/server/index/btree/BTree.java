@@ -22,10 +22,15 @@ public abstract class BTree<T extends BTreeNode> {
     public BTree(int pageSize, BTreeNodeFactory nodeFactory) {
     	this(null, pageSize, nodeFactory);
         this.root = (T) nodeFactory.newNode(isUnique(), getPageSize(), true, true);
+        this.root.recomputeSize();
     }
     
     public BTree(T root, int pageSize, BTreeNodeFactory nodeFactory) {
 	    this.root = root;
+        if (root != null) {
+            this.root.recomputeSize();
+        }
+
         this.pageSize = pageSize;
         this.nodeFactory = nodeFactory;
 	}
@@ -79,6 +84,7 @@ public abstract class BTree<T extends BTreeNode> {
 
             //no overflow, simply insert in the leaf
             leaf.put(key, value);
+            leaf.recomputeSize();
         }
 
         recomputeMinAndMaxAfterInsert(key);
@@ -169,6 +175,7 @@ public abstract class BTree<T extends BTreeNode> {
             T newRoot = (T) nodeFactory.newNode(isUnique(), getPageSize(), false, true);
             swapRoot(newRoot);
             root.put(key, value, left, right);
+            root.recomputeSize();
         } else {
             T parent = ancestorStack.pop();
             //check if parent overflows
@@ -181,6 +188,7 @@ public abstract class BTree<T extends BTreeNode> {
                 insertInInnerNode(parent, keyToMoveUp, valueToMoveUp, newNode, ancestorStack);
             } else {
                 parent.put(key, value, right);
+                parent.recomputeSize();
             }
         }
     }
@@ -228,6 +236,7 @@ public abstract class BTree<T extends BTreeNode> {
      */
     protected long deleteFromLeaf(T leaf, long key, long value) {
         long oldValue = leaf.delete(key, value);
+        leaf.recomputeSize();
         return oldValue;
     }
 
@@ -449,7 +458,6 @@ public abstract class BTree<T extends BTreeNode> {
         assert right.computeSize() <= right.getPageSize();
         assert parent.computeSize() <= parent.getPageSize();
 
-        assert current.computeSize() == current.getCurrentSize();
         assert right.computeSize() == right.getCurrentSize();
         assert parent.computeSize() == parent.getCurrentSize();
 
