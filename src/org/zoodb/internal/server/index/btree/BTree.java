@@ -303,6 +303,9 @@ public abstract class BTree<T extends BTreeNode> {
      *                              the current node.
      */
     public <T extends BTreeNode> T putAndSplit(T current, long newKey, long value) {
+
+        assert current.computeSize() == current.getCurrentSize();
+
         if (!current.isLeaf()) {
             throw new IllegalStateException(
                     "Should only be called on leaf nodes.");
@@ -336,8 +339,14 @@ public abstract class BTree<T extends BTreeNode> {
         right.setNumKeys(keysInRightNode);
         tempNode.close();
 
+        current.recomputeSize();
+        right.recomputeSize();
+
         assert current.computeSize() <= current.getPageSize();
         assert right.computeSize() <= right.getPageSize();
+
+        assert current.computeSize() == current.getCurrentSize();
+        assert right.computeSize() == right.getCurrentSize();
 
         return right;
     }
@@ -354,6 +363,9 @@ public abstract class BTree<T extends BTreeNode> {
      * @return
      */
     public <T extends BTreeNode> Pair<T, Pair<Long, Long> > putAndSplit(T current, long key, long value, T newNode) {
+
+        assert current.computeSize() == current.getCurrentSize();
+
         if (current.isLeaf()) {
             throw new IllegalStateException(
                     "Should only be called on inner nodes.");
@@ -385,8 +397,14 @@ public abstract class BTree<T extends BTreeNode> {
         right.setNumKeys(keysInRightNode);
         tempNode.close();
 
+        current.recomputeSize();
+        right.recomputeSize();
+
         assert current.computeSize() <= current.getPageSize();
         assert right.computeSize() <= right.getPageSize();
+
+        assert current.computeSize() == current.getCurrentSize();
+        assert right.computeSize() == right.getCurrentSize();
 
         return new Pair<>(right, tempNode.getKeyValue(keysInLeftNode));
     }
@@ -405,6 +423,11 @@ public abstract class BTree<T extends BTreeNode> {
      * @return                      A reference to the parent node
      */
     public T mergeWithRight(BTree<T> tree, T current, T right, T parent) {
+
+        assert current.computeSize() == current.getCurrentSize();
+        assert right.computeSize() == right.getCurrentSize();
+        assert parent.computeSize() == parent.getCurrentSize();
+
         int keyIndex = parent.keyIndexOf(current, right);
 
         //check if parent needs merging -> tree gets smaller
@@ -426,6 +449,10 @@ public abstract class BTree<T extends BTreeNode> {
         assert right.computeSize() <= right.getPageSize();
         assert parent.computeSize() <= parent.getPageSize();
 
+        assert current.computeSize() == current.getCurrentSize();
+        assert right.computeSize() == right.getCurrentSize();
+        assert parent.computeSize() == parent.getCurrentSize();
+
         return parent;
     }
 
@@ -442,6 +469,10 @@ public abstract class BTree<T extends BTreeNode> {
      * @return                          A new reference to the current node
      */
     public T  mergeWithLeft(BTree<T> tree, T current, T left, T parent) {
+
+        assert current.computeSize() == current.getCurrentSize();
+        assert parent.computeSize() == parent.getCurrentSize();
+
         int keyIndex = parent.keyIndexOf(left, current);
 
         //check if we need to merge with parent
@@ -467,6 +498,9 @@ public abstract class BTree<T extends BTreeNode> {
         assert current.computeSize() <= current.getPageSize();
         assert parent.computeSize() <= parent.getPageSize();
 
+        assert current.computeSize() == current.getCurrentSize();
+        assert parent.computeSize() == parent.getCurrentSize();
+
         return parent;
     }
 
@@ -480,6 +514,11 @@ public abstract class BTree<T extends BTreeNode> {
      * @param parent            The parent of the current node
      */
     public void redistributeKeysFromRight(T current, T right, T parent) {
+
+        assert current.computeSize() == current.getCurrentSize();
+        assert right.computeSize() == right.getCurrentSize();
+        assert parent.computeSize() == parent.getCurrentSize();
+
         int keysToMove = computeKeysToMoveFromRight(current, right);
         if (keysToMove == 0) {
             return;
@@ -496,6 +535,10 @@ public abstract class BTree<T extends BTreeNode> {
         assert current.computeSize() <= current.getPageSize();
         assert right.computeSize() <= right.getPageSize();
         assert parent.computeSize() <= parent.getPageSize();
+
+        assert current.computeSize() == current.getCurrentSize();
+        assert right.computeSize() == right.getCurrentSize();
+        assert parent.computeSize() == parent.getCurrentSize();
     }
 
     /**
@@ -509,10 +552,14 @@ public abstract class BTree<T extends BTreeNode> {
      */
     public void redistributeKeysFromLeft(T current, T left, T parent) {
 
+        assert current.computeSize() == current.getCurrentSize();
+        assert left.computeSize() == left.getCurrentSize();
+        assert parent.computeSize() == parent.getCurrentSize();
+
         int keysToMove = computeKeysToMoveFromLeft(current, left);
         int parentKeyIndex = parent.keyIndexOf(left, current);
         if (current.isLeaf()) {
-            if (keysToMove == 0) {
+            if (keysToMove <= 0) {
                 return;
             }
             leafRedistributeFromLeft(current, left, parent, parentKeyIndex, keysToMove);
@@ -527,6 +574,10 @@ public abstract class BTree<T extends BTreeNode> {
         assert current.computeSize() <= current.getPageSize();
         assert left.computeSize() <= left.getPageSize();
         assert parent.computeSize() <= parent.getPageSize();
+
+        assert current.computeSize() == current.getCurrentSize();
+        assert left.computeSize() == left.getCurrentSize();
+        assert parent.computeSize() == parent.getCurrentSize();
     }
 
     private int computeKeysToMoveFromLeft(T current, T left) {
@@ -566,10 +617,13 @@ public abstract class BTree<T extends BTreeNode> {
 
         //fix number of keys
         left.decreaseNumKeys(keysToMove);
+        left.recomputeSize();
         current.increaseNumKeys(keysToMove);
+        current.recomputeSize();
 
         //move key from parent to current node
         parent.migrateEntry(parentKeyIndex, current, 0);
+        parent.recomputeSize();
         return parent;
     }
 
@@ -587,11 +641,14 @@ public abstract class BTree<T extends BTreeNode> {
         left.copyFromNodeToNode(startIndexLeft, startIndexLeft, current,
                 startIndexRight, startIndexRight, keysToMove, keysToMove + 1);
         current.increaseNumKeys(keysToMove);
+        current.recomputeSize();
         left.decreaseNumKeys(keysToMove);
+
         //move the biggest key to parent
         parent.migrateEntry(parentKeyIndex, left, left.getNumKeys() - 1);
+        parent.recomputeSize();
         left.decreaseNumKeys(1);
-
+        left.recomputeSize();
         return parent;
     }
 
@@ -608,6 +665,10 @@ public abstract class BTree<T extends BTreeNode> {
         current.increaseNumKeys(keysToMove);
 
         parent.migrateEntry(parentKeyIndex, right, 0);
+        parent.recomputeSize();
+        current.recomputeSize();
+        right.recomputeSize();
+
         return parent;
     }
 
@@ -623,13 +684,18 @@ public abstract class BTree<T extends BTreeNode> {
             //copy from left to current
             copyFromRightNodeToLeftNode(right, startIndexRight, current, startIndexLeft, keysToMove, keysToMove + 1);
             current.increaseNumKeys(keysToMove);
+            current.recomputeSize();
 
             //shift nodes in current node right
             right.shiftRecordsLeft(keysToMove);
             right.decreaseNumKeys(keysToMove);
+
             parent.migrateEntry(parentKeyIndex, right, 0);
+            parent.recomputeSize();
+
             right.shiftRecordsLeft(1);
             right.decreaseNumKeys(1);
+            right.recomputeSize();
         }
         return parent;
     }
@@ -638,11 +704,13 @@ public abstract class BTree<T extends BTreeNode> {
         //leaf node merge
         parent.shiftRecordsLeftWithIndex(keyIndex, 1);
         parent.decreaseNumKeys(1);
+        parent.recomputeSize();
 
         current.shiftRecordsRight(left.getNumKeys());
         copyNodeToAnother(left, current, 0);
         current.increaseNumKeys(left.getNumKeys());
 
+        current.recomputeSize();
         return parent;
     }
 
@@ -653,10 +721,13 @@ public abstract class BTree<T extends BTreeNode> {
         current.migrateEntry(left.getNumKeys(), parent, keyIndex);
         parent.shiftRecordsLeftWithIndex(keyIndex, 1);
         parent.decreaseNumKeys(1);
+        parent.recomputeSize();
 
         //copy from left node
         copyNodeToAnother(left, current, 0);
         current.increaseNumKeys(left.getNumKeys() + 1);
+
+        current.recomputeSize();
         return parent;
     }
 
@@ -666,6 +737,7 @@ public abstract class BTree<T extends BTreeNode> {
             right.migrateEntry(0, parent, 0);
             right.increaseNumKeys(1);
         }
+
         right.shiftRecordsRight(current.getNumKeys());
         copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
         right.increaseNumKeys(current.getNumKeys());
@@ -673,6 +745,7 @@ public abstract class BTree<T extends BTreeNode> {
         parent.close();
         parent = right;
 
+        parent.recomputeSize();
         return parent;
     }
 
@@ -690,6 +763,7 @@ public abstract class BTree<T extends BTreeNode> {
         parent.close();
         parent = current;
 
+        parent.recomputeSize();
         return parent;
     }
 
@@ -697,9 +771,13 @@ public abstract class BTree<T extends BTreeNode> {
         //merge leaves
         parent.shiftRecordsLeftWithIndex(keyIndex, 1);
         parent.decreaseNumKeys(1);
+        parent.recomputeSize();
+
         right.shiftRecordsRight(current.getNumKeys());
         copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
         right.increaseNumKeys(current.getNumKeys());
+        right.recomputeSize();
+
         return parent;
     }
 
@@ -710,10 +788,13 @@ public abstract class BTree<T extends BTreeNode> {
         right.increaseNumKeys(1);
         parent.shiftRecordsLeftWithIndex(keyIndex, 1);
         parent.decreaseNumKeys(1);
+        parent.recomputeSize();
 
         right.shiftRecordsRight(current.getNumKeys());
         copyMergeFromLeftNodeToRightNode(current, 0, right, 0, current.getNumKeys(), current.getNumKeys());
         right.increaseNumKeys(current.getNumKeys());
+        right.recomputeSize();
+
         return parent;
     }
 

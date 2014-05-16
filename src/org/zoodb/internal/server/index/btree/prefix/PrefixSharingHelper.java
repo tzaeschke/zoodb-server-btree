@@ -175,6 +175,9 @@ public class PrefixSharingHelper {
                 optimalIndex--;
             } else if (sizeRight > maxSize) {
                 optimalIndex++;
+                if (optimalIndex > firstArraySize) {
+                    return optimalIndex;
+                }
             } else {
                 done = true;
             }

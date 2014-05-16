@@ -91,7 +91,9 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		byte[] encodedArrayWithoutMetadata = new byte[encodedArraySize];
 		storageIn.noCheckRead(encodedArrayWithoutMetadata);
 		long[] keys = PrefixSharingHelper.decodeArray(encodedArrayWithoutMetadata, decodedArraySize, prefixLength);
-		
+
+        int maxNumKeys = computeMaxPossibleEntries(isUnique, isLeaf, getPageSize());
+
 		if(isLeaf) {
 			long[] values = new long[numKeys];
 			storageIn.noCheckRead(values);
@@ -344,5 +346,30 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
     public int getNodeHeaderSizeInStorage(PagedBTreeNode node) {
         //ToDo compute this better, multiplying by 2 seems to work fine, but an exact size would be nice
         return pageHeaderSize() << 1;
+    }
+
+    public int computeMaxPossibleEntries(boolean isUnique, boolean isLeaf, int pageSize) {
+        //ToDo use this same method in the node, to compute the sizes on init
+        int maxPossibleNumEntries;
+        /*
+            In the case of the best compression, all keys would have the same value.
+         */
+        int encodedKeyArraySize = PrefixSharingHelper.SMALLEST_POSSIBLE_COMPRESSION_SIZE;
+
+        if (isLeaf) {
+            //subtract a 64 bit prefix and divide by 8 (the number of bytes in a long)
+            maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 3 ) + 1;
+        } else {
+            //inner nodes also contain children ids which are ints
+            //need to divide by 4
+            //n * 4
+            if (isUnique) {
+                maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 2 ) + 1;
+            } else {
+                maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) / 12 ) + 1;
+            }
+
+        }
+        return maxPossibleNumEntries;
     }
 }
