@@ -3,6 +3,7 @@ package org.zoodb.internal.server.index;
 import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTreeNode;
 
@@ -14,14 +15,17 @@ public class BTreeIndexNonUnique extends BTreeIndex<NonUniquePagedBTree, NonUniq
         super(dataType, file, true, false);
 
         tree = new NonUniquePagedBTree(bufferManager.getPageSize(), bufferManager);
-        setEmptyRoot();
     }
     
     public BTreeIndexNonUnique(DiskIO.DATA_TYPE dataType, StorageChannel file, int rootPageId) {
-        this(dataType, file);
-        readAndSetRoot(rootPageId);
+        super(dataType, file, true, false);
+        
+        NonUniquePagedBTreeNode root = (NonUniquePagedBTreeNode)bufferManager.read(rootPageId);
+        root.setIsRoot(true);
+        
+        tree = new NonUniquePagedBTree(root, bufferManager.getPageSize(), bufferManager);
     }
-
+    
     @Override
     public boolean insertLongIfNotSet(long key, long value) {
         if (tree.contains(key, value)) {

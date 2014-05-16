@@ -44,7 +44,7 @@ public class AscendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTreeL
         if (tree.isEmpty()) {
             return;
         }
-        Pair<LinkedList<T>, T> p = tree.searchNodeWithHistory(start, Long.MIN_VALUE);
+        Pair<LinkedList<T>, T> p = tree.searchNodeWithHistory(start, Long.MIN_VALUE, false);
         ancestors = p.getA();
         curLeaf = p.getB();
         curPos = curLeaf.findKeyValuePos(start, Long.MIN_VALUE);

@@ -16,14 +16,16 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
     public BTreeIndexUnique(DiskIO.DATA_TYPE dataType, StorageChannel file) {
     	super(dataType, file, true, true);
 		tree = new UniquePagedBTree(bufferManager.getPageSize(), bufferManager);
-        setEmptyRoot();
     }
 
 	public BTreeIndexUnique(DiskIO.DATA_TYPE dataType, StorageChannel file, int rootPageId) {
-		this(dataType, file);
-        readAndSetRoot(rootPageId);
-	}
-	
+    	super(dataType, file, true, true);
+    	
+        UniquePagedBTreeNode root = (UniquePagedBTreeNode)bufferManager.read(rootPageId);
+        root.setIsRoot(true);
+		tree = new UniquePagedBTree(root, bufferManager.getPageSize(), bufferManager);
+    }
+
     @Override
 	public LLEntry findValue(long key) {
 		Long value = tree.search(key);
