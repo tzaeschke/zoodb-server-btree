@@ -22,6 +22,8 @@ public abstract class BTreeNode extends Observable {
     //It is very important always update this after modifying the keys/values/children
     protected int currentSize;
 
+    protected long prefix;
+
 	// ToDo maybe we want to have the keys set dynamically sized somehow
 	protected int numKeys;
 	private long[] keys;
@@ -244,7 +246,7 @@ public abstract class BTreeNode extends Observable {
         int mid = 0;
         boolean found = false;
         while (!found && low <= high) {
-            mid = low + (high - low) / 2;
+            mid = low + ((high - low) >> 1);
             if (containsAtPosition(mid, key, value)) {
                 found = true;
             } else {
@@ -305,7 +307,7 @@ public abstract class BTreeNode extends Observable {
             return getNumKeys() == 0;
         }
         //ToDo fix this
-        return getNumKeys() < (keys.length >> 1) && getCurrentSize() < (pageSize - 32);
+        return getNumKeys() < (keys.length >> 1) && getCurrentSize() < (pageSize * 0.75);
     }
 
     public boolean hasExtraKeys() {
@@ -559,15 +561,23 @@ public abstract class BTreeNode extends Observable {
 
     protected int getKeyArraySizeInBytes() {
         //ToDo use precomputed prefix
-        return PrefixSharingHelper.computeKeyArraySizeInBytes(getKeys(), getNumKeys());
+        if (getNumKeys() == 0) {
+            return 0;
+        }
+        return PrefixSharingHelper.encodedArraySize(getNumKeys(), prefix);
     }
 
     public void recomputeSize() {
+        recomputePrefix();
         this.currentSize = computeSize();
     }
 
     public int getCurrentSize() {
         return currentSize;
+    }
+
+    public void recomputePrefix() {
+        this.prefix = (getNumKeys() == 0) ? 0 : PrefixSharingHelper.computePrefix(getSmallestKey(), getLargestKey());
     }
 
 

@@ -120,34 +120,34 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     @Override
     public String toString() {
         String ret = (isLeaf() ? "leaf" : "inner") + "-node: k:";
-//        ret += "[";
-//        for (int i = 0; i < this.getNumKeys(); i++) {
-//            ret += Long.toString(getKey(i));
-//            if (i != this.getNumKeys() - 1)
-//                ret += " ";
-//        }
-//        ret += "]";
-//        if (isLeaf()) {
-//            ret += ",   \tv:";
-//            ret += "[";
-//            for (int i = 0; i < this.getNumKeys(); i++) {
-//                ret += Long.toString(getValue(i));
-//                if (i != this.getNumKeys() - 1)
-//                    ret += " ";
-//            }
-//            ret += "]";
-//        } else {
-//            ret += "\n\tc:";
-//            if (this.getNumKeys() != 0) {
-//                for (int i = 0; i < this.getNumKeys() + 1; i++) {
-//                    String[] lines = this.getChild(i).toString()
-//                            .split("\r\n|\r|\n");
-//                    for (String l : lines) {
-//                        ret += "\n\t" + l;
-//                    }
-//                }
-//            }
-//        }
+        ret += "[";
+        for (int i = 0; i < this.getNumKeys(); i++) {
+            ret += Long.toString(getKey(i));
+            if (i != this.getNumKeys() - 1)
+                ret += " ";
+        }
+        ret += "]";
+        if (isLeaf()) {
+            ret += ",   \tv:";
+            ret += "[";
+            for (int i = 0; i < this.getNumKeys(); i++) {
+                ret += Long.toString(getValue(i));
+                if (i != this.getNumKeys() - 1)
+                    ret += " ";
+            }
+            ret += "]";
+        } else {
+            ret += "\n\tc:";
+            if (this.getNumKeys() != 0) {
+                for (int i = 0; i < this.getNumKeys() + 1; i++) {
+                    String[] lines = this.getChild(i).toString()
+                            .split("\r\n|\r|\n");
+                    for (String l : lines) {
+                        ret += "\n\t" + l;
+                    }
+                }
+            }
+        }
         return ret;
     }
 

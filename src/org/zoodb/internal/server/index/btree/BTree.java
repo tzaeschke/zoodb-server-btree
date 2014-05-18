@@ -61,22 +61,31 @@ public abstract class BTree<T extends BTreeNode> {
 
         //check if the leaf overflows after the insertion
         if (leaf.willOverflowAfterInsert(key, value)) {
-            T parent = ancestorStack.peek();
-            T leftSibling = (T) leaf.leftSibling(parent);
-
-            //if it does, we can maybe move some keys to the left sibling
-            // instead of creating a new node
-//            if (leftSibling != null && !leftSibling.willOverflowAfterInsert(leaf.getSmallestKey(), leaf.getSmallestValue())) {
+//            T parent = ancestorStack.peek();
+//            T leftSibling = (T) leaf.leftSibling(parent);
+//            //if it does, we can maybe move some keys to the left sibling
+//            // instead of creating a new node
+//            long newKey = Math.min(leaf.getSmallestKey(), key);
+//            long newValue = (newKey == key) ? key : leaf.getSmallestValue();
+//
+//            if (leftSibling != null &&
+//                    !leftSibling.willOverflowAfterInsert(newKey, newValue)) {
+//                leaf.put(key, value);
 //                redistributeKeysFromRight(leftSibling, leaf, parent);
 //                if (key < leaf.getSmallestKey()) {
 //                    leftSibling.put(key, value);
+//                    leftSibling.recomputeSize();
 //                } else {
 //                    leaf.put(key, value);
+//                    leaf.recomputeSize();
 //                }
+//
+//                assert leaf.getCurrentSize() <= leaf.getPageSize();
+//                assert leftSibling.getCurrentSize() <= leaf.getPageSize();
 //            } else {
 
-                //if cannot redistribute to left neighbour, create a new node
-                // as a right sibling of the current node
+//                if cannot redistribute to left neighbour, create a new node
+//                as a right sibling of the current node
                 T rightNode = putAndSplit(leaf, key, value);
                 insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
 //            }
@@ -85,6 +94,8 @@ public abstract class BTree<T extends BTreeNode> {
             //no overflow, simply insert in the leaf
             leaf.put(key, value);
             leaf.recomputeSize();
+
+            assert leaf.getCurrentSize() <= leaf.getPageSize();
         }
 
         recomputeMinAndMaxAfterInsert(key);
@@ -522,6 +533,9 @@ public abstract class BTree<T extends BTreeNode> {
      * @param parent            The parent of the current node
      */
     public void redistributeKeysFromRight(T current, T right, T parent) {
+//        assert current.computeSize() <= current.getPageSize();
+//        assert right.computeSize() <= right.getPageSize();
+//        assert parent.computeSize() <= parent.getPageSize();
 
         assert current.computeSize() == current.getCurrentSize();
         assert right.computeSize() == right.getCurrentSize();

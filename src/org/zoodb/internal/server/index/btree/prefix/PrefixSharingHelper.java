@@ -258,7 +258,7 @@ public class PrefixSharingHelper {
             prefixRight = computePrefix(second[optimalIndex + 1], second[secondArraySize - 1]);
             sizeLeft = computeArraySize(prefixLeft, (optimalIndex + 1 + firstArraySize), header, weightKey, weightChild);
             sizeRight = computeArraySize(prefixRight, (secondArraySize - optimalIndex - 1), header, weightKey, weightChild);
-            if (sizeLeft > maxSize && optimalIndex > 0) {
+            if (sizeLeft > maxSize && optimalIndex >= 0) {
                 optimalIndex--;
                 if (optimalIndex == -1) {
                     done = true;
@@ -371,7 +371,6 @@ public class PrefixSharingHelper {
         int outputArraySize = (int) Math.ceil(bitsToStore/ 8.0);
         return outputArraySize;
     }
-    
 
     /**
      * Decoded a prefix shared encoded array
@@ -422,31 +421,6 @@ public class PrefixSharingHelper {
                 ( (array[indexInArray+1] & 0xFF) << 16 )  |
                 ( (array[indexInArray+2] & 0xFF) << 8 )   |
                     ( array[indexInArray+3] & 0xFF );
-    }
-
-    public static int computeKeyArraySizeInBytes(long first, long last, long arrayLength) {
-        long prefix = computePrefix(first, last);
-        return computeKeyArraySizeInBytes(prefix, arrayLength);
-    }
-
-    public static int computeKeyArraySizeInBytes(long prefix, long arrayLength) {
-        int bitsToStore = (int) (prefix + (64 - prefix) * arrayLength);
-        int keyArraySizeInBytes = (int) Math.ceil(bitsToStore/ 8.0);
-        return keyArraySizeInBytes;
-    }
-
-    public static int computeKeyArraySizeInBytes(long[] keys, int numKeys) {
-        long prefix = computePrefix(keys, numKeys);
-        return computeKeyArraySizeInBytes(prefix, numKeys);
-    }
-
-    public static int computeKeyArraySizeInBytes(long[] keys) {
-        long prefix = computePrefix(keys);
-        return computeKeyArraySizeInBytes(prefix, keys);
-    }
-
-    public static int computeKeyArraySizeInBytes(long prefix, long[] keys) {
-        return computeKeyArraySizeInBytes(prefix, keys.length);
     }
 
     private static int increaseIndexInCurrentByte(int indexInCurrentByte) {

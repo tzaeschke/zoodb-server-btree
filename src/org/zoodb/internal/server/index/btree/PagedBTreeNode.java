@@ -61,7 +61,8 @@ public abstract class PagedBTreeNode extends BTreeNode {
         long first = Math.min(getSmallestKey(), key);
         long last = Math.max(getLargestKey(), key);
         int newNumKeys = getNumKeys() + 1;
-        long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last, newNumKeys);
+        long prefix = PrefixSharingHelper.computePrefix(first, last);
+        long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.encodedArraySize(newNumKeys, prefix);
         int newPageSize = (int) (storageHeaderSize() + (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys)));
 
         boolean willOverflow = pageSize <= newPageSize;
@@ -84,7 +85,9 @@ public abstract class PagedBTreeNode extends BTreeNode {
             //ToDo check if this is always needed
             newNumKeys += 1;
         }
-        long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.computeKeyArraySizeInBytes(first, last, newNumKeys);
+        //ToDo move to field
+        long prefix = PrefixSharingHelper.computePrefix(first, last);
+        long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.encodedArraySize(newNumKeys, prefix);
         int newPageSize = (int) (storageHeaderSize() + (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys)));
         boolean willNotOverflow = pageSize >= newPageSize;
         return willNotOverflow;
