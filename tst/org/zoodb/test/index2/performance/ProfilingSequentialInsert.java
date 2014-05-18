@@ -25,10 +25,13 @@ public class ProfilingSequentialInsert {
     }
 
     private static void insertSequential(int numEntries) {
+        long startTime = System.nanoTime();
         for (int i = 0; i < numEntries; i++) {
             //oldIndex.insertLong(i, i);
             newIndex.insertLong(i, i);
         }
+        long duration = (System.nanoTime() - startTime) / 1000000;
+        System.out.println("Sequential insert took " + duration + " ms");
     }
 
     private static void initStorage() {

@@ -132,9 +132,9 @@ public class PrefixSharingHelper {
                                                              int maxSize) {
 
         if (firstArraySize == 0) {
-            return secondArraySize / 2;
+            return secondArraySize >> 1;
         } else if (secondArraySize == 0) {
-            return firstArraySize / 2;
+            return firstArraySize >> 1;
         }
         /*
          *  Perform a binary search on the index in the first array that would
@@ -223,9 +223,9 @@ public class PrefixSharingHelper {
                                                              long[] second, int secondArraySize,
                                                              int header, int weightKey, int weightChild, int maxSize) {
         if (firstArraySize == 0) {
-            return secondArraySize / 2;
+            return secondArraySize >> 1;
         } else if (secondArraySize == 0) {
-            return firstArraySize / 2;
+            return firstArraySize >> 1;
         }
         int low = 0 ;
         int high = secondArraySize - 1;
@@ -368,7 +368,9 @@ public class PrefixSharingHelper {
     
     public static int encodedArraySize(int arraySize, long prefixLength) {
 	    int bitsToStore = (int) (prefixLength + (64 - prefixLength) * arraySize);
-        int outputArraySize = (int) Math.ceil(bitsToStore/ 8.0);
+        //int outputArraySize = (int) Math.ceil(bitsToStore/ 8.0);
+        bitsToStore = bitsToStore >> 3;
+        int outputArraySize = bitsToStore + (bitsToStore < 0 ? 0 : 1) >> 0;
         return outputArraySize;
     }
 
