@@ -95,19 +95,19 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
         int maxNumKeys = computeMaxPossibleEntries(isUnique, isLeaf, getPageSize());
 
 		if(isLeaf) {
-			long[] values = new long[numKeys];
-			storageIn.noCheckRead(values);
+			long[] values = new long[maxNumKeys];
+			storageIn.noCheckRead(values, numKeys);
 			node = PagedBTreeNodeFactory.constructLeaf(this, isUnique, false,
 								pageSize, pageId, numKeys,
 								keys, values);
 		} else {
-			int[] childrenPageIds = new int[numKeys+1];
+			int[] childrenPageIds = new int[maxNumKeys+1];
 
-			storageIn.noCheckRead(childrenPageIds);
+			storageIn.noCheckRead(childrenPageIds, numKeys+1);
             long[] values = null;
             if (!isUnique) {
-                values = new long[numKeys];
-                storageIn.noCheckRead(values);
+                values = new long[maxNumKeys];
+                storageIn.noCheckRead(values, numKeys);
             }
 			node = PagedBTreeNodeFactory.constructInnerNode(this, isUnique, false,
 								pageSize, pageId, numKeys, keys, values,
@@ -191,19 +191,21 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		if (node.isLeaf()) {
 			storageOut.writeByte((byte) -1);
 			storageOut.writeInt(node.getNumKeys());
-			byte[] encodedKeys = PrefixSharingHelper.encodeArray(Arrays.copyOf(node.getKeys(), node.getNumKeys()));
+//			byte[] encodedKeys = PrefixSharingHelper.encodeArray(Arrays.copyOf(node.getKeys(), node.getNumKeys()));
+			byte[] encodedKeys = PrefixSharingHelper.encodeArray(node.getKeys(), node.getNumKeys(), node.getPrefix());
 			storageOut.noCheckWrite(encodedKeys);
-			storageOut.noCheckWrite(Arrays.copyOf(node.getValues(), node.getNumKeys()));
+			storageOut.noCheckWrite(node.getValues(), node.getNumKeys());
 
 		} else {
 			storageOut.writeByte((byte) 1);
 			storageOut.writeInt(node.getNumKeys());
-			byte[] encodedKeys = PrefixSharingHelper.encodeArray(Arrays.copyOf(node.getKeys(), node.getNumKeys()));
+//			byte[] encodedKeys = PrefixSharingHelper.encodeArray(Arrays.copyOf(node.getKeys(), node.getNumKeys()));
+			byte[] encodedKeys = PrefixSharingHelper.encodeArray(node.getKeys(), node.getNumKeys(), node.getPrefix());
 			storageOut.noCheckWrite(encodedKeys);
             if (node.getValues() != null) {
-				storageOut.noCheckWrite(Arrays.copyOf(node.getValues(), node.getNumKeys()));
+				storageOut.noCheckWrite(node.getValues(), node.getNumKeys());
             }
-			storageOut.noCheckWrite(Arrays.copyOf(node.getChildrenPageIds(), node.getNumKeys()+1));
+			storageOut.noCheckWrite(node.getChildrenPageIds(), node.getNumKeys()+1);
 		}
 
 		storageOut.flush();

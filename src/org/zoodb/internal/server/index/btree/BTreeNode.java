@@ -584,5 +584,8 @@ public abstract class BTreeNode extends Observable {
         this.prefix = (getNumKeys() == 0) ? 0 : PrefixSharingHelper.computePrefix(getSmallestKey(), getLargestKey());
     }
 
-
+	public long getPrefix() {
+		return prefix;
+	}
+    
 }
