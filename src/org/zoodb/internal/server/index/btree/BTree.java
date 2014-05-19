@@ -66,23 +66,6 @@ public abstract class BTree<T extends BTreeNode> {
         }
 
         recomputeMinAndMaxAfterInsert(key);
-
-//        //check if the leaf overflows after the insertion
-//        if (leaf.willOverflowAfterInsert(key, value)) {
-//            T parent = ancestorStack.peek();
-//            T leftSibling = (T) leaf.leftSibling(parent);
-//                T rightNode = putAndSplit(leaf, key, value);
-//                insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
-//        } else {
-//
-//            //no overflow, simply insert in the leaf
-//            leaf.put(key, value);
-//            leaf.recomputeSize();
-//
-//            assert leaf.getCurrentSize() <= leaf.getPageSize();
-//        }
-
-        recomputeMinAndMaxAfterInsert(key);
     }
 
     private Pair<T, Pair<Long, Long>> innerSplit(T current) {
@@ -233,18 +216,6 @@ public abstract class BTree<T extends BTreeNode> {
                 Pair<Long, Long> entryToMoveUp = result.getB();
                 insertInInnerNode(parent, entryToMoveUp.getA(), entryToMoveUp.getB(),  rightNode, ancestorStack);
             }
-//            //check if parent overflows
-//            if (parent.willOverflowAfterInsert(key, value)) {
-//                Pair<T, Pair<Long, Long> > pair = putAndSplit(parent, key, value, right);
-//                T newNode = pair.getA();
-//                Pair<Long, Long> keyValuePair = pair.getB();
-//                long keyToMoveUp = keyValuePair.getA();
-//                long valueToMoveUp = keyValuePair.getB();
-//                insertInInnerNode(parent, keyToMoveUp, valueToMoveUp, newNode, ancestorStack);
-//            } else {
-//                parent.put(key, value, right);
-//                parent.recomputeSize();
-//            }
         }
     }
 
@@ -355,106 +326,6 @@ public abstract class BTree<T extends BTreeNode> {
         }
 
         return counter;
-    }
-
-    /**
-     * Puts a new key into the node and splits accordingly. Returns the newly
-     * created leaf, which is to the right.
-     *
-     * @param newKey                The new key to be inserted
-     * @param value                 The new value to be inserted.
-     * @return                      The newly created node, a right sibling of
-     *                              the current node.
-     */
-    public <T extends BTreeNode> T putAndSplit(T current, long newKey, long value) {
-
-        if (!current.isLeaf()) {
-            throw new IllegalStateException(
-                    "Should only be called on leaf nodes.");
-        }
-        int pageSize = current.getPageSize();
-        int numKeys = current.getNumKeys();
-        T tempNode = (T) nodeFactory.newNode(isUnique(), getPageSize(), true, false);
-        int childrenArraySize = current.getNumKeys() + 1;
-        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, childrenArraySize);
-        tempNode.setNumKeys(numKeys);
-        tempNode.put(newKey, value);
-
-        //ToDo move the computation of the index on the paged node
-        int weightKey = 8;
-        int weightChild = 0;
-        int header = tempNode.storageHeaderSize();
-        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(
-                tempNode.getKeys(), tempNode.getNumKeys(),
-                header, weightKey, weightChild, getPageSize());
-
-        int keysInRightNode = numKeys + 1 - keysInLeftNode;
-
-        // populate left node
-        tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);
-        current.setNumKeys(keysInLeftNode);
-
-        // populate right node
-        T right = (T) nodeFactory.newNode(isUnique(), pageSize, true, false);
-        tempNode.copyFromNodeToNode(keysInLeftNode, keysInLeftNode, right,
-                0, 0, keysInRightNode, keysInRightNode + 1);
-        right.setNumKeys(keysInRightNode);
-        tempNode.close();
-
-        current.recomputeSize();
-        right.recomputeSize();
-
-        return right;
-    }
-
-    /**
-     * Puts a key and a new node to the inner structure of the tree.
-     *
-     * @param current               The node in which to perform the insert.
-     * @param key                   The new key to be inserted
-     * @param value                 The new value to be inserted.
-     * @param newNode               The new node to be inserted together with the new key.
-     * @return                      The newly created node, a right sibling of
-     *                              the current node.
-     * @return
-     */
-    public <T extends BTreeNode> Pair<T, Pair<Long, Long> > putAndSplit(T current, long key, long value, T newNode) {
-
-        if (current.isLeaf()) {
-            throw new IllegalStateException(
-                    "Should only be called on inner nodes.");
-        }
-        int pageSize = current.getPageSize();
-        int numKeys = current.getNumKeys();
-        // create a temporary node to allow the insertion
-        T tempNode = (T) nodeFactory.newNode(isUnique(), pageSize, false, true);
-        int childrenArraySize = current.getNumKeys() + 1;
-        current.copyFromNodeToNode(0, 0, tempNode, 0, 0, numKeys, childrenArraySize);
-        tempNode.setNumKeys(numKeys);
-        tempNode.put(key, value, newNode);
-
-        int weightKey = (isUnique() ? 8 : 0);
-        int weightChild = 4;
-        int header = tempNode.storageHeaderSize();
-        // split
-        T right = (T) nodeFactory.newNode(isUnique(), pageSize, false, false);
-        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(tempNode.getKeys(), tempNode.getNumKeys(), header, weightKey, weightChild, getPageSize());
-        int keysInRightNode = numKeys - keysInLeftNode;
-
-        // populate left node
-        tempNode.copyFromNodeToNode(0, 0, current, 0, 0, keysInLeftNode, keysInLeftNode + 1);
-        current.setNumKeys(keysInLeftNode);
-
-        // populate right node
-        tempNode.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
-                0, 0, keysInRightNode, keysInRightNode + 1);
-        right.setNumKeys(keysInRightNode);
-        tempNode.close();
-
-        current.recomputeSize();
-        right.recomputeSize();
-
-        return new Pair<>(right, tempNode.getKeyValue(keysInLeftNode));
     }
 
     /**
