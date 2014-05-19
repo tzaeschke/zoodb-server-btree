@@ -313,6 +313,9 @@ public class PrefixSharingHelper {
         return number >> (64 - prefix);
     }
 
+    public static byte[] encodeArray(long[] array, long prefix) {
+        return encodeArray(array, array.length, prefix);
+    }
     /**
      * Encode a prefix shared long array into an array of bytes.
      *
@@ -320,27 +323,27 @@ public class PrefixSharingHelper {
      * @param prefix
      * @return
      */
-    public static byte[] encodeArray(long[] array, long prefix) {
+    public static byte[] encodeArray(long[] array, int arrayLength, long prefix) {
         int inputArrayIndex = 0;
         int currentByte = 0;
         int indexInCurrentByte = 0;
 
         /* Compute the number of bits to be stored */
-        int outputArraySize = encodedArraySize(array.length, prefix);
+        int outputArraySize = encodedArraySize(arrayLength, prefix);
 
         byte[] outputArray = new byte[outputArraySize + PREFIX_SHARING_METADATA_SIZE];
 
         /*Write the size of the array as an int - always 4 bytes */
-        outputArray[currentByte++] = (byte) (array.length >>> 24);
-        outputArray[currentByte++] = (byte) (array.length >>> 16);
-        outputArray[currentByte++] = (byte) (array.length >>> 8);
-        outputArray[currentByte++] = (byte) array.length;
+        outputArray[currentByte++] = (byte) (arrayLength >>> 24);
+        outputArray[currentByte++] = (byte) (arrayLength >>> 16);
+        outputArray[currentByte++] = (byte) (arrayLength >>> 8);
+        outputArray[currentByte++] = (byte) arrayLength;
 
         /* Write the prefix size */
         outputArray[currentByte++] = (byte) prefix;
 
         long prefixBits;
-        if(array.length > 0) {
+        if(arrayLength > 0) {
             prefixBits = prefixBits(prefix, array[0]);
         } else {
         	prefixBits = 0;
@@ -354,7 +357,7 @@ public class PrefixSharingHelper {
         }
 
         /* Perform the actual encoding */
-        while (inputArrayIndex < array.length) {
+        while (inputArrayIndex < arrayLength) {
             for (int i = (int) (63 - prefix); i >= 0; i--) {
                 long bitValue = BitOperationsHelper.getBitValue(array[inputArrayIndex], i);
                 outputArray[currentByte] = BitOperationsHelper.setBitValue(outputArray[currentByte], indexInCurrentByte, bitValue);
