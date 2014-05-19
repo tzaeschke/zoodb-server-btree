@@ -170,24 +170,45 @@ public class TestBTreeStorageBufferManager {
 		for (LLEntry entry : entries) {
 			tree.insert(entry.getKey(), entry.getValue());
 		}
-		tree.write();
-		
 		// collect all page ids
 		List<Integer> pageIds = new ArrayList<Integer>();
 		BTreeIterator it = new BTreeIterator(tree);
 		while(it.hasNext()) {
-			pageIds.add(((PagedBTreeNode)it.next()).getPageId());
+			int pageId = ((PagedBTreeNode)it.next()).getPageId();
+			pageIds.add(pageId);
+			bufferManager.getDirtyBuffer().containsKey(pageId);
 		}
-				
+		assertEquals(0,bufferManager.getCleanBuffer().size());
+		assertEquals(pageIds.size(),bufferManager.getDirtyBuffer().size());
+		tree.write();
+		
+		// collect all page ids
+		pageIds = new ArrayList<Integer>();
+		it = new BTreeIterator(tree);
+		while(it.hasNext()) {
+			int pageId = ((PagedBTreeNode)it.next()).getPageId();
+			pageIds.add(pageId);
+		}
+
 		for (LLEntry entry : entries) {
 			tree.delete(entry.getKey());
 		}
-		tree.write();
 		
+		assertEquals(0,bufferManager.getCleanBuffer().size());
+		assertEquals(1,bufferManager.getDirtyBuffer().size());
+		int rootPageId = tree.getRoot().getPageId();
+		assertFalse(storage.getFsm().debugIsPageIdInFreeList(rootPageId));
+		pageIds.remove(rootPageId);
 		// check whether pages are freed
 		for(Integer pageId : pageIds) {
 			assertTrue(storage.getFsm().debugIsPageIdInFreeList(pageId));
 		}
+		
+		tree.write();
+		rootPageId = tree.getRoot().getPageId();
+		assertFalse(storage.getFsm().debugIsPageIdInFreeList(rootPageId));
+		assertEquals(1,bufferManager.getCleanBuffer().size());
+		assertEquals(0,bufferManager.getDirtyBuffer().size());
 	}
 
 	@Test
