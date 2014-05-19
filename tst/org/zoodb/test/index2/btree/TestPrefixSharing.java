@@ -49,9 +49,9 @@ public class TestPrefixSharing {
 
     @Test
     public void testSplitUnbalanced() {
-        long[] arr = {5, 5, 5, 5, 5, 6};
+        long[] arr = {5, 5, 5, 5, 5, 123};
         long[] expectedLeft = {5, 5, 5, 5, 5};
-        long[] expectedRight = {6};
+        long[] expectedRight = {123};
         assertCorrectSplitAfterInsert(arr, expectedLeft, expectedRight);
     }
 
