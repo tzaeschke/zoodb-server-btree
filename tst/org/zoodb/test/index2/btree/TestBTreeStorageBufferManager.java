@@ -12,6 +12,7 @@ import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 import org.zoodb.tools.ZooConfig;
 
+import java.nio.BufferOverflowException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -47,34 +48,49 @@ public class TestBTreeStorageBufferManager {
 		}
 	}
 
-    @Test
-    public void testComputeSize() {
-        int pageSize = 256;
-        long[] keys = new long[] {-2139342741, -2139288335, -2139258968, -2139174228, -2139057184, -2139020661,
+    public PagedBTreeNode testComputeSizeHelper(int pageSize) {
+	    long[] keys = new long[] {-2139342741, -2139288335, -2139258968, -2139174228, -2139057184, -2139020661,
                 -2138955401, -2138947348, -2138906006, -2138854958, -2138810679, -2138737967,
                 -2138713939, -2138705771, -2138702613, -2138681828, -2138638271, -2138599336,
-                -2138560423, -2138384792, -2138378641};
+                -2138560423, -2138384792};
 
         long[] values = new long[] {1451443246,2045976137,1497430374,1772670428,-694016354,-646761731,
                 -688167221, 263241308, 780826785, 1819848219, -1429631675, -810669383, -1208608663,
-                1954442242, 386809692, -984072888, -54873685, 888823278, -671249934, -736916506, -1638116148};
+                1954442242, 386809692, -984072888, -54873685, 888823278, -671249934, -736916506};
 
         StorageChannel currentStorage = new StorageRootInMemory(pageSize);
-        BTreeBufferManager currentBufferManager = new BTreeStorageBufferManager(currentStorage, true);
-        BTreeNode node = new NonUniquePagedBTreeNode(currentBufferManager, pageSize, true, false);
+        BTreeBufferManager currentBufferManager = new BTreeStorageBufferManager(currentStorage, false);
+        PagedBTreeNode node = new NonUniquePagedBTreeNode(currentBufferManager, pageSize, true, false);
 
         for (int i = 0; i < keys.length; i++) {
             node.put(keys[i], values[i]);
         }
-        System.out.println(node.computeSize());
-        assertTrue("The size of the root node is too large ", node.computeSize() <= pageSize);
-        currentBufferManager.write((PagedBTreeNode) node);
+        
+        return node;
     }
-
-	@Test
-	public void testComputeOrder() {
-
-	}
+    
+    @Test
+    public void testComputeSize() {
+        int pageSize = 248;
+        
+        PagedBTreeNode node = testComputeSizeHelper(pageSize);
+        assertTrue("We want to test here if it exactly fits into the page", node.computeSize() == pageSize);
+        try {
+	        node.getBufferManager().write((PagedBTreeNode) node);
+        } catch(BufferOverflowException e) {
+        	fail("Too many elements in Node.");
+        }
+        
+        pageSize = 247;
+        node = testComputeSizeHelper(pageSize);
+        assertTrue("We want to test here if it does not fit into the page", node.computeSize() == pageSize+1);
+        try {
+	        node.getBufferManager().write((PagedBTreeNode) node);
+	        fail("Putting too many elements in node should result in exception.");
+        } catch(BufferOverflowException e) {
+        	// empty
+        }
+    }
 
 	@Test
 	public void testWriteLeaf() {

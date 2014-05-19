@@ -87,7 +87,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		storageIn.noCheckRead(metadata);
 		int decodedArraySize = PrefixSharingHelper.byteArrayToInt(metadata, 0);
 		byte prefixLength = metadata[4];
-		int encodedArraySize = PrefixSharingHelper.encodedArraySize(decodedArraySize, prefixLength);
+		int encodedArraySize = PrefixSharingHelper.encodedArraySizeWithoutMetadata(decodedArraySize, prefixLength);
 		byte[] encodedArrayWithoutMetadata = new byte[encodedArraySize];
 		storageIn.noCheckRead(encodedArrayWithoutMetadata);
 		long[] keys = PrefixSharingHelper.decodeArray(encodedArrayWithoutMetadata, decodedArraySize, prefixLength);
@@ -346,8 +346,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
     @Override
     public int getNodeHeaderSizeInStorage(PagedBTreeNode node) {
-        //ToDo compute this better, multiplying by 2 seems to work fine, but an exact size would be nice
-        return pageHeaderSize() << 1;
+        return pageHeaderSize();
     }
 
     public int computeMaxPossibleEntries(boolean isUnique, boolean isLeaf, int pageSize) {
