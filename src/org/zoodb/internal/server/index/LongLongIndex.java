@@ -27,6 +27,13 @@ import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.util.CloseableIterator;
 
+/**
+ * Interfaces for database indices and their iterators.
+ * 
+ * 
+ * @author Tilmann Zaeschke
+ *
+ */
 public interface LongLongIndex {
 
 	public static class LLEntry {
@@ -78,7 +85,7 @@ public interface LongLongIndex {
 		public boolean hasNextULL();
 
 		@Deprecated
-		public LongLongIndex.LLEntry nextULL();
+		public LLEntry nextULL();
 
 		@Deprecated
 		public long nextKey();
