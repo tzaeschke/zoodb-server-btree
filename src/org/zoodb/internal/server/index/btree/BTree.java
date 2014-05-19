@@ -58,47 +58,83 @@ public abstract class BTree<T extends BTreeNode> {
         T leaf = result.getB();
 
         increaseModcount();
-
-        //check if the leaf overflows after the insertion
-        if (leaf.willOverflowAfterInsert(key, value)) {
-//            T parent = ancestorStack.peek();
-//            T leftSibling = (T) leaf.leftSibling(parent);
-//            //if it does, we can maybe move some keys to the left sibling
-//            // instead of creating a new node
-//            long newKey = Math.min(leaf.getSmallestKey(), key);
-//            long newValue = (newKey == key) ? key : leaf.getSmallestValue();
-//
-//            if (leftSibling != null &&
-//                    !leftSibling.willOverflowAfterInsert(newKey, newValue)) {
-//                leaf.put(key, value);
-//                redistributeKeysFromRight(leftSibling, leaf, parent);
-//                if (key < leaf.getSmallestKey()) {
-//                    leftSibling.put(key, value);
-//                    leftSibling.recomputeSize();
-//                } else {
-//                    leaf.put(key, value);
-//                    leaf.recomputeSize();
-//                }
-//
-//                assert leaf.getCurrentSize() <= leaf.getPageSize();
-//                assert leftSibling.getCurrentSize() <= leaf.getPageSize();
-//            } else {
-
-//                if cannot redistribute to left neighbour, create a new node
-//                as a right sibling of the current node
-                T rightNode = putAndSplit(leaf, key, value);
-                insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
-//            }
-        } else {
-
-            //no overflow, simply insert in the leaf
-            leaf.put(key, value);
-            leaf.recomputeSize();
-
-            assert leaf.getCurrentSize() <= leaf.getPageSize();
+        leaf.put(key, value);
+        leaf.recomputeSize();
+        if (leaf.overflows()) {
+            T rightNode = split(leaf);
+            insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
         }
 
         recomputeMinAndMaxAfterInsert(key);
+
+//        //check if the leaf overflows after the insertion
+//        if (leaf.willOverflowAfterInsert(key, value)) {
+//            T parent = ancestorStack.peek();
+//            T leftSibling = (T) leaf.leftSibling(parent);
+//                T rightNode = putAndSplit(leaf, key, value);
+//                insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
+//        } else {
+//
+//            //no overflow, simply insert in the leaf
+//            leaf.put(key, value);
+//            leaf.recomputeSize();
+//
+//            assert leaf.getCurrentSize() <= leaf.getPageSize();
+//        }
+
+        recomputeMinAndMaxAfterInsert(key);
+    }
+
+    private Pair<T, Pair<Long, Long>> innerSplit(T current) {
+        int numKeys = current.getNumKeys();
+
+        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
+        int weightChild = (current.isLeaf() ? 0 : 4);
+        int header = current.storageHeaderSize();
+        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(
+                current.getKeys(), current.getNumKeys(),
+                header, weightKey, weightChild, getPageSize());
+
+        int keysInRightNode = numKeys - keysInLeftNode - 1;
+
+        Pair<Long, Long> keyValue = current.getKeyValue(keysInLeftNode);
+
+        // populate right node
+        T right = (T) nodeFactory.newNode(isUnique(), pageSize, current.isLeaf(), false);
+        current.copyFromNodeToNode(keysInLeftNode, keysInLeftNode, right,
+                0, 0, keysInRightNode, keysInRightNode + 1);
+        right.setNumKeys(keysInRightNode);
+        current.setNumKeys(keysInLeftNode);
+
+        current.recomputeSize();
+        right.recomputeSize();
+
+        return new Pair<>(right, keyValue);
+    }
+
+    private T split(T current) {
+        int numKeys = current.getNumKeys();
+
+        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
+        int weightChild = (current.isLeaf() ? 0 : 4);
+        int header = current.storageHeaderSize();
+        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(
+                current.getKeys(), current.getNumKeys(),
+                header, weightKey, weightChild, getPageSize());
+
+        int keysInRightNode = numKeys - keysInLeftNode;
+
+        // populate right node
+        T right = (T) nodeFactory.newNode(isUnique(), pageSize, current.isLeaf(), false);
+        current.copyFromNodeToNode(keysInLeftNode, keysInLeftNode, right,
+                0, 0, keysInRightNode, keysInRightNode + 1);
+        right.setNumKeys(keysInRightNode);
+        current.setNumKeys(keysInLeftNode);
+
+        current.recomputeSize();
+        right.recomputeSize();
+
+        return right;
     }
 
     /**
@@ -189,18 +225,27 @@ public abstract class BTree<T extends BTreeNode> {
             root.recomputeSize();
         } else {
             T parent = ancestorStack.pop();
-            //check if parent overflows
-            if (parent.willOverflowAfterInsert(key, value)) {
-                Pair<T, Pair<Long, Long> > pair = putAndSplit(parent, key, value, right);
-                T newNode = pair.getA();
-                Pair<Long, Long> keyValuePair = pair.getB();
-                long keyToMoveUp = keyValuePair.getA();
-                long valueToMoveUp = keyValuePair.getB();
-                insertInInnerNode(parent, keyToMoveUp, valueToMoveUp, newNode, ancestorStack);
-            } else {
-                parent.put(key, value, right);
-                parent.recomputeSize();
+            parent.put(key, value, right);
+            parent.recomputeSize();
+
+            if (parent.overflows()) {
+                Pair<T, Pair<Long, Long>> result = innerSplit(parent);
+                T rightNode = result.getA();
+                Pair<Long, Long> entryToMoveUp = result.getB();
+                insertInInnerNode(parent, entryToMoveUp.getA(), entryToMoveUp.getB(),  rightNode, ancestorStack);
             }
+//            //check if parent overflows
+//            if (parent.willOverflowAfterInsert(key, value)) {
+//                Pair<T, Pair<Long, Long> > pair = putAndSplit(parent, key, value, right);
+//                T newNode = pair.getA();
+//                Pair<Long, Long> keyValuePair = pair.getB();
+//                long keyToMoveUp = keyValuePair.getA();
+//                long valueToMoveUp = keyValuePair.getB();
+//                insertInInnerNode(parent, keyToMoveUp, valueToMoveUp, newNode, ancestorStack);
+//            } else {
+//                parent.put(key, value, right);
+//                parent.recomputeSize();
+//            }
         }
     }
 
@@ -324,8 +369,6 @@ public abstract class BTree<T extends BTreeNode> {
      */
     public <T extends BTreeNode> T putAndSplit(T current, long newKey, long value) {
 
-        assert current.computeSize() == current.getCurrentSize();
-
         if (!current.isLeaf()) {
             throw new IllegalStateException(
                     "Should only be called on leaf nodes.");
@@ -362,12 +405,6 @@ public abstract class BTree<T extends BTreeNode> {
         current.recomputeSize();
         right.recomputeSize();
 
-        assert current.computeSize() <= current.getPageSize();
-        assert right.computeSize() <= right.getPageSize();
-
-        assert current.computeSize() == current.getCurrentSize();
-        assert right.computeSize() == right.getCurrentSize();
-
         return right;
     }
 
@@ -383,8 +420,6 @@ public abstract class BTree<T extends BTreeNode> {
      * @return
      */
     public <T extends BTreeNode> Pair<T, Pair<Long, Long> > putAndSplit(T current, long key, long value, T newNode) {
-
-        assert current.computeSize() == current.getCurrentSize();
 
         if (current.isLeaf()) {
             throw new IllegalStateException(
@@ -420,12 +455,6 @@ public abstract class BTree<T extends BTreeNode> {
         current.recomputeSize();
         right.recomputeSize();
 
-        assert current.computeSize() <= current.getPageSize();
-        assert right.computeSize() <= right.getPageSize();
-
-        assert current.computeSize() == current.getCurrentSize();
-        assert right.computeSize() == right.getCurrentSize();
-
         return new Pair<>(right, tempNode.getKeyValue(keysInLeftNode));
     }
 
@@ -444,10 +473,6 @@ public abstract class BTree<T extends BTreeNode> {
      */
     public T mergeWithRight(BTree<T> tree, T current, T right, T parent) {
 
-        assert current.computeSize() == current.getCurrentSize();
-        assert right.computeSize() == right.getCurrentSize();
-        assert parent.computeSize() == parent.getCurrentSize();
-
         int keyIndex = parent.keyIndexOf(current, right);
 
         //check if parent needs merging -> tree gets smaller
@@ -460,17 +485,8 @@ public abstract class BTree<T extends BTreeNode> {
                 innerMergeWithRight(current, right, parent, keyIndex);
             }
         }
-//        if ( parent.getNumKeys() == 0 || right.getNumKeys() == 0) {
-//            System.out.println("Failure during redistribution");
-//        }
         //this node will not be used anymore
         current.close();
-
-        assert right.computeSize() <= right.getPageSize();
-        assert parent.computeSize() <= parent.getPageSize();
-
-        assert right.computeSize() == right.getCurrentSize();
-        assert parent.computeSize() == parent.getCurrentSize();
 
         return parent;
     }
@@ -489,9 +505,6 @@ public abstract class BTree<T extends BTreeNode> {
      */
     public T  mergeWithLeft(BTree<T> tree, T current, T left, T parent) {
 
-        assert current.computeSize() == current.getCurrentSize();
-        assert parent.computeSize() == parent.getCurrentSize();
-
         int keyIndex = parent.keyIndexOf(left, current);
 
         //check if we need to merge with parent
@@ -508,17 +521,8 @@ public abstract class BTree<T extends BTreeNode> {
                 innerMergeWithLeft(current, left, parent, keyIndex);
             }
         }
-//        if (current.getNumKeys() == 0 || parent.getNumKeys() == 0) {
-//            System.out.println("Failure during redistribution");
-//        }
         //left wont be used anymore
         left.close();
-
-        assert current.computeSize() <= current.getPageSize();
-        assert parent.computeSize() <= parent.getPageSize();
-
-        assert current.computeSize() == current.getCurrentSize();
-        assert parent.computeSize() == parent.getCurrentSize();
 
         return parent;
     }
@@ -533,14 +537,6 @@ public abstract class BTree<T extends BTreeNode> {
      * @param parent            The parent of the current node
      */
     public void redistributeKeysFromRight(T current, T right, T parent) {
-//        assert current.computeSize() <= current.getPageSize();
-//        assert right.computeSize() <= right.getPageSize();
-//        assert parent.computeSize() <= parent.getPageSize();
-
-        assert current.computeSize() == current.getCurrentSize();
-        assert right.computeSize() == right.getCurrentSize();
-        assert parent.computeSize() == parent.getCurrentSize();
-
         int keysToMove = computeKeysToMoveFromRight(current, right);
         if (keysToMove == 0) {
             return;
@@ -553,14 +549,6 @@ public abstract class BTree<T extends BTreeNode> {
             keysToMove--;
             innerRedistributeFromRight(current, right, parent, parentKeyIndex, keysToMove);
         }
-
-        assert current.computeSize() <= current.getPageSize();
-        assert right.computeSize() <= right.getPageSize();
-        assert parent.computeSize() <= parent.getPageSize();
-
-        assert current.computeSize() == current.getCurrentSize();
-        assert right.computeSize() == right.getCurrentSize();
-        assert parent.computeSize() == parent.getCurrentSize();
     }
 
     /**
@@ -573,11 +561,6 @@ public abstract class BTree<T extends BTreeNode> {
      * @param parent            The parent of the current node
      */
     public void redistributeKeysFromLeft(T current, T left, T parent) {
-
-        assert current.computeSize() == current.getCurrentSize();
-        assert left.computeSize() == left.getCurrentSize();
-        assert parent.computeSize() == parent.getCurrentSize();
-
         int keysToMove = computeKeysToMoveFromLeft(current, left);
         int parentKeyIndex = parent.keyIndexOf(left, current);
         if (current.isLeaf()) {
@@ -592,14 +575,6 @@ public abstract class BTree<T extends BTreeNode> {
             }
             innerRedistributeFromLeft(current, left, parent, parentKeyIndex, keysToMove);
         }
-
-        assert current.computeSize() <= current.getPageSize();
-        assert left.computeSize() <= left.getPageSize();
-        assert parent.computeSize() <= parent.getPageSize();
-
-        assert current.computeSize() == current.getCurrentSize();
-        assert left.computeSize() == left.getCurrentSize();
-        assert parent.computeSize() == parent.getCurrentSize();
     }
 
     private int computeKeysToMoveFromLeft(T current, T left) {

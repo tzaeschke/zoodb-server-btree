@@ -2,21 +2,17 @@ package org.zoodb.test.index2.performance;
 
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.StorageRootFile;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.BTreeIndexUnique;
-import org.zoodb.internal.server.index.FreeSpaceManager;
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
 import org.zoodb.internal.server.index.PagedUniqueLongLong;
 import org.zoodb.internal.server.index.btree.BTreeIterator;
-import org.zoodb.internal.util.DBLogger;
 import org.zoodb.test.index2.btree.TestIndex;
 import org.zoodb.tools.DBStatistics;
 import org.zoodb.tools.ZooConfig;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -129,7 +125,6 @@ public class PageUsageStats {
 		System.out.println("mseconds new: " + write(newIndex));
 		
 		printStats();
-
 	}
 	
 	/*

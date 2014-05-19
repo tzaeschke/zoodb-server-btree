@@ -322,6 +322,10 @@ public abstract class BTreeNode extends Observable {
         return getCurrentSize() == pageSize;
     }
 
+    public boolean overflows() {
+        return getCurrentSize() > pageSize;
+    }
+
     public boolean incrementNumKeys() {
         markChanged();
         return increaseNumKeys(1);
