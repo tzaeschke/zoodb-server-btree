@@ -95,13 +95,12 @@ public abstract class BTree<T extends BTreeNode> {
                 current.getKeys(), current.getNumKeys(),
                 header, weightKey, weightChild, getPageSize());
 
-        int keysInRightNode = numKeys - keysInLeftNode - 1;
-
         Pair<Long, Long> keyValue = current.getKeyValue(keysInLeftNode);
+        int keysInRightNode = numKeys - keysInLeftNode - 1;
 
         // populate right node
         T right = (T) nodeFactory.newNode(isUnique(), pageSize, current.isLeaf(), false);
-        current.copyFromNodeToNode(keysInLeftNode, keysInLeftNode, right,
+        current.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
         current.setNumKeys(keysInLeftNode);
