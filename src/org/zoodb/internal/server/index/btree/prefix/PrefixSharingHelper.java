@@ -394,11 +394,15 @@ public class PrefixSharingHelper {
 
         return decodeArray(Arrays.copyOfRange(encodedArray, 5, encodedArray.length), decodedArraySize, prefix);
     }
-    
+
     public static long[] decodeArray(byte[] encodedArrayWithoutMetadata, int decodedArraySize, byte prefixLength) {
+        return decodeArray(encodedArrayWithoutMetadata, decodedArraySize, decodedArraySize, prefixLength);
+    }
+
+    public static long[] decodeArray(byte[] encodedArrayWithoutMetadata, int decodedArraySize, int newSize, byte prefixLength) {
     	byte[] encodedArray = encodedArrayWithoutMetadata;
         int currentByte = 0;
-        long[] decodedArray = new long[decodedArraySize];
+        long[] decodedArray = new long[newSize];
         int indexInCurrentByte = 0;
         long prefixBits = 0;
         

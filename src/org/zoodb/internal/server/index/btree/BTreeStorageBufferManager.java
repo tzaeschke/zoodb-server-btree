@@ -9,7 +9,6 @@ import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 import org.zoodb.internal.util.PrimLongMapLI;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Observable;
 
@@ -90,9 +89,9 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		int encodedArraySize = PrefixSharingHelper.encodedArraySizeWithoutMetadata(decodedArraySize, prefixLength);
 		byte[] encodedArrayWithoutMetadata = new byte[encodedArraySize];
 		storageIn.noCheckRead(encodedArrayWithoutMetadata);
-		long[] keys = PrefixSharingHelper.decodeArray(encodedArrayWithoutMetadata, decodedArraySize, prefixLength);
-
         int maxNumKeys = computeMaxPossibleEntries(isUnique, isLeaf, getPageSize());
+
+		long[] keys = PrefixSharingHelper.decodeArray(encodedArrayWithoutMetadata, decodedArraySize, maxNumKeys, prefixLength);
 
 		if(isLeaf) {
 			long[] values = new long[maxNumKeys];
