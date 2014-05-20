@@ -563,7 +563,7 @@ public abstract class BTreeNode extends Observable {
         return getNonKeyEntrySizeInBytes(getNumKeys());
     }
 
-    protected int getKeyArraySizeInBytes() {
+    public int getKeyArraySizeInBytes() {
         //ToDo use precomputed prefix
         if (getNumKeys() == 0) {
             return 0;
@@ -584,5 +584,8 @@ public abstract class BTreeNode extends Observable {
         this.prefix = (getNumKeys() == 0) ? 0 : PrefixSharingHelper.computePrefix(getSmallestKey(), getLargestKey());
     }
 
-
+	public long getPrefix() {
+		return prefix;
+	}
+    
 }

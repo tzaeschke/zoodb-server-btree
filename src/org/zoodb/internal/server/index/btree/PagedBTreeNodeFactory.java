@@ -44,6 +44,7 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory<PagedBTreeNode> {
 		node.setNumKeys(numKeys);
 		node.setKeys(keys);
 		node.setValues(values);
+		node.recomputeSize();
 		return node;
 	}
 	
@@ -65,6 +66,7 @@ public class PagedBTreeNodeFactory implements BTreeNodeFactory<PagedBTreeNode> {
             node.setValues(values);
         }
 		node.setChildrenPageIds(childrenPageIds);
+		node.recomputeSize();
 		return node;
 	}
 

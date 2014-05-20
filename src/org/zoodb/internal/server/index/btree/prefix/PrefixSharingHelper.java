@@ -193,11 +193,11 @@ public class PrefixSharingHelper {
     }
 
     private static long computeArraySize(long prefix, int elements, int header, int weightKey, int weightChild) {
-        return header + encodedArraySize(elements, prefix) + elements * weightKey + elements * weightChild;
+        return header + encodedArraySizeWithoutMetadata(elements, prefix) + elements * weightKey + elements * weightChild;
     }
 
     private static long computeArraySize(long prefix, int elements, int header, int weight) {
-        return header + encodedArraySize(elements, prefix) + elements * weight;
+        return header + encodedArraySizeWithoutMetadata(elements, prefix) + elements * weight;
     }
 
     /**
@@ -329,7 +329,7 @@ public class PrefixSharingHelper {
         int indexInCurrentByte = 0;
 
         /* Compute the number of bits to be stored */
-        int outputArraySize = encodedArraySize(arrayLength, prefix);
+        int outputArraySize = encodedArraySizeWithoutMetadata(arrayLength, prefix);
 
         byte[] outputArray = new byte[outputArraySize + PREFIX_SHARING_METADATA_SIZE];
 
@@ -369,12 +369,16 @@ public class PrefixSharingHelper {
         return outputArray;
     }
     
-    public static int encodedArraySize(int arraySize, long prefixLength) {
+    public static int encodedArraySizeWithoutMetadata(int arraySize, long prefixLength) {
 	    int bitsToStore = (int) (prefixLength + (64 - prefixLength) * arraySize);
-        //int outputArraySize = (int) Math.ceil(bitsToStore/ 8.0);
+//        int outputArraySize = (int) Math.ceil(bitsToStore/ 8.0);
         bitsToStore = bitsToStore >> 3;
         int outputArraySize = bitsToStore + (bitsToStore < 0 ? 0 : 1) >> 0;
         return outputArraySize;
+    }
+    public static int encodedArraySize(int arraySize, long prefixLength) {
+    	int headerSize = 5;
+        return headerSize + encodedArraySizeWithoutMetadata(arraySize, prefixLength);
     }
 
     /**
