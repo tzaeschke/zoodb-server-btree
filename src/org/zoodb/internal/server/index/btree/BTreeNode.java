@@ -168,6 +168,10 @@ public abstract class BTreeNode extends Observable {
                     "Should only be called when node is non-empty.");
         }
         int pos = findKeyValuePos(key, value);
+        put(key, value, pos, newNode);
+    }
+
+    public void put(long key, long value, int pos, BTreeNode newNode) {
         if (pos > 0 && (getKey(pos - 1) == key && getValue(pos - 1) == value)) {
             throw new IllegalStateException(
                     "Tree is not allowed to have non-unique values.");
@@ -367,7 +371,7 @@ public abstract class BTreeNode extends Observable {
     }
 
     public long getValue(int index) {
-        return getValues()[index];
+        return values[index];
     }
 
     public long getKey(int index) {
