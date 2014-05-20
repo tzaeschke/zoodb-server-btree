@@ -213,6 +213,8 @@ public abstract class BTreeNode extends Observable {
 
         setChild(0, left);
         setChild(1, right);
+
+        recomputeSize();
     }
 
     /**
@@ -371,7 +373,7 @@ public abstract class BTreeNode extends Observable {
     }
 
     public long getValue(int index) {
-        return values[index];
+        return (values == null) ? - 1 : values[index];
     }
 
     public long getKey(int index) {

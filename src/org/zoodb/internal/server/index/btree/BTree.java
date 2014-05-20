@@ -53,95 +53,107 @@ public abstract class BTree<T extends BTreeNode> {
         insert(root, key, value);
         increaseModcount();
         if (root.overflows()) {
-            T newRoot = (T) nodeFactory.newNode(isUnique(), getPageSize(), false, true);
-
-            T right;
-            long newKey, newValue;
-            if (root.isLeaf()) {
-                right = split(root);
-                newKey = right.getSmallestKey();
-                newValue = right.getSmallestValue();
-            } else {
-                Pair<T, Pair<Long, Long>> tPairPair = innerSplit(root);
-                right = tPairPair.getA();
-                newKey = tPairPair.getB().getA();
-                newValue = tPairPair.getB().getB();
-            }
-            T left = root;
-            swapRoot(newRoot);
-            root.put(newKey, newValue, left, right);
-            root.recomputeSize();
+            handleRootOverflow();
         }
         recomputeMinAndMaxAfterInsert(key);
-//        increaseModcount();
-//        Pair<LinkedList<T>, T> result = searchNodeWithHistory(key, value, true);
-//        LinkedList<T> ancestorStack = result.getA();
-//        T leaf = result.getB();
-//
-//        increaseModcount();
-//        leaf.put(key, value);
-//        leaf.recomputeSize();
-//        if (leaf.overflows()) {
-//            T rightNode = split(leaf);
-//            insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
-//        }
-//
-//        recomputeMinAndMaxAfterInsert(key);
     }
+
 
     public void insert(T node, long key, long value) {
         node.markChanged();
         if (node.isLeaf()) {
-//            increaseModcount();
             node.put(key, value);
         } else {
             int childIndex = node.findKeyValuePos(key, value);
             T child = node.getChild(childIndex);
             insert(child, key, value);
             if (child.overflows()) {
-//                T rightChild = split(child);
-//                node.put(key, value, childIndex, rightChild);
-
-                if (child.isLeaf()) {
-                    T rightChild = split(child);
-                    long newKey = rightChild.getSmallestKey();
-                    long newValue = rightChild.getSmallestValue();
-                    node.put(newKey, newValue, childIndex, rightChild);
-                } else {
-                    Pair<T, Pair<Long, Long>> tPairPair = innerSplit(child);
-                    T rightChild = tPairPair.getA();
-                    long newKey = tPairPair.getB().getA();
-                    long newValue = tPairPair.getB().getB();
-                    node.put(newKey, newValue, childIndex, rightChild);
-                }
+                handleInsertOverflow(child, node, childIndex);
             }
         }
     }
 
-    private Pair<T, Pair<Long, Long>> innerSplit(T current) {
-        int numKeys = current.getNumKeys();
+    private void handleRootOverflow() {
+        T newRoot = (T) nodeFactory.newNode(isUnique(), getPageSize(), false, true);
 
-        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
-        int weightChild = (current.isLeaf() ? 0 : 4);
-        int header = current.storageHeaderSize();
+        T right;
+        T left = root;
+        swapRoot(newRoot);
+        if (left.isLeaf()) {
+            right = split(left);
+            root.put(right.getSmallestKey(), right.getSmallestValue(), left, right);
+        } else {
+            putInnerNodeInRoot(left);
+        }
+    }
+
+    private void handleInsertOverflow(T child, T parent, int childIndex) {
+        if (child.isLeaf()) {
+            putLeafInParent(child, parent, childIndex);
+        } else {
+            putInnerNodeInParent(child, parent, childIndex);
+        }
+    }
+
+    private void putLeafInParent(T child, T parent, int childIndex) {
+        T right = split(child);
+        parent.put(right.getSmallestKey(), right.getSmallestValue(), childIndex, right);
+    }
+
+    private void putInnerNodeInParent(T child, T parent, int childIndex) {
+        int numKeys = child.getNumKeys();
+
+        int weightKey = (child.isLeaf() || (!isUnique())) ? 8 : 0;
+        int weightChild = (child.isLeaf() ? 0 : 4);
+        int header = child.storageHeaderSize();
         int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(
-                current.getKeys(), current.getNumKeys(),
+                child.getKeys(), child.getNumKeys(),
                 header, weightKey, weightChild, getPageSize());
 
-        Pair<Long, Long> keyValue = current.getKeyValue(keysInLeftNode);
+        long newKey = child.getKey(keysInLeftNode);
+        long newValue = child.getValue(keysInLeftNode);
+
         int keysInRightNode = numKeys - keysInLeftNode - 1;
 
         // populate right node
-        T right = (T) nodeFactory.newNode(isUnique(), pageSize, current.isLeaf(), false);
-        current.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
+        T right = (T) nodeFactory.newNode(isUnique(), pageSize, child.isLeaf(), false);
+        child.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
-        current.setNumKeys(keysInLeftNode);
+        child.setNumKeys(keysInLeftNode);
 
-        current.recomputeSize();
+        child.recomputeSize();
         right.recomputeSize();
 
-        return new Pair<>(right, keyValue);
+        parent.put(newKey, newValue, childIndex, right);
+    }
+
+    private void putInnerNodeInRoot(T child) {
+        int numKeys = child.getNumKeys();
+
+        int weightKey = (child.isLeaf() || (!isUnique())) ? 8 : 0;
+        int weightChild = (child.isLeaf() ? 0 : 4);
+        int header = child.storageHeaderSize();
+        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(
+                child.getKeys(), child.getNumKeys(),
+                header, weightKey, weightChild, getPageSize());
+
+        long newKey = child.getKey(keysInLeftNode);
+        long newValue = child.getValue(keysInLeftNode);
+
+        int keysInRightNode = numKeys - keysInLeftNode - 1;
+
+        // populate right node
+        T right = (T) nodeFactory.newNode(isUnique(), pageSize, child.isLeaf(), false);
+        child.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
+                0, 0, keysInRightNode, keysInRightNode + 1);
+        right.setNumKeys(keysInRightNode);
+        child.setNumKeys(keysInLeftNode);
+
+        child.recomputeSize();
+        right.recomputeSize();
+
+        root.put(newKey, newValue, child, right);
     }
 
     private T split(T current) {
@@ -237,34 +249,6 @@ public abstract class BTree<T extends BTreeNode> {
                 }
                 current = parent;
                 parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
-            }
-        }
-    }
-    /**
-     * Inserts the nodes left and right into the parent node. The right node is a new node, created
-     * as a result of a split.
-     *
-     * @param left              The left node.
-     * @param key               The key that should separate them in the parent.
-     * @param right             The right node.
-     * @param ancestorStack     The ancestor stack that should be traversed.
-     */
-    private void insertInInnerNode(T left, long key, long value, T right, LinkedList<T> ancestorStack) {
-        if (left.isRoot()) {
-            T newRoot = (T) nodeFactory.newNode(isUnique(), getPageSize(), false, true);
-            swapRoot(newRoot);
-            root.put(key, value, left, right);
-            root.recomputeSize();
-        } else {
-            T parent = ancestorStack.pop();
-            parent.put(key, value, right);
-            parent.recomputeSize();
-
-            if (parent.overflows()) {
-                Pair<T, Pair<Long, Long>> result = innerSplit(parent);
-                T rightNode = result.getA();
-                Pair<Long, Long> entryToMoveUp = result.getB();
-                insertInInnerNode(parent, entryToMoveUp.getA(), entryToMoveUp.getB(),  rightNode, ancestorStack);
             }
         }
     }
