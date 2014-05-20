@@ -99,22 +99,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
         this.childrenPageIds = new int[size];
     }
 
-    public void setKey(int index, long key) {
-		super.setKey(index, key);
-	}
-
-	public void setValue(int index, long value) {
-		super.setValue(index, value);
-	}
-
-	public void setKeys(long[] keys) {
-		super.setKeys(keys);
-	}
-
-	public void setValues(long[] values) {
-		super.setValues(values);
-	}
-
 	@Override
 	public BTreeNode[] getChildren() {
 		BTreeNode[] children = new BTreeNode[childrenPageIds.length];

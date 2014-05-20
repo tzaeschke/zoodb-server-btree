@@ -50,22 +50,72 @@ public abstract class BTree<T extends BTreeNode> {
      * @param value         The new value to be inserted
      */
     public void insert(long key, long value) {
-        if (root == null) {
-            root = (T) nodeFactory.newNode(isUnique(), pageSize, true, true);
-        }
-        Pair<LinkedList<T>, T> result = searchNodeWithHistory(key, value, true);
-        LinkedList<T> ancestorStack = result.getA();
-        T leaf = result.getB();
-
+        insert(root, key, value);
         increaseModcount();
-        leaf.put(key, value);
-        leaf.recomputeSize();
-        if (leaf.overflows()) {
-            T rightNode = split(leaf);
-            insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
-        }
+        if (root.overflows()) {
+            T newRoot = (T) nodeFactory.newNode(isUnique(), getPageSize(), false, true);
 
+            T right;
+            long newKey, newValue;
+            if (root.isLeaf()) {
+                right = split(root);
+                newKey = right.getSmallestKey();
+                newValue = right.getSmallestValue();
+            } else {
+                Pair<T, Pair<Long, Long>> tPairPair = innerSplit(root);
+                right = tPairPair.getA();
+                newKey = tPairPair.getB().getA();
+                newValue = tPairPair.getB().getB();
+            }
+            T left = root;
+            swapRoot(newRoot);
+            root.put(newKey, newValue, left, right);
+            root.recomputeSize();
+        }
         recomputeMinAndMaxAfterInsert(key);
+//        increaseModcount();
+//        Pair<LinkedList<T>, T> result = searchNodeWithHistory(key, value, true);
+//        LinkedList<T> ancestorStack = result.getA();
+//        T leaf = result.getB();
+//
+//        increaseModcount();
+//        leaf.put(key, value);
+//        leaf.recomputeSize();
+//        if (leaf.overflows()) {
+//            T rightNode = split(leaf);
+//            insertInInnerNode(leaf, rightNode.getSmallestKey(), rightNode.getSmallestValue(),  rightNode, ancestorStack);
+//        }
+//
+//        recomputeMinAndMaxAfterInsert(key);
+    }
+
+    public void insert(T node, long key, long value) {
+        node.markChanged();
+        if (node.isLeaf()) {
+//            increaseModcount();
+            node.put(key, value);
+        } else {
+            int childIndex = node.findKeyValuePos(key, value);
+            T child = node.getChild(childIndex);
+            insert(child, key, value);
+            if (child.overflows()) {
+//                T rightChild = split(child);
+//                node.put(key, value, childIndex, rightChild);
+
+                if (child.isLeaf()) {
+                    T rightChild = split(child);
+                    long newKey = rightChild.getSmallestKey();
+                    long newValue = rightChild.getSmallestValue();
+                    node.put(newKey, newValue, childIndex, rightChild);
+                } else {
+                    Pair<T, Pair<Long, Long>> tPairPair = innerSplit(child);
+                    T rightChild = tPairPair.getA();
+                    long newKey = tPairPair.getB().getA();
+                    long newValue = tPairPair.getB().getB();
+                    node.put(newKey, newValue, childIndex, rightChild);
+                }
+            }
+        }
     }
 
     private Pair<T, Pair<Long, Long>> innerSplit(T current) {
