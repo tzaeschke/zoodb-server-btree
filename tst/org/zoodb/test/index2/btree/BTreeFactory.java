@@ -55,7 +55,7 @@ public class BTreeFactory {
             List<Long> values = nodeValues.get(i);
             prevLayer.get(i).setValues(padLongArray(toPrimitives(
                     values.toArray(new Long[values.size()])),
-                    prevLayer.get(0).computeMaxPossibleNumEntries()));
+                    prevLayer.get(0).computeMaxPossibleEntries()));
         }
     }
 
@@ -66,7 +66,7 @@ public class BTreeFactory {
             List<Long> keys = nodeKeys.get(0);
             root.setKeys(padLongArray(toPrimitives(
                     keys.toArray(new Long[keys.size()])),
-                    root.computeMaxPossibleNumEntries()));
+                    root.computeMaxPossibleEntries()));
             root.recomputeSize();
             tree.getRoot().close();
             tree.setRoot(root);
@@ -82,14 +82,14 @@ public class BTreeFactory {
                     List<Long> keys = nodeKeys.get(indexLayer);
                     node.setKeys(padLongArray(toPrimitives(
                             keys.toArray(new Long[keys.size()])),
-                            node.computeMaxPossibleNumEntries()));
+                            node.computeMaxPossibleEntries()));
                     node.setNumKeys(keys.size());
                     node.recomputeSize();
                     children[ik] = node;
                     newLayer.add(node);
                     indexLayer++;
                 }
-                parent.setChildren(padChildrenArray(children, parent.computeMaxPossibleNumEntries()+1));
+                parent.setChildren(padChildrenArray(children, parent.computeMaxPossibleEntries()+1));
                 parent.recomputeSize();
             }
             this.prevLayer = newLayer;

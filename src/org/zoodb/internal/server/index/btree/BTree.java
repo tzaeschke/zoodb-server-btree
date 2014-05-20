@@ -121,7 +121,7 @@ public abstract class BTree<T extends BTreeNode> {
     private Pair<T, Pair<Long, Long>> innerSplit(T current) {
         int numKeys = current.getNumKeys();
 
-        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
+        int weightKey = (current.isLeaf() || (!isUnique())) ? current.getValueElementSize() : 0;
         int weightChild = (current.isLeaf() ? 0 : 4);
         int header = current.storageHeaderSize();
         int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(
@@ -147,7 +147,7 @@ public abstract class BTree<T extends BTreeNode> {
     private T split(T current) {
         int numKeys = current.getNumKeys();
 
-        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
+        int weightKey = (current.isLeaf() || (!isUnique())) ? current.getValueElementSize() : 0;
         int weightChild = (current.isLeaf() ? 0 : 4);
         int header = current.storageHeaderSize();
         int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(
@@ -498,7 +498,7 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
     private int computeKeysToMoveFromLeft(T current, T left) {
-        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
+        int weightKey = (current.isLeaf() || (!isUnique())) ? current.getValueElementSize() : 0;
         int weightChild = (current.isLeaf() ? 0 : 4);
         int header = current.storageHeaderSize();
 
@@ -511,7 +511,7 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
     private int computeKeysToMoveFromRight(T current, T right) {
-        int weightKey = (current.isLeaf() || (!isUnique())) ? 8 : 0;
+        int weightKey = (current.isLeaf() || (!isUnique())) ? current.getValueElementSize() : 0;
         int weightChild = (current.isLeaf() ? 0 : 4);
         int header = current.storageHeaderSize();
 

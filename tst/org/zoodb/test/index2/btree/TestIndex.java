@@ -5,8 +5,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 
 import org.junit.Test;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
@@ -47,6 +49,36 @@ public class TestIndex {
 		BTreeIndexUnique ind2 = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX,
 				file, rootPageId);
 		findAll(ind2, entries);
+	}
+	
+	@Test
+	public void testWriteReadDifferentValueSize() {
+		StorageChannel file = createPageAccessFile();
+		int keySize = 16;
+		int valSize = 4;
+		LongLongUIndex ind1 = IndexFactory.createUniqueIndex(DATA_TYPE.GENERIC_INDEX, file, keySize, valSize);
+
+		int numElements = 10000;
+		ArrayList<LLEntry> entries = PerformanceTest.randomEntriesUniqueByteValues(numElements,
+				42);
+		PerformanceTest.insertList(ind1, entries);
+		int rootPageId = ind1.write();
+		LongLongUIndex ind2 = IndexFactory.loadUniqueIndex(DATA_TYPE.GENERIC_INDEX, file, rootPageId, keySize, valSize);
+		findAll(ind2, entries);
+		
+		int numDeleteEntries = (int) (numElements * 0.9);
+        Collections.shuffle(entries, new Random(43));
+        List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
+		
+		PerformanceTest.removeList(ind2, deleteEntries);
+		rootPageId = ind2.write();
+//		long startTime = System.nanoTime();
+//		System.out.println((System.nanoTime() - startTime) / 1000000);
+//		System.out.println(ind1.statsGetWrittenPagesN());
+
+		LongLongUIndex ind3 = IndexFactory.loadUniqueIndex(DATA_TYPE.GENERIC_INDEX, file, rootPageId, keySize, valSize);
+		entries.removeAll(deleteEntries);
+		findAll(ind3, entries);
 	}
 	
 	@Test

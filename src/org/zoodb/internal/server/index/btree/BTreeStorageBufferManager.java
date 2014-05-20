@@ -31,6 +31,8 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	private int statNWrittenPages = 0;
 	private int statNReadPages = 0;
 
+	private int nodeValueElementSize = 8;
+
 	public BTreeStorageBufferManager(StorageChannel storage, boolean isUnique) {
 		this.dirtyBuffer = new PrimLongMapLI<>();
 		this.cleanBuffer = new PrimLongMapLI<>();
@@ -39,7 +41,6 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		this.storageFile = storage;
 		this.storageIn = storage.getReader(false);
 		this.storageOut = storage.getWriter(false);
-		
     	this.pageSize = this.storageFile.getPageSize();
 	}
 
@@ -88,13 +89,13 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		int encodedArraySize = PrefixSharingHelper.encodedArraySizeWithoutMetadata(numKeys, prefixLength);
 		byte[] encodedArrayWithoutMetadata = new byte[encodedArraySize];
 		storageIn.noCheckRead(encodedArrayWithoutMetadata);
-        int maxNumKeys = computeMaxPossibleEntries(isUnique, isLeaf, getPageSize());
+        int maxNumKeys = PagedBTreeNode.computeMaxPossibleEntries(isUnique, isLeaf, getPageSize(), nodeValueElementSize);
 
 		long[] keys = PrefixSharingHelper.decodeArray(encodedArrayWithoutMetadata, numKeys, maxNumKeys, prefixLength);
 
 		if(isLeaf) {
 			long[] values = new long[maxNumKeys];
-			storageIn.noCheckRead(values, numKeys);
+			readValues(values, numKeys);
 			node = PagedBTreeNodeFactory.constructLeaf(this, isUnique, false,
 								pageSize, pageId, numKeys,
 								keys, values);
@@ -105,7 +106,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
             long[] values = null;
             if (!isUnique) {
                 values = new long[maxNumKeys];
-                storageIn.noCheckRead(values, numKeys);
+                readValues(values, numKeys);
             }
 			node = PagedBTreeNodeFactory.constructInnerNode(this, isUnique, false,
 								pageSize, pageId, numKeys, keys, values,
@@ -119,6 +120,26 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		statNReadPages++;
 
 		return node;
+	}
+	
+	private void readValues(long[] values, int numValues) {
+		if(nodeValueElementSize == 8) {
+			storageIn.noCheckRead(values, numValues);
+		} else {
+			for(int i = 0; i < numValues; i++) {
+				if(nodeValueElementSize == 1) {
+					values[i] = storageIn.readByte();
+				}
+				else if(nodeValueElementSize == 2) {
+					values[i] = storageIn.readShort();
+				}
+				else if(nodeValueElementSize == 4) {
+					values[i] = storageIn.readInt();
+				} else {
+					throw new UnsupportedOperationException();
+				}
+			}
+		}
 	}
 
 
@@ -168,12 +189,12 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	 * Leaf node page: 
 	 * 1 byte -1 
 	 * prefixShareEncoding(keys) 
-	 * 8 byte * numKeys for values
+	 * size(value) bytes * numKeys for values
 	 * 
 	 * Inner node page 
 	 * 1 byte 0 
 	 * prefixShareEncoding(keys) 
-	 * 8 byte * numKeys for values
+	 * size(value) bytes * numKeys for values
 	 * 4 byte * (numKeys + 1) for childrenPageIds 
 	 */
 
@@ -186,24 +207,42 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 		if (node.isLeaf()) {
 			storageOut.writeByte((byte) -1);
-//			byte[] encodedKeys = PrefixSharingHelper.encodeArray(Arrays.copyOf(node.getKeys(), node.getNumKeys()));
 			byte[] encodedKeys = PrefixSharingHelper.encodeArray(node.getKeys(), node.getNumKeys(), node.getPrefix());
 			storageOut.noCheckWrite(encodedKeys);
-			storageOut.noCheckWrite(node.getValues(), node.getNumKeys());
+			writeValues(node.getValues(), node.getNumKeys());
 
 		} else {
 			storageOut.writeByte((byte) 1);
-//			byte[] encodedKeys = PrefixSharingHelper.encodeArray(Arrays.copyOf(node.getKeys(), node.getNumKeys()));
 			byte[] encodedKeys = PrefixSharingHelper.encodeArray(node.getKeys(), node.getNumKeys(), node.getPrefix());
 			storageOut.noCheckWrite(encodedKeys);
             if (node.getValues() != null) {
-				storageOut.noCheckWrite(node.getValues(), node.getNumKeys());
+				writeValues(node.getValues(), node.getNumKeys());
             }
 			storageOut.noCheckWrite(node.getChildrenPageIds(), node.getNumKeys()+1);
 		}
 
 		storageOut.flush();
 		return pageId;
+	}
+	
+	private void writeValues(long[] values, int numValues) {
+		if(nodeValueElementSize == 8) {
+			storageOut.noCheckWrite(values, numValues);
+		} else {
+			for(int i = 0; i < numValues; i++) {
+				if(nodeValueElementSize == 1) {
+					storageOut.writeByte((byte)values[i]);
+				}
+				else if(nodeValueElementSize == 2) {
+					storageOut.writeShort((short)values[i]);
+				}
+				else if(nodeValueElementSize == 4) {
+					storageOut.writeInt((int)values[i]);
+				} else {
+					throw new UnsupportedOperationException();
+				}
+			}
+		}
 	}
 
 	@Override
@@ -342,28 +381,12 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
         return pageHeaderSize();
     }
 
-    public int computeMaxPossibleEntries(boolean isUnique, boolean isLeaf, int pageSize) {
-        //ToDo use this same method in the node, to compute the sizes on init
-        int maxPossibleNumEntries;
-        /*
-            In the case of the best compression, all keys would have the same value.
-         */
-        int encodedKeyArraySize = PrefixSharingHelper.SMALLEST_POSSIBLE_COMPRESSION_SIZE;
-
-        if (isLeaf) {
-            //subtract a 64 bit prefix and divide by 8 (the number of bytes in a long)
-            maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 3 ) + 1;
-        } else {
-            //inner nodes also contain children ids which are ints
-            //need to divide by 4
-            //n * 4
-            if (isUnique) {
-                maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 2 ) + 1;
-            } else {
-                maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) / 12 ) + 1;
-            }
-
-        }
-        return maxPossibleNumEntries;
-    }
+	@Override
+	public int getNodeValueElementSize() {
+		return nodeValueElementSize;
+	}
+	
+	public void setNodeValueElementSize(int sizeInByte) {
+		nodeValueElementSize = sizeInByte;
+	}
 }

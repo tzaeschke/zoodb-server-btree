@@ -29,11 +29,13 @@ public abstract class BTreeNode extends Observable {
 	private long[] keys;
 
 	private long[] values;
+	protected int valueElementSize;
 
-	public BTreeNode(int pageSize, boolean isLeaf, boolean isRoot) {
+	public BTreeNode(int pageSize, boolean isLeaf, boolean isRoot, int valueElementSize) {
 		this.isLeaf = isLeaf;
 		this.isRoot = isRoot;
         this.pageSize = pageSize;
+        this.valueElementSize = valueElementSize;
 
         initializeEntries();
         this.minSize = keys.length >> 1;
@@ -43,7 +45,6 @@ public abstract class BTreeNode extends Observable {
 
     public abstract void initializeEntries();
     protected abstract void initChildren(int size);
-    public abstract int computeMaxPossibleNumEntries();
 
     public abstract BTreeNode newNode(int order, boolean isLeaf, boolean isRoot);
     public abstract boolean equalChildren(BTreeNode other);
@@ -75,8 +76,10 @@ public abstract class BTreeNode extends Observable {
 
     public abstract int keyIndexOf(BTreeNode left, BTreeNode right);
 
+    public abstract int computeMaxPossibleEntries();
     public abstract int computeSize();
     public abstract int storageHeaderSize();
+
     public abstract boolean willOverflowAfterInsert(long key, long value);
     public abstract boolean fitsIntoOneNodeWith(BTreeNode neighbour);
 
@@ -591,5 +594,9 @@ public abstract class BTreeNode extends Observable {
 	public long getPrefix() {
 		return prefix;
 	}
+	
+    public int getValueElementSize() {
+    	return this.valueElementSize;
+    }
     
 }

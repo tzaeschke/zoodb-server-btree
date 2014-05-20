@@ -24,12 +24,16 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
 
     @Override
     public void initializeEntries() {
-        int size = computeMaxPossibleNumEntries();
+        int size = PagedBTreeNode.computeMaxPossibleEntries(false, isLeaf(), pageSize, valueElementSize);
         initKeys(size);
         initValues(size);
         if (!isLeaf()) {
             initChildren(size + 1);
         }
+    }
+    
+    public int computeMaxPossibleEntries() {
+    	return PagedBTreeNode.computeMaxPossibleEntries(false, isLeaf(), pageSize, valueElementSize);
     }
 
     @Override
@@ -118,35 +122,11 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
     @Override
     public long getNonKeyEntrySizeInBytes(int numKeys) {
         if (isLeaf()) {
-            return numKeys << 3;
+            return numKeys * getValueElementSize();
         } else {
             int numChildren = numKeys + 1;
-            return (numKeys << 3) + (numChildren << 2);
+            return numKeys * getValueElementSize() + (numChildren << 2);
         }
-    }
-
-    @Override
-    public int computeMaxPossibleNumEntries() {
-        int maxPossibleNumEntries;
-        /*
-            In the case of the best compression, all keys would have the same value.
-         */
-        int encodedKeyArraySize = PrefixSharingHelper.SMALLEST_POSSIBLE_COMPRESSION_SIZE;
-        if (pageSize < encodedKeyArraySize) {
-            throw new IllegalStateException("The page size is too small!");
-        }
-        if (isLeaf()) {
-            //subtract a 64 bit prefix and divide by 8 (the number of bytes in a long)
-
-            maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 3 ) + 1;
-        } else {
-            //inner nodes also contain children ids which are ints
-            //need to divide by 12
-            // n * 8 value bytes
-            // (n + 1) * 4 child bytes
-            maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) / 12 ) + 1;
-        }
-        return maxPossibleNumEntries;
     }
 
     @Override
