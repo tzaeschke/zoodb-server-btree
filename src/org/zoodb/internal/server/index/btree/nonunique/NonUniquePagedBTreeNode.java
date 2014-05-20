@@ -121,7 +121,7 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
             return numKeys << 3;
         } else {
             int numChildren = numKeys + 1;
-            return numKeys << 3 + numChildren << 2;
+            return (numKeys << 3) + (numChildren << 2);
         }
     }
 
