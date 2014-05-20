@@ -294,6 +294,24 @@ public abstract class BTreeNode extends Observable {
         return (parent == null) ? null : parent.rightSiblingOf(this);
     }
 
+    public <T extends BTreeNode> T rightSibling(int childIndex) {
+        int rightIndex = childIndex + 1;
+        if (rightIndex > numKeys) {
+            return null;
+        } else {
+            return getChild(rightIndex);
+        }
+    }
+
+    public <T extends BTreeNode> T leftSibling(int childIndex) {
+        int leftIndex = childIndex - 1;
+        if (leftIndex < 0) {
+            return null;
+        } else {
+            return getChild(leftIndex);
+        }
+    }
+
     public void setKey(int index, long key) {
         getKeys()[index] = key;
 

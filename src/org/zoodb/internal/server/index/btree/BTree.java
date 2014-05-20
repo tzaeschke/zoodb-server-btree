@@ -192,16 +192,46 @@ public abstract class BTree<T extends BTreeNode> {
 		if(root.getNumKeys() == 0) {
 			throw new NoSuchElementException();
 		}
-        Pair<LinkedList<T>,T> pair = searchNodeWithHistory(key, value, true);
-        T leaf = pair.getB();
-        LinkedList<T> ancestorStack = pair.getA();
 
         increaseModcount();
-
-        long oldValue = deleteFromLeaf(leaf, key, value);
-        rebalanceAfterDelete(leaf, ancestorStack, key, value);
+        long oldValue = delete(root, key, value);
+//        Pair<LinkedList<T>,T> pair = searchNodeWithHistory(key, value, true);
+//        T leaf = pair.getB();
+//        LinkedList<T> ancestorStack = pair.getA();
+//
+//        increaseModcount();
+//
+//        long oldValue = deleteFromLeaf(leaf, key, value);
+//        rebalanceAfterDelete(leaf, ancestorStack, key, value);
 
         recomputeMinAndMax(key);
+        return oldValue;
+    }
+
+    private long delete(T node, long key, long value) {
+        node.markChanged();
+        long oldValue;
+        if (node.isLeaf()) {
+            oldValue = deleteFromLeaf(node, key, value);
+        } else {
+            int childIndex = node.findKeyValuePos(key, value);
+            T child = node.getChild(childIndex);
+            oldValue = delete(child, key, value);
+            if (child.isUnderfull()) {
+                //check if can borrow 1 value from the left or right siblings
+                T rightSibling = node.rightSibling(childIndex);
+                T leftSibling = node.leftSibling(childIndex);
+                if (child.fitsIntoOneNodeWith(leftSibling)) {
+                    mergeWithLeft(this, child, leftSibling, node, childIndex - 1);
+                } else if (child.fitsIntoOneNodeWith(rightSibling)) {
+                    mergeWithRight(this, child, rightSibling, node, childIndex);
+                } else if (leftSibling != null && leftSibling.hasExtraKeys()) {
+                    redistributeKeysFromLeft(child, leftSibling, node, childIndex - 1);
+                } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
+                    redistributeKeysFromRight(child, rightSibling, node, childIndex);
+                }
+            }
+        }
         return oldValue;
     }
 
@@ -218,40 +248,40 @@ public abstract class BTree<T extends BTreeNode> {
      * @param key                   The key corresponding to the entry to be removed
      * @param value                 The value corresponding to the entry to be removed
      */
-    private void rebalanceAfterDelete(T node, LinkedList<T> ancestorStack, long key, long value) {
-        if (!node.isRoot()) {
-            T current = node;
-            T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
-
-            while (current != null) {
-                if (current.isUnderfull()) {
-                    //check if can borrow 1 value from the left or right siblings
-                    T rightSibling = (T) current.rightSibling(parent);
-                    T leftSibling = (T) current.leftSibling(parent);
-                    if (current.fitsIntoOneNodeWith(leftSibling)) {
-                        //System.out.println("Merge with left");
-                        //merge with left sibling
-                        parent = mergeWithLeft(this, current, leftSibling, parent);
-                    } else if (current.fitsIntoOneNodeWith(rightSibling)) {
-                        //System.out.println("Merge with left");
-                        parent = mergeWithRight(this, current, rightSibling, parent);
-                    } else if (leftSibling != null && leftSibling.hasExtraKeys()) {
-                        //System.out.println("Redistribute from left");
-                        redistributeKeysFromLeft(current, leftSibling, parent);
-                    } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
-                        //System.out.println("Redistribute from right");
-                        redistributeKeysFromRight(current, rightSibling, parent);
-                    } else {
-                        //System.out.println("Could not re-balance");
-                    }
-                    //if nothing works, we're left with an under-full node, but
-                    //there's nothing really that we can do at this point
-                }
-                current = parent;
-                parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
-            }
-        }
-    }
+//    private void rebalanceAfterDelete(T node, LinkedList<T> ancestorStack, long key, long value) {
+//        if (!node.isRoot()) {
+//            T current = node;
+//            T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
+//
+//            while (current != null) {
+//                if (current.isUnderfull()) {
+//                    //check if can borrow 1 value from the left or right siblings
+//                    T rightSibling = (T) current.rightSibling(parent);
+//                    T leftSibling = (T) current.leftSibling(parent);
+//                    if (current.fitsIntoOneNodeWith(leftSibling)) {
+//                        //System.out.println("Merge with left");
+//                        //merge with left sibling
+//                        parent = mergeWithLeft(this, current, leftSibling, parent);
+//                    } else if (current.fitsIntoOneNodeWith(rightSibling)) {
+//                        //System.out.println("Merge with left");
+//                        parent = mergeWithRight(this, current, rightSibling, parent);
+//                    } else if (leftSibling != null && leftSibling.hasExtraKeys()) {
+//                        //System.out.println("Redistribute from left");
+//                        redistributeKeysFromLeft(current, leftSibling, parent);
+//                    } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
+//                        //System.out.println("Redistribute from right");
+//                        redistributeKeysFromRight(current, rightSibling, parent);
+//                    } else {
+//                        //System.out.println("Could not re-balance");
+//                    }
+//                    //if nothing works, we're left with an under-full node, but
+//                    //there's nothing really that we can do at this point
+//                }
+//                current = parent;
+//                parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
+//            }
+//        }
+//    }
 
     /**
      * Search the leaf node containing the key/value pair received as an argument,
@@ -375,13 +405,13 @@ public abstract class BTree<T extends BTreeNode> {
      * @param parent                The parent of the current node
      * @return                      A reference to the parent node
      */
-    public T mergeWithRight(BTree<T> tree, T current, T right, T parent) {
+    public T mergeWithRight(BTree<T> tree, T current, T right, T parent, int keyIndex) {
 
-        int keyIndex = parent.keyIndexOf(current, right);
+        assert keyIndex == parent.keyIndexOf(current, right);
 
         //check if parent needs merging -> tree gets smaller
         if (parent.isRoot() && parent.getNumKeys() == 1) {
-            parent = rootMergeWithRight(tree, current, right, parent, keyIndex);
+            parent = rootMergeWithRight(tree, current, right, parent);
         } else {
             if (right.isLeaf()) {
                 leafMergeWithRight(current, right, parent, keyIndex);
@@ -407,17 +437,13 @@ public abstract class BTree<T extends BTreeNode> {
      * @param parent                    The parent of the current node
      * @return                          A new reference to the current node
      */
-    public T  mergeWithLeft(BTree<T> tree, T current, T left, T parent) {
+    public T  mergeWithLeft(BTree<T> tree, T current, T left, T parent, int keyIndex) {
 
-        int keyIndex = parent.keyIndexOf(left, current);
+        assert keyIndex == parent.keyIndexOf(left, current);
 
         //check if we need to merge with parent
-        if (parent.getNumKeys() == 1) {
-            if (parent.isRoot()) {
-                parent = rootMergeWithLeft(tree, current, left, parent, keyIndex);
-            } else {
-                return parent;
-            }
+        if (parent.getNumKeys() == 1 && parent.isRoot()) {
+            parent = rootMergeWithLeft(tree, current, left, parent);
         } else {
             if (current.isLeaf()) {
                 leafMergeWithLeft(current, left, parent, keyIndex);
@@ -440,13 +466,14 @@ public abstract class BTree<T extends BTreeNode> {
      * @param right             The right sibling of the current node
      * @param parent            The parent of the current node
      */
-    public void redistributeKeysFromRight(T current, T right, T parent) {
+    public void redistributeKeysFromRight(T current, T right, T parent, int parentKeyIndex) {
         int keysToMove = computeKeysToMoveFromRight(current, right);
         if (keysToMove == 0) {
             return;
         }
         //move key from parent to current node
-        int parentKeyIndex = parent.keyIndexOf(current, right);
+        assert parentKeyIndex == parent.keyIndexOf(current, right);
+
         if (current.isLeaf()) {
             leafRedistributeFromRight(current, right, parent, parentKeyIndex, keysToMove);
         } else {
@@ -464,9 +491,9 @@ public abstract class BTree<T extends BTreeNode> {
      * @param left              The left sibling of the current node
      * @param parent            The parent of the current node
      */
-    public void redistributeKeysFromLeft(T current, T left, T parent) {
+    public void redistributeKeysFromLeft(T current, T left, T parent, int parentKeyIndex) {
         int keysToMove = computeKeysToMoveFromLeft(current, left);
-        int parentKeyIndex = parent.keyIndexOf(left, current);
+        assert parentKeyIndex == parent.keyIndexOf(left, current);
         if (current.isLeaf()) {
             if (keysToMove <= 0) {
                 return;
@@ -632,7 +659,7 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
-    private T rootMergeWithRight(BTree<T> tree, T current, T right, T parent, int keyIndex) {
+    private T rootMergeWithRight(BTree<T> tree, T current, T right, T parent) {
         if (!current.isLeaf()) {
             right.shiftRecordsRight(parent.getNumKeys());
             right.migrateEntry(0, parent, 0);
@@ -650,7 +677,7 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
-    private T rootMergeWithLeft(BTree<T> tree, T current, T left, T parent, int keyIndex) {
+    private T rootMergeWithLeft(BTree<T> tree, T current, T left, T parent) {
         if (!current.isLeaf()) {
             current.shiftRecordsRight(parent.getNumKeys());
             current.migrateEntry(0, parent, 0);
