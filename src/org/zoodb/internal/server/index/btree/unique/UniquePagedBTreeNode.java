@@ -175,9 +175,9 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     @Override
     public long getNonKeyEntrySizeInBytes(int numKeys) {
         if (isLeaf()) {
-            return numKeys * 8;
+            return numKeys << 3;
         } else {
-            return (numKeys + 1) * 4;
+            return (numKeys + 1) << 2;
         }
     }
 }

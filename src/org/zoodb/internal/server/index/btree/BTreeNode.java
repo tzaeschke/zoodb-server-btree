@@ -371,7 +371,7 @@ public abstract class BTreeNode extends Observable {
     }
 
     public long getKey(int index) {
-        return getKeys()[index];
+        return keys[index];
     }
 
     public boolean isLeaf() {
