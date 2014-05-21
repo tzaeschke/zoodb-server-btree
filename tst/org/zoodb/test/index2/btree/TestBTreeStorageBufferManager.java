@@ -71,7 +71,7 @@ public class TestBTreeStorageBufferManager {
     
     @Test
     public void testComputeSize() {
-        int pageSize = 248;
+        int pageSize = 244;
         
         PagedBTreeNode node = testComputeSizeHelper(pageSize);
         assertTrue("We want to test here if it exactly fits into the page", node.computeSize() == pageSize);
@@ -81,7 +81,7 @@ public class TestBTreeStorageBufferManager {
         	fail("Too many elements in Node.");
         }
         
-        pageSize = 247;
+        pageSize = 243;
         node = testComputeSizeHelper(pageSize);
         assertTrue("We want to test here if it does not fit into the page", node.computeSize() == pageSize+1);
         try {
@@ -575,19 +575,23 @@ public class TestBTreeStorageBufferManager {
 	
 	@Test
 	public void testNonUnique() {
-        final int MAX = 10000;
+        final int MAX = 1000;
         NonUniquePagedBTree tree = new NonUniquePagedBTree(pageSize, bufferManager);
 
         //Fill index
-        for (int i = 1000; i < 1000+MAX; i++) {
-            tree.insert(i, 32+i);
+        for (int j = 0; j < 10; j++) {
+	        for (int i = 1000; i < 1000+MAX; i++) {
+	            tree.insert(i, 32+i*j);
+	        }
         }
 
         tree.write();
         
-        bufferManager.clear();
-        for (int i = 1000; i < 1000+MAX; i++) {
-            assertTrue(tree.contains(i, 32+i));
+        bufferManager.getCleanBuffer().clear();
+        for (int j = 0; j < 10; j++) {
+	        for (int i = 1000; i < 1000+MAX; i++) {
+	            assertTrue(tree.contains(i, 32+i*j));
+	        }
         }
 	}
 	

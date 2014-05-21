@@ -177,6 +177,25 @@ public class PerformanceTest {
 		Collections.shuffle(l, prng);
 		return l;
 	}
+	
+	public static ArrayList<LLEntry> randomEntriesUniqueByteValues(int numElements, long seed) {
+		// ensure that entries with equal keys can not exists in the set
+		Set<LLEntry> randomEntryList = new TreeSet<LLEntry>(
+				new Comparator<LLEntry>() {
+					public int compare(LLEntry e1, LLEntry e2) {
+						return Long.compare(e1.getKey(), e2.getKey());
+					}
+				});
+		Random prng = new Random(seed);
+		while (randomEntryList.size() < numElements) {
+			byte[] byteList = new byte[1];
+			prng.nextBytes(byteList);
+			randomEntryList.add(new LLEntry(prng.nextInt(), byteList[0]));
+		}
+		ArrayList<LLEntry> l = new ArrayList<LLEntry>(randomEntryList);
+		Collections.shuffle(l, prng);
+		return l;
+	}
 
 	/*
 	 * generates a list of increasing integers beginning with a random element

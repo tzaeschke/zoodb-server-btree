@@ -15,16 +15,36 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
     
     public BTreeIndexUnique(DiskIO.DATA_TYPE dataType, StorageChannel file) {
     	super(dataType, file, true, true);
-		tree = new UniquePagedBTree(bufferManager.getPageSize(), bufferManager);
+    	initTree();
     }
-
+    
+    public BTreeIndexUnique(DiskIO.DATA_TYPE dataType, int nodeValueSizeInByte, StorageChannel file) {
+    	super(dataType, file, true, true);
+    	bufferManager.setNodeValueElementSize(nodeValueSizeInByte);
+    	initTree();
+    }
+    
 	public BTreeIndexUnique(DiskIO.DATA_TYPE dataType, StorageChannel file, int rootPageId) {
     	super(dataType, file, true, true);
-    	
+    	loadTree(rootPageId);
+
+    }
+	
+	public BTreeIndexUnique(DiskIO.DATA_TYPE dataType, int nodeValueSizeInByte, StorageChannel file, int rootPageId) {
+    	super(dataType, file, true, true);
+    	bufferManager.setNodeValueElementSize(nodeValueSizeInByte);
+    	loadTree(rootPageId);
+    }
+	
+	public void initTree() {
+		tree = new UniquePagedBTree(bufferManager.getPageSize(), bufferManager);
+	}
+	
+	public void loadTree(int rootPageId) {
         UniquePagedBTreeNode root = (UniquePagedBTreeNode)bufferManager.read(rootPageId);
         root.setIsRoot(true);
 		tree = new UniquePagedBTree(root, bufferManager.getPageSize(), bufferManager);
-    }
+	}
 
     @Override
 	public LLEntry findValue(long key) {

@@ -14,12 +14,8 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	private int[] childrenPageIds;
     protected BTreeBufferManager bufferManager;
 
-    public PagedBTreeNode(int pageSize, boolean isLeaf, boolean isRoot) {
-        super(pageSize, isLeaf, isRoot);
-    }
-
 	public PagedBTreeNode(BTreeBufferManager bufferManager, int pageSize, boolean isLeaf, boolean isRoot) {
-		super(pageSize, isLeaf, isRoot);
+		super(pageSize, isLeaf, isRoot, bufferManager.getNodeValueElementSize());
 		
         markDirty();
 		this.bufferManager = bufferManager;
@@ -32,7 +28,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	 * Does not save the node in the buffer managers memory.
 	 */
     public PagedBTreeNode(BTreeBufferManager bufferManager, int pageSize, boolean isLeaf, boolean isRoot, int pageId) {
-		super(pageSize, isLeaf, isRoot);
+		super(pageSize, isLeaf, isRoot, bufferManager.getNodeValueElementSize());
 
 		this.bufferManager = bufferManager;
 		this.setPageId(pageId);
@@ -328,4 +324,30 @@ public abstract class PagedBTreeNode extends BTreeNode {
     public int storageHeaderSize() {
         return bufferManager.getNodeHeaderSizeInStorage(this);
     }
+    
+    public static int computeMaxPossibleEntries(boolean isUnique, boolean isLeaf, int pageSize, int valueElementSize) {
+        //ToDo use this same method in the node, to compute the sizes on init
+        int maxPossibleNumEntries;
+        /*
+            In the case of the best compression, all keys would have the same value.
+         */
+        int encodedKeyArraySize = PrefixSharingHelper.SMALLEST_POSSIBLE_COMPRESSION_SIZE;
+
+        if (isLeaf) {
+            //subtract a 64 bit prefix and divide by 8 (the number of bytes in a long)
+            maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) / valueElementSize) + 1;
+        } else {
+            //inner nodes also contain children ids which are ints
+            //need to divide by 4
+            //n * 4
+            if (isUnique) {
+                maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 2 ) + 1;
+            } else {
+                maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) / 12 ) + 1;
+            }
+
+        }
+        return maxPossibleNumEntries;
+    }
+    
 }

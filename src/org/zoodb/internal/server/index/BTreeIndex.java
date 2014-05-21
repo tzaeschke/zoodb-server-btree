@@ -85,4 +85,9 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
     public BTreeStorageBufferManager getBufferManager() {
 		return bufferManager;
 	}
+    
+    public void setNodeValueSize(int sizeInByte) {
+    	bufferManager.setNodeValueElementSize(sizeInByte);
+    	
+    }
 }

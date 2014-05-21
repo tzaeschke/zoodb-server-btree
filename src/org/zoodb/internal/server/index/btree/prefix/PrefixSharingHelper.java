@@ -329,9 +329,9 @@ public class PrefixSharingHelper {
         int indexInCurrentByte = 0;
 
         /* Compute the number of bits to be stored */
-        int outputArraySize = encodedArraySizeWithoutMetadata(arrayLength, prefix);
+        int outputArraySize = encodedArraySize(arrayLength, prefix);
 
-        byte[] outputArray = new byte[outputArraySize + PREFIX_SHARING_METADATA_SIZE];
+        byte[] outputArray = new byte[outputArraySize];
 
         /*Write the size of the array as an int - always 4 bytes */
         outputArray[currentByte++] = (byte) (arrayLength >>> 24);
@@ -377,8 +377,7 @@ public class PrefixSharingHelper {
         return outputArraySize;
     }
     public static int encodedArraySize(int arraySize, long prefixLength) {
-    	int headerSize = 5;
-        return headerSize + encodedArraySizeWithoutMetadata(arraySize, prefixLength);
+        return PREFIX_SHARING_METADATA_SIZE + encodedArraySizeWithoutMetadata(arraySize, prefixLength);
     }
 
     /**

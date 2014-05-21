@@ -78,8 +78,11 @@ public class IndexFactory {
 	public static LongLongIndex.LongLongUIndex createUniqueIndex(DATA_TYPE type, 
 			StorageChannel storage, int keySize, int valSize) {
 //		return new PagedUniqueLongLong(type, storage, keySize, valSize);
-		return new BTreeIndexUnique(type, storage);
-//		throw new UnsupportedOperationException();
+		
+		valSize = (int)Math.ceil(valSize/8.0);
+		BTreeIndexUnique ind = new BTreeIndexUnique(type, valSize, storage);
+		return ind;
+		
 	}
 	
 	/**
@@ -92,8 +95,10 @@ public class IndexFactory {
 	public static LongLongIndex.LongLongUIndex loadUniqueIndex(DATA_TYPE type, 
 			StorageChannel storage, int pageId, int keySize, int valSize) {
 //		return new PagedUniqueLongLong(type, storage, pageId, keySize, valSize);
-		return new BTreeIndexUnique(type, storage, pageId);
-//		throw new UnsupportedOperationException();
+		
+		valSize = (int)Math.ceil(valSize/8.0);
+		BTreeIndexUnique ind = new BTreeIndexUnique(type, valSize, storage, pageId);
+		return ind;
 	}
 	
 }

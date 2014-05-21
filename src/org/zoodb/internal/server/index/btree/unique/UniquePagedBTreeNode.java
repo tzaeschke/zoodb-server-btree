@@ -25,13 +25,17 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
 
     @Override
     public void initializeEntries() {
-        int size = computeMaxPossibleNumEntries();
+        int size = computeMaxPossibleEntries();
         initKeys(size);
         if (!isLeaf()) {
             initChildren(size + 1);
         } else {
             initValues(size);
         }
+    }
+    
+    public int computeMaxPossibleEntries() {
+    	return PagedBTreeNode.computeMaxPossibleEntries(true, isLeaf(), pageSize, valueElementSize);
     }
 
     @Override
@@ -152,30 +156,9 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    public int computeMaxPossibleNumEntries() {
-        int maxPossibleNumEntries;
-        /*
-            In the case of the best compression, all keys would have the same value.
-         */
-        int encodedKeyArraySize = PrefixSharingHelper.SMALLEST_POSSIBLE_COMPRESSION_SIZE;
-
-        if (isLeaf()) {
-            //subtract a 64 bit prefix and divide by 8 (the number of bytes in a long)
-            maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 3 ) + 1;
-        } else {
-            //inner nodes also contain children ids which are ints
-            //need to divide by 4
-            //n * 4
-            maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 2 ) + 1;
-        }
-
-        return maxPossibleNumEntries;
-    }
-
-    @Override
     public long getNonKeyEntrySizeInBytes(int numKeys) {
         if (isLeaf()) {
-            return numKeys << 3;
+            return numKeys * getValueElementSize();
         } else {
             return (numKeys + 1) << 2;
         }
