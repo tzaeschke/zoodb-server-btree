@@ -2,9 +2,8 @@ package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.util.Pair;
 
+import java.util.Iterator;
 import java.util.LinkedList;
-
-import javax.swing.text.AbstractDocument.LeafElement;
 
 public class DescendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTreeLeafEntryIterator<T> {
 
@@ -24,12 +23,18 @@ public class DescendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTree
             T leftSibling = null;
             T ancestor = null;
             T ancestorsChild = curLeaf;
+            Integer position = (ancestors.size() == 0) ? 0 : ancestors.peek().getNumKeys();
             while (leftSibling == null && ancestors.size() > 0) {
                 ancestor = ancestors.pop();
-                leftSibling = (T) ancestorsChild.leftSibling(ancestor);
+                position = positions.pop();
+
+                //leftSibling = (T) ancestorsChild.leftSibling(ancestor);
+                leftSibling = ancestor.leftSibling(position);
+                position -= 1;
                 ancestorsChild = ancestor;
             }
             ancestors.push(ancestor);
+            positions.push(position);
             if (leftSibling == null) {
                 curLeaf = null;
             } else {
@@ -50,6 +55,10 @@ public class DescendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTree
         ancestors = p.getA();
         curLeaf = p.getB();
         curPos = curLeaf.findKeyValuePos(end, Long.MAX_VALUE);
+        Iterator<T> tIterator = ancestors.descendingIterator();
+        while (tIterator.hasNext()) {
+            positions.push(tIterator.next().getNumKeys());
+        }
         // findKeyValuePos looks for a position to insert an entry
         // and thus it is one off
         curPos = curPos > 0 ? curPos-1 : 0; 

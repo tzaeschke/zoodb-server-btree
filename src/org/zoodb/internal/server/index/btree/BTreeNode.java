@@ -17,6 +17,7 @@ public abstract class BTreeNode extends Observable {
 	private boolean isRoot;
 	//protected int order;
     protected int pageSize;
+    protected int pageSizeThreshold;
     protected int minSize;
 
     //It is very important always update this after modifying the keys/values/children
@@ -35,6 +36,7 @@ public abstract class BTreeNode extends Observable {
 		this.isLeaf = isLeaf;
 		this.isRoot = isRoot;
         this.pageSize = pageSize;
+        this.pageSizeThreshold = (int) (pageSize * 0.75);
         this.valueElementSize = valueElementSize;
 
         initializeEntries();
@@ -334,7 +336,7 @@ public abstract class BTreeNode extends Observable {
             return getNumKeys() == 0;
         }
         //ToDo fix this
-        return getNumKeys() < (keys.length >> 1) && getCurrentSize() < (pageSize * 0.75);
+        return getNumKeys() < (keys.length >> 1) && getCurrentSize() < pageSizeThreshold;
     }
 
     public boolean hasExtraKeys() {
@@ -342,7 +344,7 @@ public abstract class BTreeNode extends Observable {
             return true;
         }
         //ToDo need to have at least 3 keys
-        return getNumKeys() > 2 && getCurrentSize() < (0.75 * getPageSize());
+        return getNumKeys() > 2 && getCurrentSize() > pageSizeThreshold;
     }
 
     public boolean isFull() {

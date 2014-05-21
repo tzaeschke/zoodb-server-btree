@@ -22,13 +22,15 @@ public class AscendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTreeL
             curPos = 0;
             T rightSibling = null;
             T ancestor = null;
-            T ancestorsChild = curLeaf;
+            Integer position = 0;
             while (rightSibling == null && ancestors.size() > 0) {
                 ancestor = ancestors.pop();
-                rightSibling = (T) ancestorsChild.rightSibling(ancestor);
-                ancestorsChild = ancestor;
+                position = positions.pop();
+                rightSibling = ancestor.rightSibling(position);
+                position += 1;
             }
             ancestors.push(ancestor);
+            positions.push(position);
             if (rightSibling == null) {
                 curLeaf = null;
             } else {
@@ -47,6 +49,9 @@ public class AscendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTreeL
         Pair<LinkedList<T>, T> p = tree.searchNodeWithHistory(start, Long.MIN_VALUE, false);
         ancestors = p.getA();
         curLeaf = p.getB();
+        for (int i = 0; i < ancestors.size(); i++) {
+            positions.push(0);
+        }
         curPos = curLeaf.findKeyValuePos(start, Long.MIN_VALUE);
         // findKeyValuePos looks for a position to insert an entry
         // and thus it is one off

@@ -5,7 +5,6 @@ import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.util.DBLogger;
 
 import java.util.ConcurrentModificationException;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
@@ -15,6 +14,7 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 	protected T curLeaf;
 	protected int curPos;
 	protected LinkedList<T> ancestors;
+    protected LinkedList<Integer> positions;
 
     protected long start = Long.MIN_VALUE;
     protected long end = Long.MAX_VALUE;
@@ -34,6 +34,7 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 		this.curLeaf = null;
 		this.curPos = -1;
 		this.ancestors = new LinkedList<>();
+        this.positions = new LinkedList<>();
 		setFirstLeaf();
 	}
 
@@ -101,6 +102,7 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
         T current = node;
         while(!current.isLeaf()) {
             ancestors.push(current);
+            positions.push(0);
             current = (T) current.getChild(0);
         }
         return current;
@@ -114,6 +116,7 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
         while(!current.isLeaf()) {
             ancestors.push(current);
             int numKeys = current.getNumKeys();
+            positions.push(numKeys);
             current = (T) current.getChild(numKeys);
         }
         return current;
