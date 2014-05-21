@@ -30,6 +30,8 @@ public abstract class BTreeNode extends Observable {
 	private long[] keys;
 
 	private long[] values;
+    protected long[] childSizes;
+
 	protected int valueElementSize;
 
 	public BTreeNode(int pageSize, boolean isLeaf, boolean isRoot, int valueElementSize) {
@@ -184,6 +186,7 @@ public abstract class BTreeNode extends Observable {
         int recordsToMove = getNumKeys() - pos;
         shiftChildren(pos + 1, pos + 2, recordsToMove);
         setChild(pos + 1, newNode);
+        setChildSize(newNode.getCurrentSize(), pos + 1);
 
         shiftKeys(pos, pos + 1, recordsToMove);
         if (values != null) {
@@ -218,6 +221,9 @@ public abstract class BTreeNode extends Observable {
 
         setChild(0, left);
         setChild(1, right);
+
+        setChildSize(left.getCurrentSize(), 0);
+        setChildSize(right.getCurrentSize(), 0);
 
         recomputeSize();
     }
@@ -619,6 +625,14 @@ public abstract class BTreeNode extends Observable {
 	
     public int getValueElementSize() {
     	return this.valueElementSize;
+    }
+
+    public long getChildSize(int childIndex) {
+        return childSizes[childIndex];
+    }
+
+    public void setChildSize(long size, int childIndex) {
+        this.childSizes[childIndex] = size;
     }
     
 }

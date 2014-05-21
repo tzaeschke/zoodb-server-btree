@@ -93,6 +93,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
     protected void initChildren(int size) {
         //This is called by the BTreeNode constructor
         this.childrenPageIds = new int[size];
+        this.childSizes = new long[size];
     }
 
 	@Override

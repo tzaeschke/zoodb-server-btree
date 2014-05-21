@@ -252,6 +252,7 @@ public class PrefixSharingHelper {
 
         long prefixLeft, prefixRight, sizeLeft, sizeRight;
         boolean done;
+        int count = 0;
         do {
             done = false;
             prefixLeft = computePrefix(first[0], second[optimalIndex]);
@@ -268,9 +269,13 @@ public class PrefixSharingHelper {
             } else {
                 done = true;
             }
+            count++;
+            if (count == 10) {
+                return -1;
+            }
         } while (done == false);
 
-        if (optimalIndex == 0) {
+        if (optimalIndex <= 0) {
             return optimalIndex;
         }
         assert sizeLeft <= maxSize;
