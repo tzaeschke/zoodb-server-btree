@@ -54,7 +54,7 @@ public class BTreeIteratorTest {
 				new BTreeMemoryBufferManager());
 
 		ArrayList<LongLongIndex.LLEntry> entries = new ArrayList<>();
-		int limit = 10000;
+		int limit = 1000000;
 		for (int i = 0; i < limit; i++) {
 			long key = i * 2;
 			long value = i * 2;
@@ -81,7 +81,7 @@ public class BTreeIteratorTest {
 				new BTreeMemoryBufferManager());
 
 		ArrayList<LongLongIndex.LLEntry> entries = new ArrayList<>();
-		int limit = 10000;
+		int limit = 1000000;
 		for (int i = 0; i < limit; i++) {
 			long key = i * 2;
 			long value = i * 2;

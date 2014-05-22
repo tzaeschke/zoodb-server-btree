@@ -632,7 +632,9 @@ public abstract class BTreeNode extends Observable {
     }
 
     public void setChildSize(long size, int childIndex) {
-        this.childSizes[childIndex] = size;
+        if (this.childSizes != null) {
+            this.childSizes[childIndex] = size;
+        }
     }
     
 }
