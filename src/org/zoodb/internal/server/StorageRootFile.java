@@ -90,6 +90,11 @@ public final class StorageRootFile implements StorageChannel {
 			throw DBLogger.newFatal("Error opening database: " + dbPath, e);
 		}
 	}
+	
+	@Override
+	public FreeSpaceManager getFsm() {
+		return fsm;
+	}
 
 	@Override
 	public void newTransaction(long txId) {
