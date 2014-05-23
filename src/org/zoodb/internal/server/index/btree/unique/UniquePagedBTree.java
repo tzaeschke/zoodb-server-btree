@@ -3,7 +3,6 @@ package org.zoodb.internal.server.index.btree.unique;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTree;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
-import org.zoodb.internal.util.Pair;
 
 import java.util.NoSuchElementException;
 
@@ -81,10 +80,8 @@ public class UniquePagedBTree extends PagedBTree<UniquePagedBTreeNode> {
 					"Should only be called on leaf nodes.");
 		}
 		if (node.getNumKeys() > 0) {
-			Pair<Boolean, Integer> result = node.binarySearch(key, NO_VALUE);
-			int position = result.getB();
-			boolean found = result.getA();
-			if (found) {
+			int position = node.binarySearch(key, NO_VALUE);
+			if (position >= 0) {
 				return node.getValue(position);
 			}
 		}

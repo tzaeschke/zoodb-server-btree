@@ -1,9 +1,5 @@
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.util.Pair;
-
-import java.util.LinkedList;
-
 public class AscendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTreeLeafEntryIterator<T> {
 
     public AscendingBTreeLeafEntryIterator(BTree tree) {
@@ -46,13 +42,8 @@ public class AscendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTreeL
         if (tree.isEmpty()) {
             return;
         }
-        Pair<LinkedList<T>, T> p = tree.searchNodeWithHistory(start, Long.MIN_VALUE, false);
-        ancestors = p.getA();
-        curLeaf = p.getB();
-        for (int i = 0; i < ancestors.size(); i++) {
-            positions.push(0);
-        }
-        curPos = curLeaf.findKeyValuePos(start, Long.MIN_VALUE);
+
+        populateAncestorStack(start, Long.MIN_VALUE);
         // findKeyValuePos looks for a position to insert an entry
         // and thus it is one off
         curPos = curPos > 0 ? curPos-1 : 0; 

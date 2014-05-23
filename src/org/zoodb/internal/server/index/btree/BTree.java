@@ -1,9 +1,7 @@
 package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
-import org.zoodb.internal.util.Pair;
 
-import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
 /**
@@ -163,6 +161,14 @@ public abstract class BTree<T extends BTreeNode> {
         root.put(newKey, newValue, child, right);
     }
 
+    /**
+     * Split the current leaf node into two nodes. The first half of the keys remain on
+     * the current node, the rest are moved to a new node.
+     *
+     * @param current               A node that overflows and needs to be split.
+     * @return                      The new node that contains the right half
+     *                              of the keys of the current node.
+     */
     private T split(T current) {
         int numKeys = current.getNumKeys();
 
@@ -207,6 +213,15 @@ public abstract class BTree<T extends BTreeNode> {
         return oldValue;
     }
 
+    /**
+     * Delete a key/value pair the sub-tree rooted at node.
+     *
+     *
+     * @param node
+     * @param key
+     * @param value
+     * @return                  The value associated with the key.
+     */
     private long delete(T node, long key, long value) {
         node.markChanged();
         long oldValue;
@@ -219,33 +234,7 @@ public abstract class BTree<T extends BTreeNode> {
             node.setChildSize(child.getCurrentSize(), childIndex);
 
             if (child.isUnderfull()) {
-                //check if can borrow 1 value from the left or right siblings
-                T rightSibling = node.rightSibling(childIndex);
-                T leftSibling = node.leftSibling(childIndex);
-                if (child.fitsIntoOneNodeWith(leftSibling)) {
-                    mergeWithLeft(this, child, leftSibling, node, childIndex - 1);
-//                    assert child.getCurrentSize() <= child.getPageSize();
-//                    assert leftSibling.getCurrentSize() <= leftSibling.getPageSize();
-//                    assert node.getCurrentSize() <= node.getPageSize();
-                } else if (child.fitsIntoOneNodeWith(rightSibling)) {
-                    mergeWithRight(this, child, rightSibling, node, childIndex);
-
-//                    assert child.getCurrentSize() <= child.getPageSize();
-//                    assert rightSibling.getCurrentSize() <= rightSibling.getPageSize();
-//                    assert node.getCurrentSize() <= node.getPageSize();
-                } else if (leftSibling != null && leftSibling.hasExtraKeys()) {
-                    redistributeKeysFromLeft(child, leftSibling, node, childIndex - 1);
-
-//                    assert child.getCurrentSize() <= child.getPageSize();
-//                    assert leftSibling.getCurrentSize() <= leftSibling.getPageSize();
-//                    assert node.getCurrentSize() <= node.getPageSize();
-                } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
-                    redistributeKeysFromRight(child, rightSibling, node, childIndex);
-//
-//                    assert child.getCurrentSize() <= child.getPageSize();
-//                    assert rightSibling.getCurrentSize() <= rightSibling.getPageSize();
-//                    assert node.getCurrentSize() <= node.getPageSize();
-                }
+                rebalance(node, child, childIndex);
             } else if (child.overflows()) {
                 handleInsertOverflow(child, node, childIndex);
             }
@@ -256,79 +245,30 @@ public abstract class BTree<T extends BTreeNode> {
     /**
      * Re-balance the key/value pairs from the tree after a deletion.
      *
-     * If the current node is under-full, check if it can be merged with the left
+     * If the node from which the deletion was done
+     * is under-full, check if it can be merged with the left
      * or the right sibling. If that is not possible, attempt to redistribute some keys
      * from the left or right neighbour to avoid having nodes which are underfull
      *
      *
-     * @param node                  The node from which the deletion has been made
-     * @param ancestorStack         A stack containing the ancestor nodes of {node}
-     * @param key                   The key corresponding to the entry to be removed
-     * @param value                 The value corresponding to the entry to be removed
+     * @param child                 The node from which the deletion has been made
+     * @param node                  The parent of the child node
+     * @param childIndex                   The index of the child node in the parent node.
      */
-//    private void rebalanceAfterDelete(T node, LinkedList<T> ancestorStack, long key, long value) {
-//        if (!node.isRoot()) {
-//            T current = node;
-//            T parent = (ancestorStack.size() == 0) ? null : ancestorStack.pop();
-//
-//            while (current != null) {
-//                if (current.isUnderfull()) {
-//                    //check if can borrow 1 value from the left or right siblings
-//                    T rightSibling = (T) current.rightSibling(parent);
-//                    T leftSibling = (T) current.leftSibling(parent);
-//                    if (current.fitsIntoOneNodeWith(leftSibling)) {
-//                        //System.out.println("Merge with left");
-//                        //merge with left sibling
-//                        parent = mergeWithLeft(this, current, leftSibling, parent);
-//                    } else if (current.fitsIntoOneNodeWith(rightSibling)) {
-//                        //System.out.println("Merge with left");
-//                        parent = mergeWithRight(this, current, rightSibling, parent);
-//                    } else if (leftSibling != null && leftSibling.hasExtraKeys()) {
-//                        //System.out.println("Redistribute from left");
-//                        redistributeKeysFromLeft(current, leftSibling, parent);
-//                    } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
-//                        //System.out.println("Redistribute from right");
-//                        redistributeKeysFromRight(current, rightSibling, parent);
-//                    } else {
-//                        //System.out.println("Could not re-balance");
-//                    }
-//                    //if nothing works, we're left with an under-full node, but
-//                    //there's nothing really that we can do at this point
-//                }
-//                current = parent;
-//                parent = (ancestorStack.size() == 0 ) ? null : ancestorStack.pop();
-//            }
-//        }
-//    }
-
-    /**
-     * Search the leaf node containing the key/value pair received as an argument,
-     * together with a stack containing all of the parent nodes.
-     *
-     * If the current key/value pair is not contained in the tree, the leaf where
-     * the entry should be inserted is returned.
-     *
-     * @param key               The key of the entry
-     * @param value             The value of the entry
-     * @return                  A Pair object consisting of the leaf node and a stack
-     *                          containing its parents.
-     */
-    protected Pair<LinkedList<T>, T> searchNodeWithHistory(long key, long value, boolean markChanged) {
-        LinkedList<T> stack = new LinkedList<>();
-        T current = root;
-        
-        if(root == null) {
-        	throw new NoSuchElementException();
-        }
-        while (!current.isLeaf()) {
-        	if(markChanged) {
-	            current.markChanged();
-        	}
-            stack.push(current);
-            current = current.findChild(key, value);
-        }
-        return new Pair<>(stack, current);
-    }
+     private void rebalance(T node, T child, int childIndex) {
+         //check if can borrow 1 value from the left or right siblings
+         T rightSibling = node.rightSibling(childIndex);
+         T leftSibling = node.leftSibling(childIndex);
+         if (child.fitsIntoOneNodeWith(leftSibling)) {
+             mergeWithLeft(this, child, leftSibling, node, childIndex - 1);
+         } else if (child.fitsIntoOneNodeWith(rightSibling)) {
+             mergeWithRight(this, child, rightSibling, node, childIndex);
+         } else if (leftSibling != null && leftSibling.hasExtraKeys()) {
+             redistributeKeysFromLeft(child, leftSibling, node, childIndex - 1);
+         } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
+             redistributeKeysFromRight(child, rightSibling, node, childIndex);
+         }
+     }
 
     /**
      * Removed a key/value pair from a leaf node and return the previous value.

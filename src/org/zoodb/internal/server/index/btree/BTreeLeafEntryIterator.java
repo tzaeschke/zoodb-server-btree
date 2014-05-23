@@ -28,18 +28,16 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
     abstract void setFirstLeaf();
 
 	public BTreeLeafEntryIterator(BTree<T> tree) {
-		this.tree = tree;
-		this.modCount = tree.getModcount();
-		this.txId = this.getTxId();
-		this.curLeaf = null;
-		this.curPos = -1;
-		this.ancestors = new LinkedList<>();
-        this.positions = new LinkedList<>();
+		init(tree);
+        this.modCount = tree.getModcount();
+        this.txId = this.getTxId();
 		setFirstLeaf();
 	}
 
     public BTreeLeafEntryIterator(BTree<T> tree, long start, long end) {
-        this(tree);
+        init(tree);
+        this.modCount = tree.getModcount();
+        this.txId = this.getTxId();
         //ToDo get smallest key and value from tree
         this.start = start;
         this.end = end;
@@ -143,4 +141,29 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 		}
         return null;
 	}
+
+    private void init(BTree tree) {
+        this.tree = tree;
+        this.curLeaf = null;
+        this.curPos = -1;
+        this.ancestors = new LinkedList<>();
+        this.positions = new LinkedList<>();
+    }
+
+    protected void populateAncestorStack(long key, long value) {
+        T current = tree.getRoot();
+        int position;
+        while (!current.isLeaf()) {
+            position = current.findKeyValuePos(key, value);
+            //position = position > 0 ? position - 1 : 0;
+            positions.push(position);
+            ancestors.push(current);
+            current = current.getChild(position);
+        }
+        curLeaf = current;
+        curPos = curLeaf.findKeyValuePos(key, value);
+    }
+
+
+
 }
