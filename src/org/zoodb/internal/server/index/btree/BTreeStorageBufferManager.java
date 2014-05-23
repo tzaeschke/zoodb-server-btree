@@ -18,7 +18,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
     
 	private PrimLongMapLI<PagedBTreeNode> dirtyBuffer;
 	private PrimLongMapLI<PagedBTreeNode> cleanBuffer;
-	private final int maxCleanBufferElements = -1;
+	private int maxCleanBufferElements = -1;
 
 	private int pageIdCounter;
 	private final boolean isUnique;
@@ -271,27 +271,27 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			this.storageFile.reportFreePage(id);
 		}
 	}
-
+	
 	@Override
-	public void clear() {
-		pageIdCounter = 0;
-		for(long id : dirtyBuffer.keySet()) {
-            if(id > 0) {
-                // page has been written to storage
-                this.storageFile.reportFreePage((int)id);
-            }
-		}
-		dirtyBuffer.clear();
-		
-        for(long id : cleanBuffer.keySet()) {
-            if(id > 0) {
-                // page has been written to storage
-                this.storageFile.reportFreePage((int)id);
-            }
-		}
+	public void clear(PagedBTreeNode node) {
+		clearHelper(node);
 		cleanBuffer.clear();
+		dirtyBuffer.clear();
 	}
-
+	
+	public void clearHelper(PagedBTreeNode node) {
+		if(!node.isLeaf()) {
+			for (int childPageId : node.getChildrenPageIdList()) {
+				PagedBTreeNode child = read(childPageId);
+				clearHelper(child);
+			}
+		}
+		if(node.getPageId() > 0) {
+            // page has been written to storage
+			this.storageFile.reportFreePage(node.getPageId());
+		}
+	}
+	
 	public PrimLongMapLI<PagedBTreeNode> getMemoryBuffer() {
         PrimLongMapLI<PagedBTreeNode> ret = new PrimLongMapLI<PagedBTreeNode>();
         ret.putAll(cleanBuffer);
@@ -388,5 +388,9 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	
 	public void setNodeValueElementSize(int sizeInByte) {
 		nodeValueElementSize = sizeInByte;
+	}
+
+	public void setMaxCleanBufferElements(int maxCleanBufferElements) {
+		this.maxCleanBufferElements = maxCleanBufferElements;
 	}
 }

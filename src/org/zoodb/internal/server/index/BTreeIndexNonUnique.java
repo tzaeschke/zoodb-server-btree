@@ -42,7 +42,7 @@ public class BTreeIndexNonUnique extends BTreeIndex<NonUniquePagedBTree, NonUniq
 
     @Override
     public void clear() {
-    	bufferManager.clear();
+    	bufferManager.clear(tree.getRoot());
 		tree = new NonUniquePagedBTree(tree.getPageSize(), bufferManager);
     }
 

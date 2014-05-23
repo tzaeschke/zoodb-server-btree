@@ -47,7 +47,7 @@ public interface BTreeBufferManager extends Observer {
     /*
 	 * writes the node to the storage channel
 	 */
-	public void clear();
+	public void clear(PagedBTreeNode node);
 
 
 
