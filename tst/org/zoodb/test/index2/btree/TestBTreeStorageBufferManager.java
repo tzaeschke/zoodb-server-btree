@@ -128,7 +128,7 @@ public class TestBTreeStorageBufferManager {
 		assertEquals(2, storage.statsGetPageCount());
 		assertEquals(leaf, bufferManager.read(pageId));
 
-		bufferManager.clear();
+		bufferManager.clear(leaf);
 		assertEquals(leaf, bufferManager.read(pageId));
 		assertFalse(bufferManager.read(pageId).isDirty());
 
@@ -139,7 +139,7 @@ public class TestBTreeStorageBufferManager {
 		assertEquals(3, storage.statsGetPageCount());
 		assertEquals(inner_node, bufferManager.read(pageId));
 
-		bufferManager.clear();
+		bufferManager.clear(inner_node);
 		assertEquals(inner_node, bufferManager.read(pageId));
 		assertFalse(bufferManager.read(pageId).isDirty());
 	}
@@ -629,7 +629,7 @@ public class TestBTreeStorageBufferManager {
 		assertEquals(0, bufferManager.getDirtyBuffer().size());
 		
 		List<Integer> pageIds = getPageIds(tree); 
-		bufferManager.clear();
+		bufferManager.clear(tree.getRoot());
 		
 		// check if all pageIds are freed
 		for(Integer pageId : pageIds) {

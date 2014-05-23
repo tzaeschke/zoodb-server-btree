@@ -47,7 +47,7 @@ public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	}
 
 	@Override
-	public void clear() {
+	public void clear(PagedBTreeNode node) {
 		pageId = 0;
 		map.clear();
 	}

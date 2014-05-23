@@ -181,7 +181,6 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		if(maxCleanBufferElements < 0 || cleanBuffer.size() < maxCleanBufferElements) {
 			cleanBuffer.put(pageId, node);
 		} else {
-			System.out.println("clear");
 			cleanBuffer.clear();
 		}
 	}
@@ -272,27 +271,27 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			this.storageFile.reportFreePage(id);
 		}
 	}
-
+	
 	@Override
-	public void clear() {
-		pageIdCounter = 0;
-		for(long id : dirtyBuffer.keySet()) {
-            if(id > 0) {
-                // page has been written to storage
-                this.storageFile.reportFreePage((int)id);
-            }
-		}
-		dirtyBuffer.clear();
-		
-        for(long id : cleanBuffer.keySet()) {
-            if(id > 0) {
-                // page has been written to storage
-                this.storageFile.reportFreePage((int)id);
-            }
-		}
+	public void clear(PagedBTreeNode node) {
+		clearHelper(node);
 		cleanBuffer.clear();
+		dirtyBuffer.clear();
 	}
-
+	
+	public void clearHelper(PagedBTreeNode node) {
+		if(!node.isLeaf()) {
+			for (int childPageId : node.getChildrenPageIdList()) {
+				PagedBTreeNode child = read(childPageId);
+				clearHelper(child);
+			}
+		}
+		if(node.getPageId() > 0) {
+            // page has been written to storage
+			this.storageFile.reportFreePage(node.getPageId());
+		}
+	}
+	
 	public PrimLongMapLI<PagedBTreeNode> getMemoryBuffer() {
         PrimLongMapLI<PagedBTreeNode> ret = new PrimLongMapLI<PagedBTreeNode>();
         ret.putAll(cleanBuffer);
