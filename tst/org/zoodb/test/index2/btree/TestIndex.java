@@ -56,6 +56,22 @@ public class TestIndex {
 	}
 	
 	@Test
+	public void testWriteReadNonUnique() {
+		StorageChannel file = createPageAccessFile();
+		BTreeIndexNonUnique ind1 = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX,
+				file);
+
+		ArrayList<LLEntry> entries = PerformanceTest.randomEntriesNonUnique(1000, 10,
+				42);
+		PerformanceTest.insertList(ind1, entries);
+		int rootPageId = ind1.write();
+
+		BTreeIndexNonUnique ind2 = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX,
+				file, rootPageId);
+		findAll(ind2, entries);
+	}
+	
+	@Test
 	public void testWriteReadDifferentValueSize() {
 		StorageChannel file = createPageAccessFile();
 		int keySize = 16;
@@ -142,6 +158,18 @@ public class TestIndex {
     }
 
 	public static void findAll(LongLongIndex index, List<LLEntry> list) {
+		for (LLEntry entry : list) {
+			LongLongIterator<LLEntry> it = index.iterator(entry.getKey(), entry.getKey());
+			boolean found = false;
+			while(it.hasNext()) {
+				if(it.next().getValue() == entry.getValue()) {
+					found = true;
+				}
+			}
+			assertTrue(found);
+		}
+	}
+	public static void findAllNonUnique(LongLongIndex index, List<LLEntry> list) {
 		for (LLEntry entry : list) {
 			LongLongIterator<LLEntry> it = index.iterator(entry.getKey(), entry.getKey());
 			assertEquals(it.next().getValue(), entry.getValue());

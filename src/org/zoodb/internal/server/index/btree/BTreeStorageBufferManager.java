@@ -1,5 +1,9 @@
 package org.zoodb.internal.server.index.btree;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Observable;
+
 import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
@@ -7,10 +11,6 @@ import org.zoodb.internal.server.StorageChannelInput;
 import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 import org.zoodb.internal.util.PrimLongMapLI;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Observable;
 
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
@@ -102,12 +102,12 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		} else {
 			int[] childrenPageIds = new int[maxNumKeys+1];
 
-			storageIn.noCheckRead(childrenPageIds, numKeys+1);
             long[] values = null;
             if (!isUnique) {
                 values = new long[maxNumKeys];
                 readValues(values, numKeys);
             }
+			storageIn.noCheckRead(childrenPageIds, numKeys+1);
 			node = PagedBTreeNodeFactory.constructInnerNode(this, isUnique, false,
 								pageSize, pageId, numKeys, keys, values,
 								childrenPageIds);
