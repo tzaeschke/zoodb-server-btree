@@ -1,4 +1,4 @@
-data <- read.table('performanceTest.csv', sep=",",header=T,quote="")
+data <- read.table('performanceTest.csv', sep=",",header=TRUE,quote="")
 
 insertRandom <- data[data$Operation == "insert" & data$ListType == "random",]
 insertIncreasing <- data[data$Operation == "insert" & data$ListType == "increasing",]

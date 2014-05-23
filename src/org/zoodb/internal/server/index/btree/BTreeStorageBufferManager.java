@@ -18,7 +18,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
     
 	private PrimLongMapLI<PagedBTreeNode> dirtyBuffer;
 	private PrimLongMapLI<PagedBTreeNode> cleanBuffer;
-	private final int maxCleanBufferElements = -1;
+	private int maxCleanBufferElements = -1;
 
 	private int pageIdCounter;
 	private final boolean isUnique;
@@ -181,6 +181,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		if(maxCleanBufferElements < 0 || cleanBuffer.size() < maxCleanBufferElements) {
 			cleanBuffer.put(pageId, node);
 		} else {
+			System.out.println("clear");
 			cleanBuffer.clear();
 		}
 	}
@@ -388,5 +389,9 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	
 	public void setNodeValueElementSize(int sizeInByte) {
 		nodeValueElementSize = sizeInByte;
+	}
+
+	public void setMaxCleanBufferElements(int maxCleanBufferElements) {
+		this.maxCleanBufferElements = maxCleanBufferElements;
 	}
 }
