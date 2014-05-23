@@ -132,20 +132,19 @@ public abstract class BTreeNode extends Observable {
      * @return
      */
     public boolean containsKeyValue(long key, long value) {
-        Pair<Boolean, Integer> result = binarySearch(key, value);
-        return result.getA();
+        int position = binarySearch(key, value);
+        return position >= 0;
     }
 
     public int findKeyValuePos(long key, long value) {
         if (getNumKeys() == 0) {
             return 0;
         }
-        Pair<Boolean, Integer> result = binarySearch(key, value);
-        int closest = result.getB();
-        boolean found = result.getA();
+        int closest = binarySearch(key, value);
 
         // if the key is not here, find the child subtree that has it
-        if (!found) {
+        if (closest < 0) {
+            closest = -(closest + 1);
             //TODO need to change for key and value for non-unique
             if (closest == 0 && smallerThanKeyValue(0, key, value)) {
                 return 0;
@@ -257,7 +256,27 @@ public abstract class BTreeNode extends Observable {
      * @param value The value received as argument. Not used for decisions for unique trees.
 
      */
-    public Pair<Boolean, Integer> binarySearch(long key, long value) {
+//    public Pair<Boolean, Integer> binarySearch(long key, long value) {
+//        int low = 0;
+//        int high = this.getNumKeys() - 1;
+//        int mid = 0;
+//        boolean found = false;
+//        while (!found && low <= high) {
+//            mid = low + ((high - low) >> 1);
+//            if (containsAtPosition(mid, key, value)) {
+//                found = true;
+//            } else {
+//                if (smallerThanKeyValue(mid, key, value)) {
+//                    high = mid - 1;
+//                } else {
+//                    low = mid + 1;
+//                }
+//            }
+//        }
+//        return new Pair<>(found, mid);
+//    }
+
+    public int binarySearch(long key, long value) {
         int low = 0;
         int high = this.getNumKeys() - 1;
         int mid = 0;
@@ -274,7 +293,7 @@ public abstract class BTreeNode extends Observable {
                 }
             }
         }
-        return new Pair<>(found, mid);
+        return found ? mid : -mid - 1;
     }
 
     protected void shiftRecordsLeft(int amount) {
