@@ -76,7 +76,8 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
     
     @Override
 	public void clear() {
-		tree = new UniquePagedBTree(tree.getPageSize(), new BTreeStorageBufferManager(file, isUnique()));
+    	bufferManager.clear();
+		tree = new UniquePagedBTree(tree.getPageSize(), bufferManager);
 	}
 
 	@Override

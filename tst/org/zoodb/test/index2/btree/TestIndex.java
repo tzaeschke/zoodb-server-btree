@@ -2,6 +2,7 @@ package org.zoodb.test.index2.btree;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -23,6 +24,9 @@ import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
+import org.zoodb.internal.server.index.btree.BTreeIterator;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.util.DBLogger;
 import org.zoodb.test.index2.performance.PerformanceTest;
 import org.zoodb.tools.ZooConfig;
@@ -144,49 +148,90 @@ public class TestIndex {
 		}
 	}
 	
-	/* 
-	 * !!!!!!! TEST FAILS !!!!!!!!!!!!
-	 * should write the FreeSpaceManager for the reported free pages to have effect
-	 * BUT StorageRootFile does not provide the FreeSpaceManager
-	 */
 	@Test
-	public void testObjectsReusePagesDroppedMulti() {
+	public void testNumPagesDelete() {
 		final int MAX = 2000;
 		final int MAX_ITER = 50;
 		
 		String dbName = "TestIndex.zdb";
-		StorageChannel paf = newDiskStorage(dbName); 
-		File f = new File(toPath(dbName));
-		System.out.println(f.length());
-
-		long len1 = -1;
+		StorageChannel paf = newMemoryStorage(); 
 		
 		for (int j = 0; j < MAX_ITER; j++) {
 			BTreeIndexNonUnique ind = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX,paf);
+			BTreeStorageBufferManager bufferManager = ind.getBufferManager();
 			
 			//First, create objects
 			for (int i = 0; i < MAX; i++) {
 				ind.insertLong(i, i+32);
 			}
 			ind.write();
+			List<Integer> pageIds = new ArrayList<Integer>();
+			BTreeIterator it = new BTreeIterator(ind.getTree());
+			while(it.hasNext()) {
+				int pageId = ((PagedBTreeNode)it.next()).getPageId();
+				pageIds.add(pageId);
+			}
+			//check that buffer manager does not know more nodes than there are in the tree
+			assertEquals(pageIds.size(),bufferManager.getCleanBuffer().size());
+			assertEquals(0,bufferManager.getDirtyBuffer().size());
 			//now delete them
 			for (int i = 0; i < MAX; i++) {
 				ind.removeLong(i, i+32);
 			}
+			//check that buffer manager does not know more nodes than there are in the tree
+			assertEquals(0,bufferManager.getCleanBuffer().size());
+			assertEquals(1,bufferManager.getDirtyBuffer().size());
 			ind.write();
 	
-			//check length only from 3rd iteration on...
-			if (j == 3) {
-				len1 = f.length();
+			int rootPageId = ind.getTree().getRoot().getPageId();
+			pageIds.remove((Object)rootPageId);
+			
+			// check if all pages are freed
+			for(Integer pageId : pageIds) {
+				assertTrue(bufferManager.getStorageFile().getFsm().debugIsPageIdInFreeList(pageId));
 			}
+			assertFalse(bufferManager.getStorageFile().getFsm().debugIsPageIdInFreeList(rootPageId));
 		}
-
-		//check that the new Objects reused previous pages
-		int ps = ZooConfig.getFilePageSize();
-		assertTrue("l1=" + len1/ps + " l2=" + f.length()/ps, 
-				(len1*1.1 > f.length()) || (f.length()/ps - len1/ps < 20));
 	}
 	
+	@Test
+	public void testNumPagesClear() {
+		final int MAX = 2000;
+		final int MAX_ITER = 50;
+		
+		String dbName = "TestIndex.zdb";
+		StorageChannel paf = newMemoryStorage();
+		for (int j = 0; j < MAX_ITER; j++) {
+			BTreeIndexNonUnique ind = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX,paf);
+			//First, create objects
+			for (int i = 0; i < MAX; i++) {
+				ind.insertLong(i, i+32);
+			}
+			ind.write();
+			
+			BTreeStorageBufferManager bufferManager = ind.getBufferManager();
+			List<Integer> pageIds = new ArrayList<Integer>();
+			BTreeIterator it = new BTreeIterator(ind.getTree());
+			while(it.hasNext()) {
+				int pageId = ((PagedBTreeNode)it.next()).getPageId();
+				pageIds.add(pageId);
+			}
+			//check that buffer manager does not know more nodes than there are in the tree
+			assertEquals(pageIds.size(),bufferManager.getCleanBuffer().size());
+			assertEquals(0,bufferManager.getDirtyBuffer().size());
+			
+			ind.clear();
+			
+			assertEquals(0,bufferManager.getCleanBuffer().size());
+			assertEquals(1,bufferManager.getDirtyBuffer().size());
+			
+			// check if all pages are freed
+			for(Integer pageId : pageIds) {
+				assertTrue(bufferManager.getStorageFile().getFsm().debugIsPageIdInFreeList(pageId));
+			}
+		}
+	}
+
     public static StorageChannel newDiskStorage(String filename) {
 	    String dbPath = toPath(filename);
         String folderPath = dbPath.substring(0, dbPath.lastIndexOf(File.separator));
@@ -237,6 +282,4 @@ public class TestIndex {
 	    String DEFAULT_FOLDER = System.getProperty("user.home") + File.separator + "zoodb"; 
 	    return DEFAULT_FOLDER + File.separator + dbName;
 	}
-	
-
 }

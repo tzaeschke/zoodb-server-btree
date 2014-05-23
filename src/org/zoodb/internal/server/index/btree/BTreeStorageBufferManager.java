@@ -178,7 +178,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	}
 
 	private void putInCleanBuffer(int pageId, PagedBTreeNode node) {
-		if(maxCleanBufferElements < 0 || cleanBuffer.size() < maxCleanBufferElements - 1) {
+		if(maxCleanBufferElements < 0 || cleanBuffer.size() < maxCleanBufferElements) {
 			cleanBuffer.put(pageId, node);
 		} else {
 			cleanBuffer.clear();

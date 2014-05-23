@@ -22,6 +22,8 @@ package org.zoodb.internal.server;
 
 import java.nio.ByteBuffer;
 
+import org.zoodb.internal.server.index.FreeSpaceManager;
+
 
 /**
  * A StorageChannel manages a database file and provides read- and 
@@ -59,5 +61,7 @@ public interface StorageChannel {
 	long getTxId();
 
 	int statsGetPageCount();
+	
+	FreeSpaceManager getFsm();
 
 }

@@ -57,6 +57,7 @@ public class StorageRootInMemory implements StorageChannel {
 		buffers = DataStoreManagerInMemory.getInternalData(dbPath);
 	}
 	
+	@Override
 	public FreeSpaceManager getFsm() {
 		return fsm;
 	}
