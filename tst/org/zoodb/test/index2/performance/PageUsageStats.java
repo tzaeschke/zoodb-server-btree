@@ -13,14 +13,12 @@ import org.zoodb.test.index2.btree.TestIndex;
 import org.zoodb.tools.DBStatistics;
 import org.zoodb.tools.ZooConfig;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 public class PageUsageStats {
 
-	private static final int PAGE_SIZE = 256;
+	private static final int PAGE_SIZE = 4096;
+    private static final boolean MEMORY = false;
 
 	public static void main(String[] args) {
 		ZooConfig.setFilePageSize(PAGE_SIZE);
@@ -42,14 +40,21 @@ public class PageUsageStats {
 	public PageUsageStats() {
 		this.clear();
 	}
-	
-	
+
     public void clear() {
-		oldStorage = TestIndex.newDiskStorage("old_storage.db");
+        if (MEMORY) {
+            oldStorage = newMemoryStorage();
+        } else {
+            oldStorage = TestIndex.newDiskStorage("old_storage.db");
+        }
 		oldIndex = new PagedUniqueLongLong(
 				DATA_TYPE.GENERIC_INDEX, oldStorage);
 
-		newStorage = TestIndex.newDiskStorage("new_storage.db");
+		if (MEMORY) {
+            newStorage = newMemoryStorage();
+        } else {
+            newStorage = TestIndex.newDiskStorage("new_storage.db");
+        }
 		newIndex = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX, newStorage);
 	}
 			
@@ -60,7 +65,7 @@ public class PageUsageStats {
 
 		int numElements = 1000000;
 		ArrayList<LLEntry> entries = PerformanceTest
-				.randomEntriesUnique(numElements, 42);
+				.randomEntriesUnique(numElements, System.nanoTime());
 		
 		/*
 		 * Insert elements
@@ -113,7 +118,7 @@ public class PageUsageStats {
 		System.out.println("");
 		int numDeleteEntries = (int) (numElements * 0.9);
         System.out.println("Delete " + numDeleteEntries);
-        Collections.shuffle(entries, new Random(43));
+        Collections.shuffle(entries, new Random(System.nanoTime()));
         List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
         
 		System.gc();
@@ -171,7 +176,7 @@ public class PageUsageStats {
 
         for(int i=0; i<numTimes; i++) {
             ArrayList<LLEntry> entries = PerformanceTest
-                                    .randomEntriesUnique(numElements, 42+i);
+                                    .randomEntriesUnique(numElements, System.nanoTime()+i);
             PerformanceTest.insertList(oldIndex, entries);
             oldIndex.write();
             PerformanceTest.insertList(newIndex, entries);
@@ -186,7 +191,6 @@ public class PageUsageStats {
             newIndex.write();
         }
         printStats();
-		
 	}
 	
 	void printStats() {
