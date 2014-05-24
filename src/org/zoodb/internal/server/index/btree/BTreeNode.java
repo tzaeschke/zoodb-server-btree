@@ -24,7 +24,6 @@ public abstract class BTreeNode extends Observable {
 
     protected long prefix;
 
-	// ToDo maybe we want to have the keys set dynamically sized somehow
 	protected int numKeys;
 	private long[] keys;
 
@@ -260,6 +259,16 @@ public abstract class BTreeNode extends Observable {
         return found ? mid : -mid - 1;
     }
 
+    public int computeIndexForSplit(boolean isUnique) {
+        int weightKey = (this.isLeaf() || (isUnique)) ? this.getValueElementSize() : 0;
+        int weightChild = (isLeaf() ? 0 : 4);
+        int header = storageHeaderSize();
+        int keysInLeftNode = PrefixSharingHelper.computeIndexForSplitAfterInsert(
+                getKeys(), getNumKeys(),
+                header, weightKey, weightChild, getPageSize());
+        return keysInLeftNode;
+    }
+
     protected void shiftRecordsLeft(int amount) {
         markChanged();
         shiftRecordsLeftWithIndex(0, amount);
@@ -334,7 +343,6 @@ public abstract class BTreeNode extends Observable {
         if (isRoot()) {
             return true;
         }
-        //ToDo need to have at least 3 keys
         return getNumKeys() > 2 && getCurrentSize() > pageSizeThreshold;
     }
 
@@ -556,7 +564,6 @@ public abstract class BTreeNode extends Observable {
     }
 
     public int getKeyArraySizeInBytes() {
-        //ToDo use precomputed prefix
         if (getNumKeys() == 0) {
             return 0;
         }
