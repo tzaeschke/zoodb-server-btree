@@ -42,30 +42,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
     }
 
     @Override
-    public boolean willOverflowAfterInsert(long key, long value) {
-        if (getNumKeys() == 0) {
-            return false;
-        }
-
-        //check if the node contains the key (unique tree) or key/value pair (non/unique tree)
-        int pos = this.findKeyValuePos(key, value);
-        if(checkNonUniqueKey(pos, key) && (!allowNonUniqueKeys() || checkNonUniqueKeyValue(pos,key,value))) {
-            return false;
-        }
-
-        //recompute the prefix and check the new size
-        long first = Math.min(getSmallestKey(), key);
-        long last = Math.max(getLargestKey(), key);
-        int newNumKeys = getNumKeys() + 1;
-        long prefix = PrefixSharingHelper.computePrefix(first, last);
-        long keyArrayAfterInsertSizeInBytes = PrefixSharingHelper.encodedArraySize(newNumKeys, prefix);
-        int newPageSize = (int) (storageHeaderSize() + (keyArrayAfterInsertSizeInBytes + getNonKeyEntrySizeInBytes(newNumKeys)));
-
-        boolean willOverflow = pageSize <= newPageSize;
-        return willOverflow;
-    }
-
-    @Override
     public boolean fitsIntoOneNodeWith(BTreeNode neighbour) {
         if (neighbour == null) {
             return false;
@@ -170,29 +146,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	}
 
     @Override
-    public <T extends BTreeNode> void removeChild(T child) {
-        PagedBTreeNode pagedChild = toPagedNode(child);
-        int childPageId = pagedChild.getPageId();
-        int childIndex = -1;
-        for (int i = 0; i < getNumKeys() + 1; i++) {
-            if (childrenPageIds[i] == childPageId) {
-                childIndex = i;
-                break;
-            }
-        }
-        if (childIndex == this.getNumKeys()) {
-            this.decrementNumKeys();
-        } else {
-            long oldKey = this.getKey(childIndex);
-            this.shiftRecordsLeftWithIndex(childIndex, 1);
-            if (childIndex > 0) {
-                this.setKey(childIndex - 1, oldKey);
-            }
-            this.decrementNumKeys();
-        }
-    }
-
-    @Override
 	public boolean equalChildren(BTreeNode other) {
 		if(getNumKeys() > 0) {
             return arrayEquals(getChildren(), other.getChildren(), getNumKeys() + 1);
@@ -232,23 +185,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
     @Override
     public void markChanged() {
         this.markDirty();
-    }
-
-    @Override
-    public int keyIndexOf(BTreeNode left, BTreeNode right) {
-        int leftPageId = toPagedNode(left).getPageId();
-        int rightPageId = toPagedNode(right).getPageId();
-        int indexRight = 0;
-        for (int pageId : childrenPageIds) {
-            if (pageId == rightPageId) {
-                if (indexRight > 0 && childrenPageIds[indexRight-1] == leftPageId) {
-                    return indexRight - 1;
-                }
-            }
-            indexRight++;
-        }
-        throw new RuntimeException("Wrong call for parent index");
-
     }
 
     /*

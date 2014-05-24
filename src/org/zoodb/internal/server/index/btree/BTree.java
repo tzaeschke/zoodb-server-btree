@@ -67,19 +67,15 @@ public abstract class BTree<T extends BTreeNode> {
             insert(child, key, value);
             if (child.overflows()) {
                 T leftSibling = node.leftSibling(childIndex);
-                assertLegalSize(leftSibling);
                 if (leftSibling != null && leftSibling.isNotFull()) {
                     int childIndexRedist = childIndex > 0 ? childIndex - 1 : childIndex;
                     redistributeKeysFromRight(leftSibling, child, node, childIndexRedist);
-                    assertLegalSize(leftSibling);
                 }
                 if (child.overflows()) {
                     handleInsertOverflow(child, node, childIndex);
                 }
-                assertLegalSize(leftSibling);
             }
             node.setChildSize(child.getCurrentSize(), childIndex);
-            assertLegalSize(child);
         }
     }
 
@@ -458,7 +454,6 @@ public abstract class BTree<T extends BTreeNode> {
      */
     public void redistributeKeysFromLeft(T current, T left, T parent, int parentKeyIndex) {
         int keysToMove = computeKeysToMoveFromLeft(current, left);
-        //assert parentKeyIndex == parent.keyIndexOf(left, current);
         if (current.isLeaf()) {
             if (keysToMove <= 0) {
                 return;
@@ -493,16 +488,9 @@ public abstract class BTree<T extends BTreeNode> {
         int weightChild = (current.isLeaf() ? 0 : 4);
         int header = current.storageHeaderSize();
 
-        //need to place the key from the parent in the right node,
-        //this is because for inner nodes, the parent key might cause an
-        //overflow
-        //long oldKey = current.getKey(current.getNumKeys() - 1);
-        //current.setKey(current.getNumKeys() - 1, parent.getKey(parentKeyIndex));
         int keysToMove = PrefixSharingHelper.computeIndexForRedistributeRightToLeft(
                 current.getKeys(), current.getNumKeys(), right.getKeys(), right.getNumKeys(),
                 header, weightKey, weightChild, current.getPageSize());
-
-        //current.setKey(current.getNumKeys() - 1, oldKey);
         return keysToMove;
     }
 

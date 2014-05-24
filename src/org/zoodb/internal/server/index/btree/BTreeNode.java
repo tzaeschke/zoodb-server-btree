@@ -61,7 +61,6 @@ public abstract class BTreeNode extends Observable {
     public abstract BTreeNode[] getChildren();
     public abstract void setChildren(BTreeNode[] children);
     public abstract void markChanged();
-    public abstract <T extends BTreeNode> void removeChild(T leaf);
     // closes (destroys) node
     public abstract void close();
     /*
@@ -77,14 +76,9 @@ public abstract class BTreeNode extends Observable {
     protected abstract boolean containsAtPosition(int position, long key, long value);
     protected abstract boolean smallerThanKeyValue(int position, long key, long value);
     protected abstract boolean allowNonUniqueKeys();
-
-    public abstract int keyIndexOf(BTreeNode left, BTreeNode right);
-
     public abstract int computeMaxPossibleEntries();
     public abstract int computeSize();
     public abstract int storageHeaderSize();
-
-    public abstract boolean willOverflowAfterInsert(long key, long value);
     public abstract boolean fitsIntoOneNodeWith(BTreeNode neighbour);
 
     /**
@@ -145,7 +139,6 @@ public abstract class BTreeNode extends Observable {
         // if the key is not here, find the child subtree that has it
         if (closest < 0) {
             closest = -(closest + 1);
-            //TODO need to change for key and value for non-unique
             if (closest == 0 && smallerThanKeyValue(0, key, value)) {
                 return 0;
             } else if (smallerThanKeyValue(closest, key, value)) {
