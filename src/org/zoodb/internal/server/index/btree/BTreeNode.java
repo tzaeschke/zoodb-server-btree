@@ -1,7 +1,6 @@
 package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
-import org.zoodb.internal.util.Pair;
 
 import java.util.NoSuchElementException;
 import java.util.Observable;
@@ -241,34 +240,6 @@ public abstract class BTreeNode extends Observable {
         return oldValue;
     }
 
-    /**
-     * Perform binary search on the key array for a certain key/value pair.
-     *
-     *
-     * @param key   The key received as an argument.
-     * @param value The value received as argument. Not used for decisions for unique trees.
-
-     */
-//    public Pair<Boolean, Integer> binarySearch(long key, long value) {
-//        int low = 0;
-//        int high = this.getNumKeys() - 1;
-//        int mid = 0;
-//        boolean found = false;
-//        while (!found && low <= high) {
-//            mid = low + ((high - low) >> 1);
-//            if (containsAtPosition(mid, key, value)) {
-//                found = true;
-//            } else {
-//                if (smallerThanKeyValue(mid, key, value)) {
-//                    high = mid - 1;
-//                } else {
-//                    low = mid + 1;
-//                }
-//            }
-//        }
-//        return new Pair<>(found, mid);
-//    }
-
     public int binarySearch(long key, long value) {
         int low = 0;
         int high = this.getNumKeys() - 1;
@@ -307,10 +278,6 @@ public abstract class BTreeNode extends Observable {
     public void shiftChildren(int startIndex, int endIndex, int amount) {
         markChanged();
         copyChildren(this, startIndex, this, endIndex, amount);
-    }
-
-    public BTreeNode leftSibling(BTreeNode parent) {
-        return (parent == null) ? null : parent.leftSiblingOf(this);
     }
 
     public BTreeNode rightSibling(BTreeNode parent) {
@@ -485,34 +452,6 @@ public abstract class BTreeNode extends Observable {
 	public void setIsRoot(boolean isRoot) {
 		this.isRoot = isRoot;
 	}
-
-    public Pair<Long, Long> getKeyValue(int position) {
-        Long key = getKey(position);
-        Long value = (getValues() != null) ? getValue(position) : -1;
-        return new Pair<>(key, value);
-    }
-
-    public BTreeNode leftMostLeafOf() {
-        if(isLeaf()) {
-            return this;
-        }
-        BTreeNode node = this;
-        while(!node.isLeaf()) {
-            node = node.getChild(0);
-        }
-        return node;
-    }
-
-    public BTreeNode rightMostLeafOf() {
-        if(isLeaf()) {
-            return this;
-        }
-        BTreeNode node = this;
-        while(!node.isLeaf()) {
-            node = node.getChild(0);
-        }
-        return node;
-    }
 
     public String toString() {
         String ret = (isLeaf() ? "leaf" : "inner") + "-node: k:";
