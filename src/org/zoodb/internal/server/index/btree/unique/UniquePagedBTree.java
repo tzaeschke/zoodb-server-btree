@@ -4,8 +4,6 @@ import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTree;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
-import java.util.NoSuchElementException;
-
 /**
  * Abstracts the need to specify a BTreeNodeFactory, which is specific to this
  * type of tree.
@@ -45,12 +43,7 @@ public class UniquePagedBTree extends PagedBTree<UniquePagedBTreeNode> {
 			current = current.findChild(key, NO_VALUE);
 		}
 
-		try {
-			long value = findValue(current, key);
-			return value;
-		} catch (NoSuchElementException e) {
-			return null;
-		}
+        return findValue(current, key);
 	}
 
 	/**
@@ -74,7 +67,7 @@ public class UniquePagedBTree extends PagedBTree<UniquePagedBTreeNode> {
 		return deleteEntry(key, NO_VALUE);
 	}
 
-	private long findValue(PagedBTreeNode node, long key) {
+	private Long findValue(PagedBTreeNode node, long key) {
 		if (!node.isLeaf()) {
 			throw new IllegalStateException(
 					"Should only be called on leaf nodes.");
@@ -86,6 +79,6 @@ public class UniquePagedBTree extends PagedBTree<UniquePagedBTreeNode> {
 			}
 		}
 
-		throw new NoSuchElementException("Key not found: " + key);
+        return null;
 	}
 }
