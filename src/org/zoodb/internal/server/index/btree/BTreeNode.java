@@ -356,12 +356,18 @@ public abstract class BTreeNode extends Observable {
         markChanged();
     }
 
-    public boolean isUnderfull() {
+    public boolean isNotFull() {
         if (isRoot()) {
             return getNumKeys() == 0;
         }
-        //ToDo fix this
-        return getNumKeys() < (keys.length >> 1) && getCurrentSize() < pageSizeThreshold;
+        return getCurrentSize() < getPageSize();
+    }
+
+    public boolean isUnderFull() {
+        if (isRoot()) {
+            return getNumKeys() == 0;
+        }
+        return getCurrentSize() < pageSizeThreshold;
     }
 
     public boolean hasExtraKeys() {

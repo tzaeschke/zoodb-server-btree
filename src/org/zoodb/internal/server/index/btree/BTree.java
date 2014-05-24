@@ -65,16 +65,21 @@ public abstract class BTree<T extends BTreeNode> {
             int childIndex = node.findKeyValuePos(key, value);
             T child = node.getChild(childIndex);
             insert(child, key, value);
-
             if (child.overflows()) {
-//                T leftSibling = node.leftSibling(childIndex);
-//                if (leftSibling != null && !leftSibling.willOverflowAfterInsert(child.getSmallestKey(), child.getSmallestValue())) {
-//                    redistributeKeysFromRight(leftSibling, child, node, childIndex);
-//                } else if (child.overflows()) {
+                T leftSibling = node.leftSibling(childIndex);
+                assertLegalSize(leftSibling);
+                if (leftSibling != null && leftSibling.isNotFull()) {
+                    int childIndexRedist = childIndex > 0 ? childIndex - 1 : childIndex;
+                    redistributeKeysFromRight(leftSibling, child, node, childIndexRedist);
+                    assertLegalSize(leftSibling);
+                }
+                if (child.overflows()) {
                     handleInsertOverflow(child, node, childIndex);
-                //}
+                }
+                assertLegalSize(leftSibling);
             }
             node.setChildSize(child.getCurrentSize(), childIndex);
+            assertLegalSize(child);
         }
     }
 
@@ -233,7 +238,7 @@ public abstract class BTree<T extends BTreeNode> {
             oldValue = delete(child, key, value);
             node.setChildSize(child.getCurrentSize(), childIndex);
 
-            if (child.isUnderfull()) {
+            if (child.isUnderFull()) {
                 rebalance(node, child, childIndex);
             } else if (child.overflows()) {
                 handleInsertOverflow(child, node, childIndex);
@@ -265,6 +270,7 @@ public abstract class BTree<T extends BTreeNode> {
              mergeWithRight(this, child, rightSibling, node, childIndex);
          } else if (leftSibling != null && leftSibling.hasExtraKeys()) {
              redistributeKeysFromLeft(child, leftSibling, node, childIndex - 1);
+
          } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
              redistributeKeysFromRight(child, rightSibling, node, childIndex);
          }
@@ -365,8 +371,6 @@ public abstract class BTree<T extends BTreeNode> {
      */
     public T mergeWithRight(BTree<T> tree, T current, T right, T parent, int keyIndex) {
 
-        assert keyIndex == parent.keyIndexOf(current, right);
-
         //check if parent needs merging -> tree gets smaller
         if (parent.isRoot() && parent.getNumKeys() == 1) {
             parent = rootMergeWithRight(tree, current, right, parent);
@@ -426,14 +430,12 @@ public abstract class BTree<T extends BTreeNode> {
      * @param right             The right sibling of the current node
      * @param parent            The parent of the current node
      */
-    public void redistributeKeysFromRight(T current, T right, T parent, int parentKeyIndex) {
-        int keysToMove = computeKeysToMoveFromRight(current, right);
-        if (keysToMove == 0) {
-            return;
+    public int redistributeKeysFromRight(T current, T right, T parent, int parentKeyIndex) {
+        int keysToMove = computeKeysToMoveFromRight(current, parent, parentKeyIndex, right);
+        if (keysToMove <= 0) {
+            return keysToMove;
         }
         //move key from parent to current node
-        //assert parentKeyIndex == parent.keyIndexOf(current, right);
-
         if (current.isLeaf()) {
             leafRedistributeFromRight(current, right, parent, parentKeyIndex, keysToMove);
         } else {
@@ -442,6 +444,7 @@ public abstract class BTree<T extends BTreeNode> {
         }
         parent.setChildSize(current.getCurrentSize(), parentKeyIndex);
         parent.setChildSize(right.getCurrentSize(), parentKeyIndex + 1);
+        return keysToMove;
     }
 
     /**
@@ -462,7 +465,8 @@ public abstract class BTree<T extends BTreeNode> {
             }
             leafRedistributeFromLeft(current, left, parent, parentKeyIndex, keysToMove);
         } else {
-            keysToMove = (current.getNumKeys() == 0) ? keysToMove - 3 : keysToMove - 2;
+            keysToMove--;
+            keysToMove = (current.getNumKeys() == 0) ? keysToMove - 1 : keysToMove;
             if (keysToMove <= 0) {
                 return;
             }
@@ -470,7 +474,6 @@ public abstract class BTree<T extends BTreeNode> {
         }
         parent.setChildSize(left.getCurrentSize(), parentKeyIndex);
         parent.setChildSize(current.getCurrentSize(), parentKeyIndex + 1);
-
     }
 
     private int computeKeysToMoveFromLeft(T current, T left) {
@@ -478,24 +481,28 @@ public abstract class BTree<T extends BTreeNode> {
         int weightChild = (current.isLeaf() ? 0 : 4);
         int header = current.storageHeaderSize();
 
-        int splitIndexInLeft = PrefixSharingHelper.computeIndexForRedistributeLeftToRight(
+        int keysToMove = PrefixSharingHelper.computeIndexForRedistributeLeftToRight(
                 left.getKeys(), left.getNumKeys(), current.getKeys(), current.getNumKeys(),
                 header, weightKey, weightChild, current.getPageSize());
 
-        int keysToMove = left.getNumKeys() - splitIndexInLeft;
         return keysToMove;
     }
 
-    private int computeKeysToMoveFromRight(T current, T right) {
+    private int computeKeysToMoveFromRight(T current, T parent, int parentKeyIndex, T right) {
         int weightKey = (current.isLeaf() || (!isUnique())) ? current.getValueElementSize() : 0;
         int weightChild = (current.isLeaf() ? 0 : 4);
         int header = current.storageHeaderSize();
 
-        int splitIndexInRight = PrefixSharingHelper.computeIndexForRedistributeRightToLeft(
+        //need to place the key from the parent in the right node,
+        //this is because for inner nodes, the parent key might cause an
+        //overflow
+        //long oldKey = current.getKey(current.getNumKeys() - 1);
+        //current.setKey(current.getNumKeys() - 1, parent.getKey(parentKeyIndex));
+        int keysToMove = PrefixSharingHelper.computeIndexForRedistributeRightToLeft(
                 current.getKeys(), current.getNumKeys(), right.getKeys(), right.getNumKeys(),
                 header, weightKey, weightChild, current.getPageSize());
 
-        int keysToMove = splitIndexInRight + 1;
+        //current.setKey(current.getNumKeys() - 1, oldKey);
         return keysToMove;
     }
 
@@ -524,6 +531,7 @@ public abstract class BTree<T extends BTreeNode> {
         int startIndexLeft = left.getNumKeys() - keysToMove;
         int startIndexRight = 0;
 
+        //ToDo avoid 2 shifts
         current.shiftRecordsRight(1);
         current.increaseNumKeys(1);
         current.migrateEntry(0, parent, parentKeyIndex);
@@ -568,6 +576,7 @@ public abstract class BTree<T extends BTreeNode> {
     private T innerRedistributeFromRight(T current, T right, T parent, int parentKeyIndex, int keysToMove) {
         if (keysToMove != 0) {
             //add key from parent
+            //ToDo avoid 2 shifts
             current.migrateEntry(current.getNumKeys(), parent, parentKeyIndex);
             current.increaseNumKeys(1);
 
@@ -784,6 +793,14 @@ public abstract class BTree<T extends BTreeNode> {
         }
         if(deletedKey == maxKey) {
             maxKey = computeMaxKey();
+        }
+    }
+
+    private void assertLegalSize(BTreeNode... nodes) {
+        for (BTreeNode node : nodes) {
+            if (node != null) {
+                assert node.getCurrentSize() <= node.getPageSize();
+            }
         }
     }
 }
