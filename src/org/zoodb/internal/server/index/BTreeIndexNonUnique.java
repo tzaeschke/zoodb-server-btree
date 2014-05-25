@@ -27,15 +27,6 @@ public class BTreeIndexNonUnique extends BTreeIndex<NonUniquePagedBTree, NonUniq
     }
     
     @Override
-    public boolean insertLongIfNotSet(long key, long value) {
-        if (tree.contains(key, value)) {
-            return false;
-        }
-        tree.insert(key, value);
-        return true;
-    }
-    
-    @Override
 	public long removeLong(long key, long value) {
 		return tree.delete(key, value);
 	}

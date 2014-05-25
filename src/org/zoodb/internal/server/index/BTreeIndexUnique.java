@@ -67,11 +67,7 @@ public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBT
 
     @Override
 	public boolean insertLongIfNotSet(long key, long value) {
-		if (getTree().search(key) != null) {
-            return false;
-        }
-        tree.insert(key, value);
-        return true;
+        return tree.insert(key, value, true);
 	}
     
     @Override

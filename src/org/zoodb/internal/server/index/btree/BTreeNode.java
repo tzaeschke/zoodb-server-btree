@@ -145,6 +145,18 @@ public abstract class BTreeNode {
         }
         return closest + 1;
     }
+    
+    public boolean hasKey(long key, long value) {
+    	int pos = findKeyValuePos(key, value);
+    	boolean ret = false;
+    	if(pos > 0) {
+    		ret = getKey(pos-1) == key;
+    	} 
+    	if(pos < numKeys) {
+    		ret = ret || getKey(pos) == key; 
+    	}
+    	return ret;
+    }
 
     /**
      * Inner-node put. Places key to the left of the next bigger key k'.

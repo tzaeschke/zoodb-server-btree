@@ -23,6 +23,10 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 	public void insertLong(long key, long value) {
 		getTree().insert(key, value);
 	}
+	
+    public boolean insertLongIfNotSet(long key, long value) {
+        return getTree().insert(key, value, true);
+    }
 
 	public void print() {
         System.out.println(getTree());

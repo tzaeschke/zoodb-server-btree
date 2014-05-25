@@ -1,19 +1,29 @@
 package org.zoodb.test.index2.btree;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
 import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeIterator;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTree;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.util.Pair;
 import org.zoodb.tools.ZooConfig;
-
-import java.util.*;
-
-import static org.junit.Assert.*;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 
 public class TestBTree {
 
@@ -229,6 +239,25 @@ public class TestBTree {
 			assertFalse(it.next().isRoot());
 		}
 		
+	}
+	
+	@Test
+	public void testInsertLongIfNotSet() {
+		int pageSize = 128;
+        UniquePagedBTree uniqueTree = new UniquePagedBTree(pageSize, newBufferManager(pageSize));
+        assertTrue(uniqueTree.insert(1, 1, true));
+        assertFalse(uniqueTree.insert(1, 1, true));
+        assertFalse(uniqueTree.insert(1, 2, true));
+        assertTrue(uniqueTree.insert(2, 2, true));
+        assertFalse(uniqueTree.insert(1, 1, true));
+        
+        NonUniquePagedBTree nonUniqueTree = new NonUniquePagedBTree(pageSize, newBufferManager(pageSize));
+        assertTrue(nonUniqueTree.insert(1, 1, true));
+        assertFalse(nonUniqueTree.insert(1, 1, true));
+        assertFalse(nonUniqueTree.insert(1, 2, true));
+        assertTrue(nonUniqueTree.insert(2, 2, true));
+        assertFalse(nonUniqueTree.insert(1, 0, true));
+        assertFalse(nonUniqueTree.insert(1, 0, true));
 	}
 
 	public static PagedBTree getTestTreeWithThreeLayers(

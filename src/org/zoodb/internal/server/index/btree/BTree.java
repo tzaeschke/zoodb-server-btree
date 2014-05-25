@@ -46,36 +46,56 @@ public abstract class BTree<T extends BTreeNode> {
      *    The references to the parent node are then fixed.
      * @param key               The new key to be inserted
      * @param value         The new value to be inserted
+     * 
      */
     public void insert(long key, long value) {
-        insert(root, key, value);
-        increaseModcount();
-        if (root.overflows()) {
-            handleRootOverflow();
+    	insert(key, value, false);
+    }
+    
+    /**
+     * @param onlyIfNotSet if true insert only if the key does not exist already in the tree
+     * @return	true if the entry was inserted
+     */
+    public boolean insert(long key, long value, boolean onlyIfNotSet) {
+        if(insert(root, key, value, onlyIfNotSet)) {
+	        increaseModcount();
+	        if (root.overflows()) {
+	            handleRootOverflow();
+	        }
+	        recomputeMinAndMaxAfterInsert(key);
+	        return true;
+        } else {
+        	return false;
         }
-        recomputeMinAndMaxAfterInsert(key);
     }
 
-
-    public void insert(T node, long key, long value) {
+    public boolean insert(T node, long key, long value, boolean onlyIfNotSet) {
         node.markChanged();
         if (node.isLeaf()) {
+        	if(onlyIfNotSet && node.hasKey(key, value)) {
+        		return false;
+        	}
             node.put(key, value);
+            return true;
         } else {
             int childIndex = node.findKeyValuePos(key, value);
             T child = node.getChild(childIndex);
-            insert(child, key, value);
-            if (child.overflows()) {
-                T leftSibling = node.leftSibling(childIndex);
-                if (leftSibling != null && leftSibling.isNotFull()) {
-                    int childIndexRedist = childIndex > 0 ? childIndex - 1 : childIndex;
-                    redistributeKeysFromRight(leftSibling, child, node, childIndexRedist);
-                }
-                if (child.overflows()) {
-                    handleInsertOverflow(child, node, childIndex);
-                }
+            if(insert(child, key, value, onlyIfNotSet)) {
+	            if (child.overflows()) {
+	                T leftSibling = node.leftSibling(childIndex);
+	                if (leftSibling != null && leftSibling.isNotFull()) {
+	                    int childIndexRedist = childIndex > 0 ? childIndex - 1 : childIndex;
+	                    redistributeKeysFromRight(leftSibling, child, node, childIndexRedist);
+	                }
+	                if (child.overflows()) {
+	                    handleInsertOverflow(child, node, childIndex);
+	                }
+	            }
+	            node.setChildSize(child.getCurrentSize(), childIndex);
+	            return true;
+            } else {
+            	return false;
             }
-            node.setChildSize(child.getCurrentSize(), childIndex);
         }
     }
 

@@ -259,7 +259,7 @@ public class TestIndex {
 			}
 		}
 	}
-
+	
     public static StorageChannel newDiskStorage(String filename) {
 	    String dbPath = toPath(filename);
         String folderPath = dbPath.substring(0, dbPath.lastIndexOf(File.separator));
