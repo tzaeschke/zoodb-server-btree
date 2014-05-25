@@ -49,9 +49,9 @@ public abstract class BTreeNode {
     public abstract boolean equalChildren(BTreeNode other);
     public abstract void copyChildren(BTreeNode source, int sourceIndex,
                                       BTreeNode dest, int destIndex, int size);
-    protected abstract <T extends BTreeNode> T  leftSiblingOf(BTreeNode node);
-    protected abstract <T extends BTreeNode> T  rightSiblingOf(BTreeNode node);
-    public abstract <T extends BTreeNode> T getChild(int index);
+    protected abstract BTreeNode leftSiblingOf(BTreeNode node);
+    protected abstract BTreeNode rightSiblingOf(BTreeNode node);
+    public abstract BTreeNode getChild(int index);
     public abstract void setChild(int index, BTreeNode child);
     public abstract BTreeNode[] getChildNodes();
     public abstract void setChildren(BTreeNode[] children);
@@ -110,7 +110,7 @@ public abstract class BTreeNode {
         return position > 0 && (getKey(position - 1) == key && getValue(position - 1) == value);
     }
 
-    public <T extends BTreeNode> T findChild(long key, long value) {
+    public BTreeNode findChild(long key, long value) {
         return getChild(findKeyValuePos(key, value));
     }
 
@@ -209,7 +209,7 @@ public abstract class BTreeNode {
      * @param right
      *            The right node.
      */
-    public <T extends BTreeNode> void put(long key, long value,  T left, T right) {
+    public void put(long key, long value,  BTreeNode left, BTreeNode right) {
         if (!isRoot()) {
             throw new IllegalStateException(
                     "Should only be called on the root node.");
@@ -298,7 +298,7 @@ public abstract class BTreeNode {
         return (parent == null) ? null : parent.rightSiblingOf(this);
     }
 
-    public <T extends BTreeNode> T rightSibling(int childIndex) {
+    public BTreeNode rightSibling(int childIndex) {
         int rightIndex = childIndex + 1;
         if (rightIndex > numKeys) {
             return null;
@@ -307,7 +307,7 @@ public abstract class BTreeNode {
         }
     }
 
-    public <T extends BTreeNode> T leftSibling(int childIndex) {
+    public BTreeNode leftSibling(int childIndex) {
         int leftIndex = childIndex - 1;
         if (leftIndex < 0) {
             return null;

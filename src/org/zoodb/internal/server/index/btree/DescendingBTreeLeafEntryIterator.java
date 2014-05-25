@@ -1,12 +1,12 @@
 package org.zoodb.internal.server.index.btree;
 
-public class DescendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTreeLeafEntryIterator<T> {
+public class DescendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
 
-    public DescendingBTreeLeafEntryIterator(BTree<T> tree) {
+    public DescendingBTreeLeafEntryIterator(BTree tree) {
         super(tree);
     }
 
-    public DescendingBTreeLeafEntryIterator(BTree<T> tree, long start, long end) {
+    public DescendingBTreeLeafEntryIterator(BTree tree, long start, long end) {
         super(tree, start, end);
     }
 
@@ -15,9 +15,9 @@ public class DescendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTree
         if (curPos > 0) {
             curPos--;
         } else {
-            T leftSibling = null;
-            T ancestor = null;
-            T ancestorsChild = curLeaf;
+            BTreeNode leftSibling = null;
+            BTreeNode ancestor = null;
+            BTreeNode ancestorsChild = curLeaf;
             Integer position = (ancestors.size() == 0) ? 0 : ancestors.peek().getNumKeys();
             while (leftSibling == null && ancestors.size() > 0) {
                 ancestor = ancestors.pop();

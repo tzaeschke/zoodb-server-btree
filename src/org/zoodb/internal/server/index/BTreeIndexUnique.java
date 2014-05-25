@@ -9,7 +9,7 @@ import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 
 import java.util.NoSuchElementException;
 
-public class BTreeIndexUnique extends BTreeIndex<UniquePagedBTree, UniquePagedBTreeNode> implements LongLongUIndex  {
+public class BTreeIndexUnique extends BTreeIndex implements LongLongUIndex  {
 
     private UniquePagedBTree tree;
     

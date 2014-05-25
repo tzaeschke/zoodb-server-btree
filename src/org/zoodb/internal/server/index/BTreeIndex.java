@@ -8,7 +8,7 @@ import org.zoodb.internal.server.index.btree.*;
 import java.util.List;
 
 
-public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNode> extends AbstractIndex {
+public abstract class BTreeIndex extends AbstractIndex {
 	
     protected BTreeStorageBufferManager bufferManager;
     protected DATA_TYPE dataType;
@@ -41,19 +41,19 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 	}
 
 	public LLEntryIterator iterator() {
-		return new AscendingBTreeLeafEntryIterator<>(getTree());
+		return new AscendingBTreeLeafEntryIterator(getTree());
 	}
 
 	public LLEntryIterator iterator(long min, long max) {
-        return new AscendingBTreeLeafEntryIterator<>(getTree(), min, max);
+        return new AscendingBTreeLeafEntryIterator(getTree(), min, max);
 	}
 
 	public LLEntryIterator descendingIterator() {
-        return new DescendingBTreeLeafEntryIterator<>(getTree());
+        return new DescendingBTreeLeafEntryIterator(getTree());
 	}
 
 	public LLEntryIterator descendingIterator(long max, long min) {
-        return new DescendingBTreeLeafEntryIterator<>(getTree(), min, max);
+        return new DescendingBTreeLeafEntryIterator(getTree(), min, max);
 	}
 
 	public long getMinKey() {
@@ -84,7 +84,7 @@ public abstract class BTreeIndex<T extends PagedBTree<U>, U extends PagedBTreeNo
 		return bufferManager.getStatNWrittenPages();
 	}
 	
-    public abstract T getTree();
+    public abstract PagedBTree getTree();
 	
     public BTreeStorageBufferManager getBufferManager() {
 		return bufferManager;

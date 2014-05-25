@@ -510,7 +510,7 @@ public class TestBTreeStorageBufferManager {
 		tree.write();
 		assertEquals(0, bufferManager2.getDirtyBuffer().size());
 		
-		UniquePagedBTree tree2 = new UniquePagedBTree(tree.getRoot(), tree.getPageSize(),
+		UniquePagedBTree tree2 = new UniquePagedBTree((UniquePagedBTreeNode)tree.getRoot(), tree.getPageSize(),
 				bufferManager2);
 
 		// check whether all entries are inserted
@@ -526,7 +526,7 @@ public class TestBTreeStorageBufferManager {
 		}
 
 		tree.write();
-		tree2 = new UniquePagedBTree(tree.getRoot(), tree.getPageSize(),
+		tree2 = new UniquePagedBTree((UniquePagedBTreeNode)tree.getRoot(), tree.getPageSize(),
 				bufferManager2);
 
 		for (LLEntry entry : entries) {
@@ -562,7 +562,7 @@ public class TestBTreeStorageBufferManager {
 		}
 
 		tree.write();
-		UniquePagedBTree tree2 = new UniquePagedBTree(tree.getRoot(), tree.getPageSize(),
+		UniquePagedBTree tree2 = new UniquePagedBTree((UniquePagedBTreeNode)tree.getRoot(), tree.getPageSize(),
 				bufferManager2);
 
 		i = 0;

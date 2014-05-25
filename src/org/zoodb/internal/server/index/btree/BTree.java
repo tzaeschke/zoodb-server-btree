@@ -7,9 +7,9 @@ import java.util.NoSuchElementException;
 /**
  * Shared behaviour of unique and non-unique B+ tree.
  */
-public abstract class BTree<T extends BTreeNode> {
+public abstract class BTree {
 
-    protected T root;
+    protected BTreeNode root;
     protected BTreeNodeFactory nodeFactory;
     protected int pageSize;
     private long maxKey = Long.MIN_VALUE;
@@ -19,11 +19,11 @@ public abstract class BTree<T extends BTreeNode> {
     
     public BTree(int pageSize, BTreeNodeFactory nodeFactory) {
     	this(null, pageSize, nodeFactory);
-        this.root = (T) nodeFactory.newNode(isUnique(), getPageSize(), true, true);
+        this.root = nodeFactory.newNode(isUnique(), getPageSize(), true, true);
         this.root.recomputeSize();
     }
     
-    public BTree(T root, int pageSize, BTreeNodeFactory nodeFactory) {
+    public BTree(PagedBTreeNode root, int pageSize, BTreeNodeFactory nodeFactory) {
 	    this.root = root;
         if (root != null) {
             this.root.recomputeSize();
@@ -69,7 +69,7 @@ public abstract class BTree<T extends BTreeNode> {
         }
     }
 
-    public boolean insert(T node, long key, long value, boolean onlyIfNotSet) {
+    public boolean insert(BTreeNode node, long key, long value, boolean onlyIfNotSet) {
         node.markChanged();
         if (node.isLeaf()) {
         	if(onlyIfNotSet && node.hasKey(key, value)) {
@@ -79,12 +79,12 @@ public abstract class BTree<T extends BTreeNode> {
             return true;
         } else {
             int childIndex = node.findKeyValuePos(key, value);
-            T child = node.getChild(childIndex);
+            BTreeNode child = node.getChild(childIndex);
             if(insert(child, key, value, onlyIfNotSet)) {
 	            if (child.overflows()) {
 	            	//first check if some keys can be redistributed to the
 	            	//left sibling
-	                T leftSibling = node.leftSibling(childIndex);
+	                BTreeNode leftSibling = node.leftSibling(childIndex);
 	                if (leftSibling != null && leftSibling.isNotFull()) {
 	                    //the child index needs to be decreased because redistribution
 	                    //is done with respect to the left node
@@ -108,10 +108,10 @@ public abstract class BTree<T extends BTreeNode> {
     }
 
     private void handleRootOverflow() {
-        T newRoot = (T) nodeFactory.newNode(isUnique(), getPageSize(), false, true);
+        BTreeNode newRoot = nodeFactory.newNode(isUnique(), getPageSize(), false, true);
 
-        T right;
-        T left = root;
+        BTreeNode right;
+        BTreeNode left = root;
         swapRoot(newRoot);
         if (left.isLeaf()) {
             right = split(left);
@@ -121,7 +121,7 @@ public abstract class BTree<T extends BTreeNode> {
         }
     }
 
-    private void handleInsertOverflow(T child, T parent, int childIndex) {
+    private void handleInsertOverflow(BTreeNode child, BTreeNode parent, int childIndex) {
         if (child.isLeaf()) {
             putLeafInParent(child, parent, childIndex);
         } else {
@@ -129,12 +129,12 @@ public abstract class BTree<T extends BTreeNode> {
         }
     }
 
-    private void putLeafInParent(T child, T parent, int childIndex) {
-        T right = split(child);
+    private void putLeafInParent(BTreeNode child, BTreeNode parent, int childIndex) {
+        BTreeNode right = split(child);
         parent.put(right.getSmallestKey(), right.getSmallestValue(), childIndex, right);
     }
 
-    private void putInnerNodeInParent(T child, T parent, int childIndex) {
+    private void putInnerNodeInParent(BTreeNode child, BTreeNode parent, int childIndex) {
         //ToDo remove duplication
         int numKeys = child.getNumKeys();
         int keysInLeftNode = child.computeIndexForSplit(isUnique());
@@ -144,7 +144,7 @@ public abstract class BTree<T extends BTreeNode> {
         int keysInRightNode = numKeys - keysInLeftNode - 1;
 
         // populate right node
-        T right = (T) nodeFactory.newNode(isUnique(), pageSize, child.isLeaf(), false);
+        BTreeNode right = nodeFactory.newNode(isUnique(), pageSize, child.isLeaf(), false);
         child.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
@@ -155,7 +155,7 @@ public abstract class BTree<T extends BTreeNode> {
         parent.put(newKey, newValue, childIndex, right);
     }
 
-    private void putInnerNodeInRoot(T child) {
+    private void putInnerNodeInRoot(BTreeNode child) {
         int numKeys = child.getNumKeys();
 
         int keysInLeftNode = child.computeIndexForSplit(isUnique());
@@ -166,7 +166,7 @@ public abstract class BTree<T extends BTreeNode> {
         int keysInRightNode = numKeys - keysInLeftNode - 1;
 
         // populate right node
-        T right = (T) nodeFactory.newNode(isUnique(), pageSize, child.isLeaf(), false);
+        BTreeNode right = nodeFactory.newNode(isUnique(), pageSize, child.isLeaf(), false);
         child.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
@@ -186,7 +186,7 @@ public abstract class BTree<T extends BTreeNode> {
      * @return                      The new node that contains the right half
      *                              of the keys of the current node.
      */
-    private T split(T current) {
+    private BTreeNode split(BTreeNode current) {
         int numKeys = current.getNumKeys();
 
         int keysInLeftNode = current.computeIndexForSplit(isUnique());
@@ -194,7 +194,7 @@ public abstract class BTree<T extends BTreeNode> {
         int keysInRightNode = numKeys - keysInLeftNode;
 
         // populate right node
-        T right = (T) nodeFactory.newNode(isUnique(), pageSize, current.isLeaf(), false);
+        BTreeNode right = nodeFactory.newNode(isUnique(), pageSize, current.isLeaf(), false);
         current.copyFromNodeToNode(keysInLeftNode, keysInLeftNode, right,
                 0, 0, keysInRightNode, keysInRightNode + 1);
         right.setNumKeys(keysInRightNode);
@@ -234,14 +234,14 @@ public abstract class BTree<T extends BTreeNode> {
      * @param value
      * @return                  The value associated with the key.
      */
-    private long delete(T node, long key, long value) {
+    private long delete(BTreeNode node, long key, long value) {
         node.markChanged();
         long oldValue;
         if (node.isLeaf()) {
             oldValue = deleteFromLeaf(node, key, value);
         } else {
             int childIndex = node.findKeyValuePos(key, value);
-            T child = node.getChild(childIndex);
+            BTreeNode child = node.getChild(childIndex);
             oldValue = delete(child, key, value);
             node.setChildSize(child.getCurrentSize(), childIndex);
 
@@ -268,10 +268,10 @@ public abstract class BTree<T extends BTreeNode> {
      * @param node                  The parent of the child node
      * @param childIndex                   The index of the child node in the parent node.
      */
-     private void rebalance(T node, T child, int childIndex) {
+     private void rebalance(BTreeNode node, BTreeNode child, int childIndex) {
          //check if can borrow 1 value from the left or right siblings
-         T rightSibling = node.rightSibling(childIndex);
-         T leftSibling = node.leftSibling(childIndex);
+         BTreeNode rightSibling = node.rightSibling(childIndex);
+         BTreeNode leftSibling = node.leftSibling(childIndex);
          if (child.fitsIntoOneNodeWith(leftSibling)) {
              mergeWithLeft(this, child, leftSibling, node, childIndex - 1);
          } else if (child.fitsIntoOneNodeWith(rightSibling)) {
@@ -295,21 +295,21 @@ public abstract class BTree<T extends BTreeNode> {
      * @param value
      * @return
      */
-    protected long deleteFromLeaf(T leaf, long key, long value) {
+    protected long deleteFromLeaf(BTreeNode leaf, long key, long value) {
         long oldValue = leaf.delete(key, value);
         leaf.recomputeSize();
         return oldValue;
     }
 
     public void setRoot(BTreeNode root) {
-        this.root = (T) root;
+        this.root = root;
     }
 
     public boolean isEmpty() {
         return root.getNumKeys() == 0;
     }
 
-    public T getRoot() {
+    public BTreeNode getRoot() {
         return this.root;
     }
 
@@ -334,7 +334,7 @@ public abstract class BTree<T extends BTreeNode> {
         return true;
     }
 
-    public void swapRoot(T newRoot) {
+    public void swapRoot(BTreeNode newRoot) {
         if (root != null) {
             root.setIsRoot(false);
         }
@@ -376,7 +376,7 @@ public abstract class BTree<T extends BTreeNode> {
      * @param parent                The parent of the current node
      * @return                      A reference to the parent node
      */
-    public T mergeWithRight(BTree<T> tree, T current, T right, T parent, int keyIndex) {
+    public BTreeNode mergeWithRight(BTree tree, BTreeNode current, BTreeNode right, BTreeNode parent, int keyIndex) {
 
         //check if parent needs merging -> tree gets smaller
         if (parent.isRoot() && parent.getNumKeys() == 1) {
@@ -407,7 +407,7 @@ public abstract class BTree<T extends BTreeNode> {
      * @param parent                    The parent of the current node
      * @return                          A new reference to the current node
      */
-    public T  mergeWithLeft(BTree<T> tree, T current, T left, T parent, int keyIndex) {
+    public BTreeNode  mergeWithLeft(BTree tree, BTreeNode current, BTreeNode left, BTreeNode parent, int keyIndex) {
 
         //assert keyIndex == parent.keyIndexOf(left, current);
 
@@ -437,7 +437,7 @@ public abstract class BTree<T extends BTreeNode> {
      * @param right             The right sibling of the current node
      * @param parent            The parent of the current node
      */
-    public int redistributeKeysFromRight(T current, T right, T parent, int parentKeyIndex) {
+    public int redistributeKeysFromRight(BTreeNode current, BTreeNode right, BTreeNode parent, int parentKeyIndex) {
         int keysToMove = computeKeysToMoveFromRight(current, right);
         if (keysToMove <= 0) {
             return keysToMove;
@@ -463,7 +463,7 @@ public abstract class BTree<T extends BTreeNode> {
      * @param left              The left sibling of the current node
      * @param parent            The parent of the current node
      */
-    public void redistributeKeysFromLeft(T current, T left, T parent, int parentKeyIndex) {
+    public void redistributeKeysFromLeft(BTreeNode  current, BTreeNode left, BTreeNode parent, int parentKeyIndex) {
         int keysToMove = computeKeysToMoveFromLeft(current, left);
         if (current.isLeaf()) {
             if (keysToMove <= 0) {
@@ -482,7 +482,7 @@ public abstract class BTree<T extends BTreeNode> {
         parent.setChildSize(current.getCurrentSize(), parentKeyIndex + 1);
     }
 
-    private int computeKeysToMoveFromLeft(T current, T left) {
+    private int computeKeysToMoveFromLeft(BTreeNode current, BTreeNode left) {
         int weightKey = (current.isLeaf() || (!isUnique())) ? current.getValueElementSize() : 0;
         int weightChild = (current.isLeaf() ? 0 : 4);
         int header = current.storageHeaderSize();
@@ -494,7 +494,7 @@ public abstract class BTree<T extends BTreeNode> {
         return keysToMove;
     }
 
-    private int computeKeysToMoveFromRight(T current, T right) {
+    private int computeKeysToMoveFromRight(BTreeNode current, BTreeNode right) {
         int weightKey = (current.isLeaf() || (!isUnique())) ? current.getValueElementSize() : 0;
         int weightChild = (current.isLeaf() ? 0 : 4);
         int header = current.storageHeaderSize();
@@ -505,7 +505,8 @@ public abstract class BTree<T extends BTreeNode> {
         return keysToMove;
     }
 
-    private T leafRedistributeFromLeft(T current, T left, T parent, int parentKeyIndex, int keysToMove) {
+    private BTreeNode leafRedistributeFromLeft(BTreeNode current, BTreeNode left, 
+    		BTreeNode parent, int parentKeyIndex, int keysToMove) {
         //shift nodes in current node right
         current.shiftRecordsRight(keysToMove);
 
@@ -526,7 +527,7 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
-    private T innerRedistributeFromLeft(T current, T left, T parent, int parentKeyIndex, int keysToMove) {
+    private BTreeNode innerRedistributeFromLeft(BTreeNode current, BTreeNode left, BTreeNode parent, int parentKeyIndex, int keysToMove) {
         int startIndexLeft = left.getNumKeys() - keysToMove;
         int startIndexRight = 0;
 
@@ -549,7 +550,7 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
-    private T leafRedistributeFromRight(T current, T right, T parent, int parentKeyIndex, int keysToMove) {
+    private BTreeNode leafRedistributeFromRight(BTreeNode current, BTreeNode right, BTreeNode parent, int parentKeyIndex, int keysToMove) {
         int startIndexRight = 0;
         int startIndexLeft = current.getNumKeys();
         //copy from left to current
@@ -569,7 +570,7 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
-    private T innerRedistributeFromRight(T current, T right, T parent, int parentKeyIndex, int keysToMove) {
+    private BTreeNode innerRedistributeFromRight(BTreeNode current, BTreeNode right, BTreeNode parent, int parentKeyIndex, int keysToMove) {
         if (keysToMove != 0) {
             //add key from parent
             current.migrateEntry(current.getNumKeys(), parent, parentKeyIndex);
@@ -594,7 +595,7 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
-    private T leafMergeWithLeft(T current, T left, T parent, int keyIndex) {
+    private BTreeNode leafMergeWithLeft(BTreeNode current, BTreeNode left, BTreeNode parent, int keyIndex) {
         //leaf node merge
         parent.shiftRecordsLeftWithIndex(keyIndex, 1);
         parent.decreaseNumKeys(1);
@@ -608,7 +609,7 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
-    private T innerMergeWithLeft(T current, T left, T parent, int keyIndex) {
+    private BTreeNode innerMergeWithLeft(BTreeNode current, BTreeNode left, BTreeNode parent, int keyIndex) {
         //move key from parent
         current.shiftRecordsRight(left.getNumKeys() + 1);
         current.migrateEntry(left.getNumKeys(), parent, keyIndex);
@@ -624,7 +625,7 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
-    private T rootMergeWithRight(BTree<T> tree, T current, T right, T parent) {
+    private BTreeNode rootMergeWithRight(BTree tree, BTreeNode current, BTreeNode right, BTreeNode parent) {
         if (!current.isLeaf()) {
             right.shiftRecordsRight(parent.getNumKeys());
             right.migrateEntry(0, parent, 0);
@@ -642,7 +643,7 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
-    private T rootMergeWithLeft(BTree<T> tree, T current, T left, T parent) {
+    private BTreeNode rootMergeWithLeft(BTree tree, BTreeNode current, BTreeNode left, BTreeNode parent) {
         if (!current.isLeaf()) {
             current.shiftRecordsRight(parent.getNumKeys());
             current.migrateEntry(0, parent, 0);
@@ -660,7 +661,7 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
-    private T leafMergeWithRight(T current, T right, T parent, int keyIndex) {
+    private BTreeNode leafMergeWithRight(BTreeNode current, BTreeNode right, BTreeNode parent, int keyIndex) {
         //merge leaves
         parent.shiftRecordsLeftWithIndex(keyIndex, 1);
         parent.decreaseNumKeys(1);
@@ -674,7 +675,7 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
-    private T innerMergeWithRight(T current, T right, T parent, int keyIndex) {
+    private BTreeNode innerMergeWithRight(BTreeNode current, BTreeNode right, BTreeNode parent, int keyIndex) {
         //merge inner nodes
         right.shiftRecordsRight(1);
         right.migrateEntry(0, parent, keyIndex);
@@ -691,11 +692,11 @@ public abstract class BTree<T extends BTreeNode> {
         return parent;
     }
 
-    public void copyMergeFromLeftNodeToRightNode(T src, int srcStart, T dest, int destStart, int keys, int children) {
+    public void copyMergeFromLeftNodeToRightNode(BTreeNode src, int srcStart, BTreeNode dest, int destStart, int keys, int children) {
         src.copyFromNodeToNode(srcStart, srcStart, dest, destStart, destStart, keys, children + 1);
     }
 
-    public void copyRedistributeFromLeftNodeToRightNode(T src, int srcStart, T dest, int destStart,
+    public void copyRedistributeFromLeftNodeToRightNode(BTreeNode src, int srcStart, BTreeNode dest, int destStart,
                                                         int keys, int children) {
         src.copyFromNodeToNode( srcStart, srcStart + 1, dest, destStart, destStart, keys, children);
     }
@@ -713,7 +714,7 @@ public abstract class BTree<T extends BTreeNode> {
         if (getRoot().getNumKeys() == 0) {
             return -1;
         }
-        BTreeLeafEntryIterator<T> it = new AscendingBTreeLeafEntryIterator<T>(this);
+        BTreeLeafEntryIterator it = new AscendingBTreeLeafEntryIterator(this);
         long minKey = Long.MIN_VALUE;
         if(it.hasNext()) {
                 minKey = it.next().getKey();
@@ -726,7 +727,7 @@ public abstract class BTree<T extends BTreeNode> {
         if (getRoot().getNumKeys() == 0) {
             return Long.MIN_VALUE;
         }
-        BTreeLeafEntryIterator<T> it = new DescendingBTreeLeafEntryIterator<T>(this);
+        BTreeLeafEntryIterator it = new DescendingBTreeLeafEntryIterator(this);
         long maxKey = Long.MIN_VALUE;
         if(it.hasNext()) {
                 maxKey = it.next().getKey();
@@ -752,12 +753,12 @@ public abstract class BTree<T extends BTreeNode> {
 		return leafN;
     }
     
-    private void copyFromRightNodeToLeftNode(T src,  int srcStart, T dest, int destStart,
+    private void copyFromRightNodeToLeftNode(BTreeNode src,  int srcStart, BTreeNode dest, int destStart,
                                              int keys, int children) {
         src.copyFromNodeToNode(srcStart, srcStart, dest, destStart, destStart, keys, children);
     }
 
-    private void copyNodeToAnother(T source, T destination, int destinationIndex) {
+    private void copyNodeToAnother(BTreeNode source, BTreeNode destination, int destinationIndex) {
         source.copyFromNodeToNode(0, 0, destination, destinationIndex, destinationIndex, source.getNumKeys(), source.getNumKeys() + 1);
     }
 

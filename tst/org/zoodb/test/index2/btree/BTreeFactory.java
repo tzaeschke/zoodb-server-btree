@@ -1,16 +1,15 @@
 package org.zoodb.test.index2.btree;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.zoodb.internal.server.index.btree.BTree;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
-import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.util.Pair;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /*
  * Convenience class to build a UniqueBTree layer by layer.
@@ -50,7 +49,6 @@ public class BTreeFactory {
         splitList(true, nodeKeysValues);
         this.addLayer(true,nodeKeys);
         List<List<Long>> nodeValues = splitList(false, nodeKeysValues);;
-        BTreeNodeFactory<?> factory = new PagedBTreeNodeFactory(bufferManager);
         for(int i=0; i<prevLayer.size(); i++) {
             List<Long> values = nodeValues.get(i);
             prevLayer.get(i).setValues(padLongArray(toPrimitives(

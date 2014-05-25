@@ -1,43 +1,31 @@
 package org.zoodb.test.index2.btree;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.zoodb.internal.server.index.LongLongIndex;
-import org.zoodb.internal.server.index.btree.*;
-import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
-import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.NoSuchElementException;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 
-@RunWith(Parameterized.class)
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.NoSuchElementException;
+
+import org.junit.Test;
+import org.zoodb.internal.server.index.LongLongIndex;
+import org.zoodb.internal.server.index.btree.AscendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
+import org.zoodb.internal.server.index.btree.DescendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.PagedBTree;
+import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
+
 public class BTreeIteratorTest {
-
-	private PagedBTree<?> testTree;
-
-	public BTreeIteratorTest(PagedBTree<?> testTree) {
-		this.testTree = testTree;
-	}
-
-	@Parameterized.Parameters
-	public static Collection<Object[]> data() {
-		return Arrays.asList(new Object[][] {
-				{ new NonUniquePagedBTree(128, new BTreeMemoryBufferManager()) },
-				{ new UniquePagedBTree(128, new BTreeMemoryBufferManager()) } });
-	}
 
 	@Test(expected = NoSuchElementException.class)
 	public void testLeafIterate() {
-		PagedBTree<?> tree = TestBTree
+		PagedBTree tree = TestBTree
 				.getTestTreeWithThreeLayers(new BTreeMemoryBufferManager());
 
-		BTreeLeafEntryIterator<?> it = new AscendingBTreeLeafEntryIterator(
+		BTreeLeafEntryIterator it = new AscendingBTreeLeafEntryIterator(
 				tree, 3, 15);
 
 		while (it.hasNext()) {
@@ -53,7 +41,7 @@ public class BTreeIteratorTest {
 		BTree tree = new NonUniquePagedBTree(pageSize,
 				new BTreeMemoryBufferManager());
 
-		ArrayList<LongLongIndex.LLEntry> entries = new ArrayList<>();
+		ArrayList<LongLongIndex.LLEntry> entries = new ArrayList();
 		int limit = 1000000;
 		for (int i = 0; i < limit; i++) {
 			long key = i * 2;
@@ -80,7 +68,7 @@ public class BTreeIteratorTest {
 		BTree tree = new NonUniquePagedBTree(pageSize,
 				new BTreeMemoryBufferManager());
 
-		ArrayList<LongLongIndex.LLEntry> entries = new ArrayList<>();
+		ArrayList<LongLongIndex.LLEntry> entries = new ArrayList();
 		int limit = 1000000;
 		for (int i = 0; i < limit; i++) {
 			long key = i * 2;
@@ -104,7 +92,7 @@ public class BTreeIteratorTest {
 	@Test
 	public void testRangeIteratorUnique() {
 		int pageSize = 128;
-		PagedBTree<?> tree = new UniquePagedBTree(pageSize,
+		PagedBTree tree = new UniquePagedBTree(pageSize,
 				new BTreeMemoryBufferManager());
 
 		int limit = 4;
@@ -115,28 +103,28 @@ public class BTreeIteratorTest {
 		/*
 		 * Ascending
 		 */
-		BTreeLeafEntryIterator<?> it = new AscendingBTreeLeafEntryIterator<>(
+		BTreeLeafEntryIterator it = new AscendingBTreeLeafEntryIterator(
 				tree, 0, 0);
 		assertEquals(new ArrayList<Long>(Arrays.asList(32L)),
 				valueListFromIterator(it));
 
-		it = new AscendingBTreeLeafEntryIterator<>(tree, 1, 1);
+		it = new AscendingBTreeLeafEntryIterator(tree, 1, 1);
 		assertEquals(new ArrayList<Long>(Arrays.asList(33L)),
 				valueListFromIterator(it));
 
-		it = new AscendingBTreeLeafEntryIterator<>(tree, -1, 0);
+		it = new AscendingBTreeLeafEntryIterator(tree, -1, 0);
 		assertEquals(new ArrayList<Long>(Arrays.asList(32L)),
 				valueListFromIterator(it));
 
-		it = new AscendingBTreeLeafEntryIterator<>(tree, 3, 4);
+		it = new AscendingBTreeLeafEntryIterator(tree, 3, 4);
 		assertEquals(new ArrayList<Long>(Arrays.asList(35L)),
 				valueListFromIterator(it));
 
-		it = new AscendingBTreeLeafEntryIterator<>(tree, 0, 3);
+		it = new AscendingBTreeLeafEntryIterator(tree, 0, 3);
 		assertEquals(new ArrayList<Long>(Arrays.asList(32L, 33L, 34L, 35L)),
 				valueListFromIterator(it));
 
-		it = new AscendingBTreeLeafEntryIterator<>(tree, -1, 4);
+		it = new AscendingBTreeLeafEntryIterator(tree, -1, 4);
 		assertEquals(new ArrayList<Long>(Arrays.asList(32L, 33L, 34L, 35L)),
 				valueListFromIterator(it));
 		
@@ -144,31 +132,31 @@ public class BTreeIteratorTest {
 		/*
 		 * Descending
 		 */
-		it = new DescendingBTreeLeafEntryIterator<>(tree, 0, 0);
+		it = new DescendingBTreeLeafEntryIterator(tree, 0, 0);
 		assertEquals(new ArrayList<Long>(Arrays.asList(32L)),
 				valueListFromIterator(it));
 
-		it = new DescendingBTreeLeafEntryIterator<>(tree, 1, 1);
+		it = new DescendingBTreeLeafEntryIterator(tree, 1, 1);
 		assertEquals(new ArrayList<Long>(Arrays.asList(33L)),
 				valueListFromIterator(it));
 
-		it = new DescendingBTreeLeafEntryIterator<>(tree, -1, 0);
+		it = new DescendingBTreeLeafEntryIterator(tree, -1, 0);
 		assertEquals(new ArrayList<Long>(Arrays.asList(32L)),
 				valueListFromIterator(it));
 
-		it = new DescendingBTreeLeafEntryIterator<>(tree, 3, 3);
+		it = new DescendingBTreeLeafEntryIterator(tree, 3, 3);
 		assertEquals(new ArrayList<Long>(Arrays.asList(35L)),
 				valueListFromIterator(it));
 
-		it = new DescendingBTreeLeafEntryIterator<>(tree, 3, 4);
+		it = new DescendingBTreeLeafEntryIterator(tree, 3, 4);
 		assertEquals(new ArrayList<Long>(Arrays.asList(35L)),
 				valueListFromIterator(it));
 
-		it = new DescendingBTreeLeafEntryIterator<>(tree, 0, 3);
+		it = new DescendingBTreeLeafEntryIterator(tree, 0, 3);
 		assertEquals(new ArrayList<Long>(Arrays.asList(35L, 34L, 33L, 32L)),
 				valueListFromIterator(it));
 
-		it = new DescendingBTreeLeafEntryIterator<>(tree, -1, 4);
+		it = new DescendingBTreeLeafEntryIterator(tree, -1, 4);
 		assertEquals(new ArrayList<Long>(Arrays.asList(35L, 34L, 33L, 32L)),
 				valueListFromIterator(it));
 
@@ -177,7 +165,7 @@ public class BTreeIteratorTest {
 	@Test
 	public void testRangeIteratorNonUnique() {
 		int order = 128;
-		PagedBTree<?> tree = new NonUniquePagedBTree(order,
+		PagedBTree tree = new NonUniquePagedBTree(order,
 				new BTreeMemoryBufferManager());
 
 		tree.insert(0, 0);
@@ -190,29 +178,29 @@ public class BTreeIteratorTest {
 		/*
 		 * Ascending
 		 */
-		BTreeLeafEntryIterator<?> it = new AscendingBTreeLeafEntryIterator<>(
+		BTreeLeafEntryIterator it = new AscendingBTreeLeafEntryIterator(
 				tree, 0, 0);
 		assertEquals(new ArrayList<Long>(Arrays.asList(0L, 1L)),
 				valueListFromIterator(it));
 
-		it = new AscendingBTreeLeafEntryIterator<>(tree, -1, 0);
+		it = new AscendingBTreeLeafEntryIterator(tree, -1, 0);
 		assertEquals(new ArrayList<Long>(Arrays.asList(0L, 1L)),
 				valueListFromIterator(it));
 
-		it = new AscendingBTreeLeafEntryIterator<>(tree, 2, 2);
+		it = new AscendingBTreeLeafEntryIterator(tree, 2, 2);
 		assertEquals(new ArrayList<Long>(Arrays.asList(2L)),
 				valueListFromIterator(it));
 
-		it = new AscendingBTreeLeafEntryIterator<>(tree, 3, 4);
+		it = new AscendingBTreeLeafEntryIterator(tree, 3, 4);
 		assertEquals(new ArrayList<Long>(Arrays.asList(3L, 4L, 5L)),
 				valueListFromIterator(it));
 
-		it = new AscendingBTreeLeafEntryIterator<>(tree, 0, 3);
+		it = new AscendingBTreeLeafEntryIterator(tree, 0, 3);
 		assertEquals(
 				new ArrayList<Long>(Arrays.asList(0L, 1L, 2L, 3L, 4L, 5L)),
 				valueListFromIterator(it));
 
-		it = new AscendingBTreeLeafEntryIterator<>(tree, -1, 4);
+		it = new AscendingBTreeLeafEntryIterator(tree, -1, 4);
 		assertEquals(
 				new ArrayList<Long>(Arrays.asList(0L, 1L, 2L, 3L, 4L, 5L)),
 				valueListFromIterator(it));
@@ -220,32 +208,32 @@ public class BTreeIteratorTest {
 		/*
 		 * Descending
 		 */
-		it = new DescendingBTreeLeafEntryIterator<>(tree, 0, 0);
+		it = new DescendingBTreeLeafEntryIterator(tree, 0, 0);
 		assertEquals(new ArrayList<Long>(Arrays.asList(1L, 0L)),
 				valueListFromIterator(it));
 
-		it = new DescendingBTreeLeafEntryIterator<>(tree, 2, 2);
+		it = new DescendingBTreeLeafEntryIterator(tree, 2, 2);
 		assertEquals(new ArrayList<Long>(Arrays.asList(2L)),
 				valueListFromIterator(it));
 
-		it = new DescendingBTreeLeafEntryIterator<>(tree, -1, 0);
+		it = new DescendingBTreeLeafEntryIterator(tree, -1, 0);
 		assertEquals(new ArrayList<Long>(Arrays.asList(1L, 0L)),
 				valueListFromIterator(it));
 
-		it = new DescendingBTreeLeafEntryIterator<>(tree, 2, 3);
+		it = new DescendingBTreeLeafEntryIterator(tree, 2, 3);
 		assertEquals(new ArrayList<Long>(Arrays.asList(5L, 4L, 3L, 2L)),
 				valueListFromIterator(it));
 
-		it = new DescendingBTreeLeafEntryIterator<>(tree, 3, 4);
+		it = new DescendingBTreeLeafEntryIterator(tree, 3, 4);
 		assertEquals(new ArrayList<Long>(Arrays.asList(5L, 4L, 3L)),
 				valueListFromIterator(it));
 
-		it = new DescendingBTreeLeafEntryIterator<>(tree, 0, 3);
+		it = new DescendingBTreeLeafEntryIterator(tree, 0, 3);
 		assertEquals(
 				new ArrayList<Long>(Arrays.asList(5L, 4L, 3L, 2L, 1L, 0L)),
 				valueListFromIterator(it));
 
-		it = new DescendingBTreeLeafEntryIterator<>(tree, -1, 4);
+		it = new DescendingBTreeLeafEntryIterator(tree, -1, 4);
 		assertEquals(
 				new ArrayList<Long>(Arrays.asList(5L, 4L, 3L, 2L, 1L, 0L)),
 				valueListFromIterator(it));
@@ -254,17 +242,17 @@ public class BTreeIteratorTest {
 	@Test 
 	public void outsideRangeTest() {
 		int order = 128;
-		PagedBTree<?> tree = new UniquePagedBTree(order,
+		PagedBTree tree = new UniquePagedBTree(order,
 				new BTreeMemoryBufferManager());
 
 		int limit = 4;
 		for (int i = 0; i < limit; i++) {
 			tree.insert(i, i + 32);
 		}
-	    assertFalse(new AscendingBTreeLeafEntryIterator<>(tree, -1, -1).hasNext());
-	    assertFalse(new AscendingBTreeLeafEntryIterator<>(tree, 4, 5).hasNext());
-	    assertFalse(new DescendingBTreeLeafEntryIterator<>(tree, -1, -1).hasNext());
-	    assertFalse(new DescendingBTreeLeafEntryIterator<>(tree, 4, 5).hasNext());
+	    assertFalse(new AscendingBTreeLeafEntryIterator(tree, -1, -1).hasNext());
+	    assertFalse(new AscendingBTreeLeafEntryIterator(tree, 4, 5).hasNext());
+	    assertFalse(new DescendingBTreeLeafEntryIterator(tree, -1, -1).hasNext());
+	    assertFalse(new DescendingBTreeLeafEntryIterator(tree, 4, 5).hasNext());
 	    
 		tree = new NonUniquePagedBTree(order,
 				new BTreeMemoryBufferManager());
@@ -276,10 +264,10 @@ public class BTreeIteratorTest {
 		tree.insert(3, 4);
 		tree.insert(3, 5);
 		
-	    assertFalse(new AscendingBTreeLeafEntryIterator<>(tree, -1, -1).hasNext());
-	    assertFalse(new AscendingBTreeLeafEntryIterator<>(tree, 4, 5).hasNext());
-	    assertFalse(new DescendingBTreeLeafEntryIterator<>(tree, -1, -1).hasNext());
-	    assertFalse(new DescendingBTreeLeafEntryIterator<>(tree, 4, 5).hasNext());
+	    assertFalse(new AscendingBTreeLeafEntryIterator(tree, -1, -1).hasNext());
+	    assertFalse(new AscendingBTreeLeafEntryIterator(tree, 4, 5).hasNext());
+	    assertFalse(new DescendingBTreeLeafEntryIterator(tree, -1, -1).hasNext());
+	    assertFalse(new DescendingBTreeLeafEntryIterator(tree, 4, 5).hasNext());
 		
 	}
 	
@@ -292,15 +280,15 @@ public class BTreeIteratorTest {
         tree.insert(1, 2);
         tree.delete(1);
         
-        BTreeLeafEntryIterator<?> it = new AscendingBTreeLeafEntryIterator<>(tree);
+        BTreeLeafEntryIterator it = new AscendingBTreeLeafEntryIterator(tree);
         assertFalse(it.hasNext());
         
-        it = new DescendingBTreeLeafEntryIterator<>(tree);
+        it = new DescendingBTreeLeafEntryIterator(tree);
         assertFalse(it.hasNext());
     }
 
-	public ArrayList<Long> valueListFromIterator(BTreeLeafEntryIterator<?> it) {
-		ArrayList<Long> values = new ArrayList<>();
+	public ArrayList<Long> valueListFromIterator(BTreeLeafEntryIterator it) {
+		ArrayList<Long> values = new ArrayList();
 		while (it.hasNext()) {
 			values.add(it.next().getValue());
 		}

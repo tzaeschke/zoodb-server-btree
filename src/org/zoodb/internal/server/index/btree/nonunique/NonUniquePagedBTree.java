@@ -1,10 +1,10 @@
 package org.zoodb.internal.server.index.btree.nonunique;
 
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.PagedBTree;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
-public class NonUniquePagedBTree extends PagedBTree<NonUniquePagedBTreeNode> {
+public class NonUniquePagedBTree extends PagedBTree {
 
 	public NonUniquePagedBTree(NonUniquePagedBTreeNode root,
 			int pageSize, BTreeBufferManager bufferManager) {
@@ -21,7 +21,7 @@ public class NonUniquePagedBTree extends PagedBTree<NonUniquePagedBTreeNode> {
     }
 
     public boolean contains(long key, long value) {
-        PagedBTreeNode current = root;
+        BTreeNode current = root;
         while (!current.isLeaf()) {
             current = current.findChild(key, value);
         }

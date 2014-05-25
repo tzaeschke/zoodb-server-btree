@@ -1,6 +1,6 @@
 package org.zoodb.internal.server.index.btree;
 
-public class AscendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTreeLeafEntryIterator<T> {
+public class AscendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
 
     public AscendingBTreeLeafEntryIterator(BTree tree) {
         super(tree);
@@ -16,8 +16,8 @@ public class AscendingBTreeLeafEntryIterator<T extends BTreeNode> extends BTreeL
             curPos++;
         } else {
             curPos = 0;
-            T rightSibling = null;
-            T ancestor = null;
+            BTreeNode rightSibling = null;
+            BTreeNode ancestor = null;
             Integer position = 0;
             while (rightSibling == null && ancestors.size() > 0) {
                 ancestor = ancestors.pop();

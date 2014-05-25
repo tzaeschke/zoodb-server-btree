@@ -1,19 +1,19 @@
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.server.index.LongLongIndex;
-import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.util.DBLogger;
-
 import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
-public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
+import org.zoodb.internal.server.index.LongLongIndex;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+import org.zoodb.internal.util.DBLogger;
+
+public abstract class BTreeLeafEntryIterator implements
 		LongLongIndex.LLEntryIterator {
-	protected BTree<T> tree;
-	protected T curLeaf;
+	protected BTree tree;
+	protected BTreeNode curLeaf;
 	protected int curPos;
-	protected LinkedList<T> ancestors;
+	protected LinkedList<BTreeNode> ancestors;
     protected LinkedList<Integer> positions;
 
     protected long start = Long.MIN_VALUE;
@@ -27,14 +27,14 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
     abstract void updatePosition();
     abstract void setFirstLeaf();
 
-	public BTreeLeafEntryIterator(BTree<T> tree) {
+	public BTreeLeafEntryIterator(BTree tree) {
 		init(tree);
         this.modCount = tree.getModcount();
         this.txId = this.getTxId();
 		setFirstLeaf();
 	}
 
-    public BTreeLeafEntryIterator(BTree<T> tree, long start, long end) {
+    public BTreeLeafEntryIterator(BTree tree, long start, long end) {
         init(tree);
         this.modCount = tree.getModcount();
         this.txId = this.getTxId();
@@ -93,29 +93,29 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 		return this.next().getKey();
 	}
 
-    protected T getLefmostLeaf(T node) {
+    protected BTreeNode getLefmostLeaf(BTreeNode node) {
         if(node.isLeaf()) {
             return node;
         }
-        T current = node;
+        BTreeNode current = node;
         while(!current.isLeaf()) {
             ancestors.push(current);
             positions.push(0);
-            current = (T) current.getChild(0);
+            current = current.getChild(0);
         }
         return current;
     }
 
-    protected T getRightMostLeaf(T node) {
+    protected BTreeNode getRightMostLeaf(BTreeNode node) {
         if(node.isLeaf()) {
             return node;
         }
-        T current = node;
+        BTreeNode current = node;
         while(!current.isLeaf()) {
             ancestors.push(current);
             int numKeys = current.getNumKeys();
             positions.push(numKeys);
-            current = (T) current.getChild(numKeys);
+            current = current.getChild(numKeys);
         }
         return current;
     }
@@ -133,7 +133,7 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 		// txId is only relevant when we are dealing with PagedBTrees on
 		// StorageBufferManagers
 		if (this.tree instanceof PagedBTree) {
-			PagedBTree<?> tree = (PagedBTree<?>) this.tree;
+			PagedBTree tree = (PagedBTree) this.tree;
             if(tree.getBufferManager() instanceof BTreeStorageBufferManager) {
                 BTreeStorageBufferManager bm = (BTreeStorageBufferManager) tree.getBufferManager();
                 return bm.getStorageFile().getTxId();
@@ -151,7 +151,7 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
     }
 
     protected void populateAncestorStack(long key, long value) {
-        T current = tree.getRoot();
+        BTreeNode current = tree.getRoot();
         int position;
         while (!current.isLeaf()) {
             position = current.findKeyValuePos(key, value);

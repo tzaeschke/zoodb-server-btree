@@ -7,7 +7,7 @@ import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTreeNode;
 
-public class BTreeIndexNonUnique extends BTreeIndex<NonUniquePagedBTree, NonUniquePagedBTreeNode> implements LongLongIndex {
+public class BTreeIndexNonUnique extends BTreeIndex implements LongLongIndex {
 
     private NonUniquePagedBTree tree;
 

@@ -1,10 +1,10 @@
 package org.zoodb.internal.server.index.btree;
 
-public abstract class PagedBTree<T extends PagedBTreeNode> extends BTree<T> {
+public abstract class PagedBTree extends BTree {
 
     private BTreeBufferManager bufferManager;
 
-	public PagedBTree(T root, int pageSize,
+	public PagedBTree(PagedBTreeNode root, int pageSize,
 			BTreeBufferManager bufferManager) {
 		super(root, pageSize, new PagedBTreeNodeFactory(bufferManager));
         this.bufferManager = bufferManager;
@@ -23,8 +23,7 @@ public abstract class PagedBTree<T extends PagedBTreeNode> extends BTree<T> {
     	bufferManager.write(getRoot());
     }
     
-    public T getRoot() {
-    	return (T) root;
+    public PagedBTreeNode getRoot() {
+    	return (PagedBTreeNode) root;
     }
-
 }

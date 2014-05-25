@@ -1,6 +1,5 @@
 package org.zoodb.internal.server.index.btree;
 
-import java.util.Observer;
 
 public interface BTreeBufferManager {
 

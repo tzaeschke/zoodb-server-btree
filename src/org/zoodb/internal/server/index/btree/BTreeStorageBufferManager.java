@@ -2,7 +2,6 @@ package org.zoodb.internal.server.index.btree;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Observable;
 
 import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
@@ -336,7 +335,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	 * been removed using BTree.remove and thus its page has been reported
 	 * as free.
 	 */
-	public <T extends PagedBTreeNode> List<Integer> debugPageIds(PagedBTree<T> tree) {
+	public List<Integer> debugPageIds(PagedBTree tree) {
 		BTreeIterator it = new BTreeIterator(tree);
 		ArrayList<Integer> pageIds = new ArrayList<Integer>();
 		while(it.hasNext()) {
@@ -359,7 +358,6 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	
 	public static int pageHeaderSize() {
 		int nodeTypeIndicatorSize = 1;
-		int numKeysSize = 4;
 		
 		int size = 0;
 		size += DiskIO.PAGE_HEADER_SIZE;

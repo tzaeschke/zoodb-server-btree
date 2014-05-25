@@ -1,8 +1,8 @@
 package org.zoodb.internal.server.index.btree.unique;
 
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.PagedBTree;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
 /**
  * Abstracts the need to specify a BTreeNodeFactory, which is specific to this
@@ -11,7 +11,7 @@ import org.zoodb.internal.server.index.btree.PagedBTreeNode;
  * Also, adds the buffer manager that will be used by this type of node as an
  * argument.
  */
-public class UniquePagedBTree extends PagedBTree<UniquePagedBTreeNode> {
+public class UniquePagedBTree extends PagedBTree {
 	
 	private static final int NO_VALUE = 0;
 
@@ -37,7 +37,7 @@ public class UniquePagedBTree extends PagedBTree<UniquePagedBTreeNode> {
 		if (isEmpty()) {
 			return null;
 		}
-		PagedBTreeNode current = root;
+		BTreeNode current = root;
 
 		while (!current.isLeaf()) {
 			current = current.findChild(key, NO_VALUE);
@@ -67,7 +67,7 @@ public class UniquePagedBTree extends PagedBTree<UniquePagedBTreeNode> {
 		return deleteEntry(key, NO_VALUE);
 	}
 
-	private Long findValue(PagedBTreeNode node, long key) {
+	private Long findValue(BTreeNode node, long key) {
 		if (!node.isLeaf()) {
 			throw new IllegalStateException(
 					"Should only be called on leaf nodes.");
