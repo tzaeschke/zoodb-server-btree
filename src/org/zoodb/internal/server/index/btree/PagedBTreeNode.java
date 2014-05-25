@@ -69,7 +69,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
     protected void initChildren(int size) {
         //This is called by the BTreeNode constructor
         this.childrenPageIds = new int[size];
-        this.childSizes = new long[size];
+        this.childSizes = new int[size];
     }
 
 	@Override
@@ -157,8 +157,11 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	@Override
 	public void copyChildren(BTreeNode source, int sourceIndex, BTreeNode dest,
 			int destIndex, int size) {
-		System.arraycopy(toPagedNode(source).getChildrenPageIds(), sourceIndex,
-				toPagedNode(dest).getChildrenPageIds(), destIndex, size);
+        PagedBTreeNode pagedSource = toPagedNode(source);
+        PagedBTreeNode pagedDest = toPagedNode(dest);
+		System.arraycopy(pagedSource.getChildrenPageIds(), sourceIndex,
+				pagedDest.getChildrenPageIds(), destIndex, size);
+        System.arraycopy(pagedSource.getChildSizes(), sourceIndex, pagedDest.getChildSizes(), destIndex, size);
 	}
 
 	public int[] getChildrenPageIds() {
@@ -280,6 +283,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
             if (isUnique) {
                 maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 2 ) + 1;
             } else {
+                //ToDo this might not be right
                 maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) / 12 ) + 1;
             }
 

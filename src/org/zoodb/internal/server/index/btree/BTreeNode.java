@@ -17,7 +17,6 @@ public abstract class BTreeNode extends Observable {
 	//protected int order;
     protected int pageSize;
     protected int pageSizeThreshold;
-    protected int minSize;
 
     //It is very important always update this after modifying the keys/values/children
     protected int currentSize;
@@ -28,7 +27,7 @@ public abstract class BTreeNode extends Observable {
 	private long[] keys;
 
 	private long[] values;
-    protected long[] childSizes;
+    protected int[] childSizes;
 
 	protected int valueElementSize;
 
@@ -40,7 +39,6 @@ public abstract class BTreeNode extends Observable {
         this.valueElementSize = valueElementSize;
 
         initializeEntries();
-        this.minSize = keys.length >> 1;
 	}
 
     public abstract long getNonKeyEntrySizeInBytes(int numKeys);
@@ -213,7 +211,7 @@ public abstract class BTreeNode extends Observable {
         setChild(1, right);
 
         setChildSize(left.getCurrentSize(), 0);
-        setChildSize(right.getCurrentSize(), 0);
+        setChildSize(right.getCurrentSize(), 1);
 
         recomputeSize();
     }
@@ -595,10 +593,14 @@ public abstract class BTreeNode extends Observable {
         return childSizes[childIndex];
     }
 
-    public void setChildSize(long size, int childIndex) {
+    public void setChildSize(int size, int childIndex) {
         if (this.childSizes != null) {
             this.childSizes[childIndex] = size;
         }
+    }
+
+    public int[] getChildSizes() {
+        return childSizes;
     }
     
 }
