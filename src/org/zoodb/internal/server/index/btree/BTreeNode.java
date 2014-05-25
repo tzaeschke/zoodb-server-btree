@@ -3,7 +3,6 @@ package org.zoodb.internal.server.index.btree;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 import java.util.NoSuchElementException;
-import java.util.Observable;
 
 /**
  * Represents the node of a B+ tree.
@@ -54,7 +53,7 @@ public abstract class BTreeNode {
     protected abstract <T extends BTreeNode> T  rightSiblingOf(BTreeNode node);
     public abstract <T extends BTreeNode> T getChild(int index);
     public abstract void setChild(int index, BTreeNode child);
-    public abstract BTreeNode[] getChildren();
+    public abstract BTreeNode[] getChildNodes();
     public abstract void setChildren(BTreeNode[] children);
     public abstract void markChanged();
     // closes (destroys) node
@@ -174,7 +173,6 @@ public abstract class BTreeNode {
         int recordsToMove = getNumKeys() - pos;
         shiftChildren(pos + 1, pos + 2, recordsToMove);
         setChild(pos + 1, newNode);
-        setChildSize(newNode.getCurrentSize(), pos + 1);
 
         shiftKeys(pos, pos + 1, recordsToMove);
         if (values != null) {
@@ -209,9 +207,6 @@ public abstract class BTreeNode {
 
         setChild(0, left);
         setChild(1, right);
-
-        setChildSize(left.getCurrentSize(), 0);
-        setChildSize(right.getCurrentSize(), 1);
 
         recomputeSize();
     }

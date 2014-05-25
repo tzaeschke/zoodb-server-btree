@@ -2,6 +2,7 @@ package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -13,6 +14,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	// isDirty: does the node in memory differ from the node in storage?
 	private int[] childrenPageIds;
     protected BTreeBufferManager bufferManager;
+    private WeakReference<PagedBTreeNode>[] children;
 
 	public PagedBTreeNode(BTreeBufferManager bufferManager, int pageSize, boolean isLeaf, boolean isRoot) {
 		super(pageSize, isLeaf, isRoot, bufferManager.getNodeValueElementSize());
@@ -58,14 +60,18 @@ public abstract class PagedBTreeNode extends BTreeNode {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected void initChildren(int size) {
         //This is called by the BTreeNode constructor
         this.childrenPageIds = new int[size];
         this.childSizes = new int[size];
+        this.children = new WeakReference[size];
     }
 
 	@Override
-	public BTreeNode[] getChildren() {
+	public BTreeNode[] getChildNodes() {
+        //this method shouldn't really be used in development
+        //as it reads all the children from disk
 		BTreeNode[] children = new BTreeNode[childrenPageIds.length];
 		int i = 0;
 		if(numKeys > 0) {
@@ -128,19 +134,29 @@ public abstract class PagedBTreeNode extends BTreeNode {
 
 	@Override
 	public BTreeNode getChild(int index) {
-		return bufferManager.read(childrenPageIds[index]);
+        PagedBTreeNode child;
+        if (children[index] == null || children[index].get() == null)  {
+            child = bufferManager.read(childrenPageIds[index]);
+            children[index] = new WeakReference<>(child);
+            return child;
+        }
+
+		return children[index].get();
 	}
 
 	@Override
 	public void setChild(int index, BTreeNode child) {
 		markDirty();
-		childrenPageIds[index] = toPagedNode(child).getPageId();
+        PagedBTreeNode pagedChild = toPagedNode(child);
+		childrenPageIds[index] = pagedChild.getPageId();
+        children[index] = new WeakReference<>(pagedChild);
+        childSizes[index] = pagedChild.getCurrentSize();
 	}
 
     @Override
 	public boolean equalChildren(BTreeNode other) {
 		if(getNumKeys() > 0) {
-            return arrayEquals(getChildren(), other.getChildren(), getNumKeys() + 1);
+            return arrayEquals(getChildNodes(), other.getChildNodes(), getNumKeys() + 1);
 		} else {
 			return getNumKeys() == other.getNumKeys();
 		}
@@ -154,6 +170,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		System.arraycopy(pagedSource.getChildrenPageIds(), sourceIndex,
 				pagedDest.getChildrenPageIds(), destIndex, size);
         System.arraycopy(pagedSource.getChildSizes(), sourceIndex, pagedDest.getChildSizes(), destIndex, size);
+        System.arraycopy(pagedSource.getChildren(), sourceIndex, pagedDest.getChildren(), destIndex, size);
 	}
 
 	public int[] getChildrenPageIds() {
@@ -249,7 +266,11 @@ public abstract class PagedBTreeNode extends BTreeNode {
     public int storageHeaderSize() {
         return bufferManager.getNodeHeaderSizeInStorage(this);
     }
-    
+
+    public WeakReference<PagedBTreeNode>[] getChildren() {
+        return children;
+    }
+
     public static int computeMaxPossibleEntries(boolean isUnique, boolean isLeaf, int pageSize, int valueElementSize) {
         //ToDo use this same method in the node, to compute the sizes on init
         int maxPossibleNumEntries;

@@ -28,7 +28,7 @@ public class TestNode {
 	}
 
 	public static BTreeNode[] getChildren(BTreeNode innerNode) {
-		return Arrays.copyOfRange(innerNode.getChildren(), 0,
+		return Arrays.copyOfRange(innerNode.getChildNodes(), 0,
 				innerNode.getNumKeys() + 1);
 	}
 
