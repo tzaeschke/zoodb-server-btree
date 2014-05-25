@@ -294,24 +294,24 @@ public class TestBTreeStorageBufferManager {
 	public void bufferLocationTestTree() {
 		UniquePagedBTree tree = (UniquePagedBTree) TestBTree
 				.getTestTreeWithThreeLayers(bufferManager);
-		PagedBTreeNode root = tree.getRoot();
 		bufferManager.write(tree.getRoot());
 		
-		System.out.println(tree);
 		tree.delete(8);
-		System.out.println(tree);
 
 		assertEquals(2, bufferManager.getDirtyBuffer().size());
-//		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root.getChild(0)).getPageId()));
-		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root.getChild(0).getChild(1)).getPageId()));
+		PagedBTreeNode root = tree.getRoot();
+		assertTrue(bufferManager.getDirtyBuffer().containsKey(root.getPageId()));
+		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root.getChild(0)).getPageId()));
 		bufferManager.write(tree.getRoot());
 		
+		System.out.println(tree);
 		tree.delete(3);
-		assertFalse(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
-		assertFalse(bufferManager.getCleanBuffer().containsKey(((PagedBTreeNode) root).getPageId()));
+		System.out.println(tree);
+		assertTrue(bufferManager.getDirtyBuffer().containsKey(root.getPageId()));
+		assertFalse(bufferManager.getCleanBuffer().containsKey(root.getPageId()));
 		bufferManager.write(tree.getRoot());
-		assertFalse(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode) root).getPageId()));
-		assertFalse(bufferManager.getCleanBuffer().containsKey(((PagedBTreeNode) root).getPageId()));
+		assertFalse(bufferManager.getDirtyBuffer().containsKey(root.getPageId()));
+		assertTrue(bufferManager.getCleanBuffer().containsKey(root.getPageId()));
 	}
 	
     @Test

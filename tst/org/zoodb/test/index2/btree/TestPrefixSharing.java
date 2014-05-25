@@ -10,9 +10,7 @@ import org.zoodb.internal.server.index.btree.prefix.BitOperationsHelper;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -134,6 +132,72 @@ public class TestPrefixSharing {
     }
 
     @Test
+    public void testComputedSizesOfChildrenInsert() {
+        int pageSize = 256;
+        UniquePagedBTree tree = (UniquePagedBTree) createEmptyBTree(pageSize, true);
+        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.randomUniqueEntries(50000,
+                42);
+        Collections.shuffle(entries, new Random(System.nanoTime()));
+        for (LongLongIndex.LLEntry entry : entries) {
+            //insert a new value
+            tree.insert(entry.getKey(), entry.getValue());
+
+            //check the all nodes have proper value
+            BTreeIterator iterator = new BTreeIterator(tree);
+            while (iterator.hasNext()) {
+                BTreeNode node = iterator.next();
+                if (!node.isLeaf()) {
+                    for (int i = 0; i <= node.getNumKeys(); i++) {
+                        assertEquals("Computed child size not correct",
+                                 node.getChild(i).getCurrentSize(), node.getChildSize(i));
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testComputedSizesOfChildrenInsertDelete() {
+        int pageSize = 256;
+        UniquePagedBTree tree = (UniquePagedBTree) createEmptyBTree(pageSize, true);
+        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.randomUniqueEntries(50000,
+                42);
+        Collections.shuffle(entries, new Random(System.nanoTime()));
+        for (LongLongIndex.LLEntry entry : entries) {
+            //insert a new value
+            tree.insert(entry.getKey(), entry.getValue());
+
+            //check the all nodes have proper value
+            BTreeIterator iterator = new BTreeIterator(tree);
+            while (iterator.hasNext()) {
+                BTreeNode node = iterator.next();
+                if (!node.isLeaf()) {
+                    for (int i = 0; i <= node.getNumKeys(); i++) {
+                        assertEquals("Computed child size not correct",
+                                node.getChild(i).getCurrentSize(), node.getChildSize(i));
+                    }
+                }
+            }
+        }
+
+        for (LongLongIndex.LLEntry entry : entries) {
+            //insert a new value
+            tree.delete(entry.getKey());
+            //check the all nodes have proper value
+            BTreeIterator iterator = new BTreeIterator(tree);
+            while (iterator.hasNext()) {
+                BTreeNode node = iterator.next();
+                if (!node.isLeaf()) {
+                    for (int i = 0; i <= node.getNumKeys(); i++) {
+                        assertEquals("Computed child size not correct",
+                                node.getChildSize(i), node.getChild(i).getCurrentSize());
+                    }
+                }
+            }
+        }
+    }
+
+    @Test
     public void testProperSizeAfterInsert() {
         int pageSize = 128;
         UniquePagedBTree tree = (UniquePagedBTree) createEmptyBTree(pageSize, true);
@@ -160,7 +224,7 @@ public class TestPrefixSharing {
     public void testProperSizeAfterInsertDelete() {
         int pageSize = 128;
         UniquePagedBTree tree = (UniquePagedBTree) createEmptyBTree(pageSize, true);
-        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.randomUniqueEntries(5000,
+        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.randomUniqueEntries(50000,
                 42);
         for (LongLongIndex.LLEntry entry : entries) {
             //insert a new value

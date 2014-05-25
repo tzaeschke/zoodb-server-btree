@@ -3,7 +3,6 @@ package org.zoodb.internal.server.index.btree;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 import java.util.NoSuchElementException;
-import java.util.Observable;
 
 /**
  * Represents the node of a B+ tree.
@@ -17,7 +16,6 @@ public abstract class BTreeNode {
 	//protected int order;
     protected int pageSize;
     protected int pageSizeThreshold;
-    protected int minSize;
 
     //It is very important always update this after modifying the keys/values/children
     protected int currentSize;
@@ -28,7 +26,7 @@ public abstract class BTreeNode {
 	private long[] keys;
 
 	private long[] values;
-    protected long[] childSizes;
+    protected int[] childSizes;
 
 	protected int valueElementSize;
 
@@ -40,7 +38,6 @@ public abstract class BTreeNode {
         this.valueElementSize = valueElementSize;
 
         initializeEntries();
-        this.minSize = keys.length >> 1;
 	}
 
     public abstract long getNonKeyEntrySizeInBytes(int numKeys);
@@ -56,7 +53,7 @@ public abstract class BTreeNode {
     protected abstract <T extends BTreeNode> T  rightSiblingOf(BTreeNode node);
     public abstract <T extends BTreeNode> T getChild(int index);
     public abstract void setChild(int index, BTreeNode child);
-    public abstract BTreeNode[] getChildren();
+    public abstract BTreeNode[] getChildNodes();
     public abstract void setChildren(BTreeNode[] children);
     public abstract void markChanged();
     // closes (destroys) node
@@ -188,7 +185,6 @@ public abstract class BTreeNode {
         int recordsToMove = getNumKeys() - pos;
         shiftChildren(pos + 1, pos + 2, recordsToMove);
         setChild(pos + 1, newNode);
-        setChildSize(newNode.getCurrentSize(), pos + 1);
 
         shiftKeys(pos, pos + 1, recordsToMove);
         if (values != null) {
@@ -223,9 +219,6 @@ public abstract class BTreeNode {
 
         setChild(0, left);
         setChild(1, right);
-
-        setChildSize(left.getCurrentSize(), 0);
-        setChildSize(right.getCurrentSize(), 0);
 
         recomputeSize();
     }
@@ -607,10 +600,14 @@ public abstract class BTreeNode {
         return childSizes[childIndex];
     }
 
-    public void setChildSize(long size, int childIndex) {
+    public void setChildSize(int size, int childIndex) {
         if (this.childSizes != null) {
             this.childSizes[childIndex] = size;
         }
+    }
+
+    public int[] getChildSizes() {
+        return childSizes;
     }
     
 }
