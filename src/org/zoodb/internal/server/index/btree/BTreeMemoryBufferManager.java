@@ -43,8 +43,8 @@ public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	}
 
 	@Override
-	public void remove(int id) {
-		map.remove(id);
+	public void remove(PagedBTreeNode node) {
+		map.remove(node.getPageId());
 		return; 
 	}
 

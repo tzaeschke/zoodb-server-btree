@@ -17,7 +17,7 @@ public interface BTreeBufferManager {
     /*
 	 * deletes a node from the buffer manager
 	 */
-	public void remove(int pageId);
+	public void remove(PagedBTreeNode node);
 	
     /*
 	 * writes the node to the storage channel

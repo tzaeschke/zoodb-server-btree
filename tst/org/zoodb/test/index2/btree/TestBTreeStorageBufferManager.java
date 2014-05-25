@@ -181,7 +181,7 @@ public class TestBTreeStorageBufferManager {
 		int pageId = bufferManager.write(leafNode);
 		assertEquals(2, storage.statsGetPageCount());
 
-		bufferManager.remove(pageId);
+		bufferManager.remove(bufferManager.read(pageId));
 		assertEquals(2, storage.statsGetPageCount());
 		assertTrue(storage.getFsm().debugIsPageIdInFreeList(pageId));
 	}

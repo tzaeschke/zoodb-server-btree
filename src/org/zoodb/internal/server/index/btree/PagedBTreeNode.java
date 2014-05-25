@@ -230,7 +230,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
 
 	@Override
 	public void close() {
-		bufferManager.remove(getPageId());
+		bufferManager.remove(this);
 	}
 
     public BTreeBufferManager getBufferManager() {

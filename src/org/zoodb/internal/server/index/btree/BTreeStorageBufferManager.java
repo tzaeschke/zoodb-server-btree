@@ -262,13 +262,16 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	}
 
 	@Override
-	public void remove(int id) {
-		if(dirtyBuffer.remove(id) == null) {
-			cleanBuffer.remove(id);
+	public void remove(PagedBTreeNode node) {
+		int pageId = node.getPageId();
+		if(node.isDirty()) {
+			dirtyBuffer.remove(pageId);
+		} else {
+			cleanBuffer.remove(pageId);
 		}
-		if(id > 0) {
+		if(pageId > 0) {
 			// page has been written to storage
-			this.storageFile.reportFreePage(id);
+			this.storageFile.reportFreePage(pageId);
 		}
 	}
 	
