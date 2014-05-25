@@ -300,9 +300,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return ret;
 	}
 
-	@Override
-	public void update(Observable o, Object arg) {
-		PagedBTreeNode node = (PagedBTreeNode) o;
+	public void updatePageStatus(PagedBTreeNode node) {
 		int pageId = node.getPageId();
 		if(node.isDirty()) {
 			cleanBuffer.remove(pageId);

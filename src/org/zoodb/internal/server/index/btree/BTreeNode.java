@@ -10,7 +10,7 @@ import java.util.Observable;
  * 
  * Support for linked-lists of nodes on the leaf level is yet to be added.
  */
-public abstract class BTreeNode extends Observable {
+public abstract class BTreeNode {
 
 	private boolean isLeaf;
 	private boolean isRoot;

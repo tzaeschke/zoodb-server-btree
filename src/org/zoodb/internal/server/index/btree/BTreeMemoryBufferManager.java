@@ -2,8 +2,10 @@ package org.zoodb.internal.server.index.btree;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Observable;
 
+/*
+ * BufferManager without using a proper storage for testing purposes.
+ */
 public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	private Map<Integer, PagedBTreeNode> map;
 	private int pageId;
@@ -51,10 +53,6 @@ public class BTreeMemoryBufferManager implements BTreeBufferManager {
 		pageId = 0;
 		map.clear();
 	}
-	@Override
-	public void update(Observable o, Object arg) {
-		return;
-	}
 
 	@Override
 	public int getPageSize() {
@@ -78,5 +76,10 @@ public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	@Override
 	public int getNodeValueElementSize() {
 		return 8;
+	}
+
+	@Override
+	public void updatePageStatus(PagedBTreeNode node) {
+		// do nothing
 	}
 }

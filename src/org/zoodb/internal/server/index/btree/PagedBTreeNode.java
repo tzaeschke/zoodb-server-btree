@@ -20,7 +20,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
         markDirty();
 		this.bufferManager = bufferManager;
 		this.setPageId(bufferManager.save(this));
-		init();
 	}
 	
 	/*
@@ -32,15 +31,8 @@ public abstract class PagedBTreeNode extends BTreeNode {
 
 		this.bufferManager = bufferManager;
 		this.setPageId(pageId);
-		init();
     }
     
-    private void init() {
-        if (bufferManager != null) {
-            this.addObserver(bufferManager);
-        }
-    }
-
     @Override
     public boolean fitsIntoOneNodeWith(BTreeNode neighbour) {
         if (neighbour == null) {
@@ -190,27 +182,20 @@ public abstract class PagedBTreeNode extends BTreeNode {
         this.markDirty();
     }
 
-    /*
-     * Mark this node dirty which must mark all parents up to the root dirty as
-     * well because they depend on this node.
-     */
 	public void markDirty() {
-		if (isDirty()) {
-			// this node is dirty, so parents must be already dirty
-			return;
-		}
 		isDirty = true;
-        //TODO mark parents as dirty as well
-
-		setChanged();
-		notifyObservers();
+		notifyStatus();
 	}
 
 	public void markClean() {
 		isDirty = false;
-
-		setChanged();
-		notifyObservers();
+		notifyStatus();
+	}
+	
+	private void notifyStatus() {
+		if(this.bufferManager != null) {
+			this.bufferManager.updatePageStatus(this);
+		}
 	}
 
 	public int getPageId() {
