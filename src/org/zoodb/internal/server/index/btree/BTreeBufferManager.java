@@ -2,7 +2,7 @@ package org.zoodb.internal.server.index.btree;
 
 import java.util.Observer;
 
-public interface BTreeBufferManager extends Observer {
+public interface BTreeBufferManager {
 
 	/*
 	 * returns null if pageId can not be found
@@ -23,6 +23,11 @@ public interface BTreeBufferManager extends Observer {
 	 * writes the node to the storage channel
 	 */
 	public int write(PagedBTreeNode node);
+	
+	/*
+	 * Update clean/dirty status of a node in the buffer manager. 
+	 */
+	public void updatePageStatus(PagedBTreeNode node);
 	
     /*
 	 * returns page size
