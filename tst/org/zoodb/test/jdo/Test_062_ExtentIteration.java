@@ -22,10 +22,12 @@ package org.zoodb.test.jdo;
 
 import static org.junit.Assert.*;
 
+import java.util.Collection;
 import java.util.Iterator;
 
 import javax.jdo.JDOUserException;
 import javax.jdo.PersistenceManager;
+import javax.jdo.Query;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -279,4 +281,77 @@ public class Test_062_ExtentIteration {
         TestTools.closePM();
     }
 
+    /**
+     * This fails during query execution with:
+     * SEVERE: This iterator has been invalidated by commit() or rollback().
+     */
+	@Test
+    public void testExtentBug1() {
+		System.err.println("TODO Ensure that we have no index defined here!");
+        int N = 100000;
+        int nPost = testExtentBug(N);
+		assertTrue("N="+ N + " nPost="+ nPost, N >= nPost);
+    }
+    
+	@Test
+    public void testExtentBug2() {
+        TestTools.defineIndex(TestClass.class, "_int", true);
+        int N = 100000;
+        int nPost = testExtentBug(N);
+		assertEquals(N, nPost);
+	}
+
+    @SuppressWarnings("unchecked")
+	private int testExtentBug(int N) {
+        PersistenceManager pm = TestTools.openPM();
+        pm.currentTransaction().begin();
+
+        for (int i = 0; i < N; i++) {
+            TestClass tc = new TestClass();
+            tc.setInt(i);
+            pm.makePersistent(tc);
+            if (i % 1000 == 0) {
+            	pm.currentTransaction().commit();
+            	pm.currentTransaction().begin();
+            }
+        }
+
+        pm.currentTransaction().commit();
+		pm.currentTransaction().begin();
+		
+		int nPost = 0;
+		int currentPostId = -1;
+		boolean isFinished = false;
+		while (!isFinished) {
+			Query qP = pm.newQuery(TestClass.class, "_int > " + currentPostId + 
+					" &&  _int <= " + (currentPostId+20000));
+			Collection<TestClass> cP = (Collection<TestClass>)qP.execute();
+			if (cP.isEmpty()) {
+				isFinished = true;
+				break;
+			}
+			for (TestClass p: cP) {
+				nPost++;
+				currentPostId = p.getInt();
+				//Okay, this loop
+				if (nPost % 1000 == 0) {
+					//System.out.print(".");
+					//System.out.println(nPost + " - " + currentPostId);
+					//********************************************************
+					//Commenting out the following 'break' avoids the problem.
+					//********************************************************
+					break;
+				}
+			}
+			qP.closeAll();
+			pm.currentTransaction().commit();
+			pm.currentTransaction().begin();
+		}
+		System.out.println();
+			
+		pm.currentTransaction().commit();
+		
+		pm.close();
+		return nPost;
+    }
 }
