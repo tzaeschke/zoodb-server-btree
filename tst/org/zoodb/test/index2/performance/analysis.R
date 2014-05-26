@@ -10,6 +10,7 @@ data <- fullData[fullData$IndexUnique == "Unique"
                  & fullData$Operation == "insert"
                  & fullData$numElements == 500000
                  ,] 
+
 qplot(data$IndexType, data$Duration, data=data, geom=c("boxplot", "jitter"),
       fill=IndexType, main="Performance of Unique indices",
       xlab="", ylab="Duration in ms") 
