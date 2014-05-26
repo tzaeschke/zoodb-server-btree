@@ -63,7 +63,7 @@ public class PageUsageStats {
 				+ (oldIndex.getMaxLeafN() + 1) + "\t" + "New Order: "
 				+ newIndex.getTree().getPageSize());
 
-		int numElements = 1000000;
+		int numElements = 500000;
 		ArrayList<LLEntry> entries = PerformanceTest
 				.randomEntriesUnique(numElements, System.nanoTime());
 		
