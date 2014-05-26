@@ -74,7 +74,6 @@ public class IndexFactory {
 	public static LongLongIndex.LongLongUIndex createUniqueIndex(DATA_TYPE type, 
 			StorageChannel storage, int keySize, int valSize) {
 
-		valSize = (int)Math.ceil(valSize/8.0) * 8;
 		BTreeIndexUnique ind = new BTreeIndexUnique(type, valSize, storage);
 		return ind;
 		
@@ -89,7 +88,6 @@ public class IndexFactory {
 	 */
 	public static LongLongIndex.LongLongUIndex loadUniqueIndex(DATA_TYPE type, 
 			StorageChannel storage, int pageId, int keySize, int valSize) {
-        valSize = (int)Math.ceil(valSize/8.0) * 8;
 		BTreeIndexUnique ind = new BTreeIndexUnique(type, valSize, storage, pageId);
 		return ind;
 	}

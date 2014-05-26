@@ -1,11 +1,11 @@
 package org.zoodb.internal.server.index.btree;
 
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 public abstract class PagedBTreeNode extends BTreeNode {
 
@@ -290,7 +290,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
                 maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 2 ) + 1;
             } else {
                 //ToDo this might not be right
-                maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) / 12 ) + 1;
+                maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) / (valueElementSize + 4) ) + 1;
             }
 
         }
