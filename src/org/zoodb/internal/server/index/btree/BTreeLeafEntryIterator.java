@@ -140,7 +140,7 @@ public abstract class BTreeLeafEntryIterator implements
                 return bm.getStorageFile().getTxId();
             }
 		}
-        return -1;
+		throw new UnsupportedOperationException();
 	}
 
     private void init(BTree tree) {
