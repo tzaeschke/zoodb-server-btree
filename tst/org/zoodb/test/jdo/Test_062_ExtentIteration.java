@@ -287,10 +287,12 @@ public class Test_062_ExtentIteration {
      */
 	@Test
     public void testExtentBug1() {
+		//TODO
 		System.err.println("TODO Ensure that we have no index defined here!");
         int N = 100000;
         int nPost = testExtentBug(N);
-		assertTrue("N="+ N + " nPost="+ nPost, N >= nPost);
+		assertTrue("N="+ N + " nPost="+ nPost, N*1.1 > nPost);
+		assertTrue("N="+ N + " nPost="+ nPost, N*0.9 < nPost);
     }
     
 	@Test
