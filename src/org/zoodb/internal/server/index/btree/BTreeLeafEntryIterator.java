@@ -22,7 +22,7 @@ public abstract class BTreeLeafEntryIterator implements
     // used to throw errors when modifying the
     // tree while using the iterator
     private final int modCount;
-    private final Long txId; 
+    private final long txId; 
 
     abstract void updatePosition();
     abstract void setFirstLeaf();
@@ -121,7 +121,8 @@ public abstract class BTreeLeafEntryIterator implements
     }
     
 	public void checkValidity() {
-		if(this.txId != getTxId()) {
+		long storageTxId = getTxId();
+		if(this.txId != storageTxId) {
             throw DBLogger.newUser("This iterator has been invalidated by commit() or rollback().");
 		}
 		if (this.modCount != tree.getModcount()) {
@@ -129,7 +130,7 @@ public abstract class BTreeLeafEntryIterator implements
 		}
 	}
 	
-	public Long getTxId() {
+	public long getTxId() {
 		// txId is only relevant when we are dealing with PagedBTrees on
 		// StorageBufferManagers
 		if (this.tree instanceof PagedBTree) {
@@ -139,7 +140,7 @@ public abstract class BTreeLeafEntryIterator implements
                 return bm.getStorageFile().getTxId();
             }
 		}
-        return null;
+        return -1;
 	}
 
     private void init(BTree tree) {

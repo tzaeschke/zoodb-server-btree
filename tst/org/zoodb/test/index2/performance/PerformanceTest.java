@@ -51,11 +51,11 @@ public class PerformanceTest {
 	public PerformanceTest() {
 		List<LongLongIndex> indices = new ArrayList<LongLongIndex>();
 		indices.add(new PagedUniqueLongLong(dataType, TestIndex
-				.newMemoryStorage()));
-		indices.add(new PagedLongLong(dataType, TestIndex.newMemoryStorage()));
-		indices.add(new BTreeIndexUnique(dataType, TestIndex.newMemoryStorage()));
+				.newDiskStorage("perfTestOldUnique")));
+		indices.add(new PagedLongLong(dataType, TestIndex.newDiskStorage("perfTestOldNonUnique")));
+		indices.add(new BTreeIndexUnique(dataType, TestIndex.newDiskStorage("perfTestNewUnique.zdb")));
 		indices.add(new BTreeIndexNonUnique(dataType, TestIndex
-				.newMemoryStorage()));
+				.newDiskStorage("perfTestNewNonUnique")));
 
 		try {
 			this.fileWriter = new BufferedWriter(new FileWriter(fileName));
@@ -316,7 +316,7 @@ public class PerformanceTest {
 	public static ArrayList<LLEntry> increasingEntriesUnique(int numElements) {
 		// ensure that entries with equal keys can not exists in the set
 		Random prng = new Random(System.nanoTime());
-		int startElement = Math.abs(prng.nextInt());
+		long startElement = Math.abs(prng.nextLong());
 		ArrayList<LLEntry> entryList = new ArrayList<LLEntry>();
 		for (long i = 0; i < numElements; i++) {
 			entryList.add(new LLEntry(i + startElement, i + startElement));

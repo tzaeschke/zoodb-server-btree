@@ -227,6 +227,8 @@ public abstract class AbstractPagedIndex extends AbstractIndex {
 		getRoot().clear();
 		file.reportFreePage(getRoot().pageId());
 		markDirty();
+		this.statNInner = 0;
+		this.statNLeaves = 0;
 	}
 	
 	public DATA_TYPE getDataType() {

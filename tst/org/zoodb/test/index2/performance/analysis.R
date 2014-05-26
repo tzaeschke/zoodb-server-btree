@@ -5,10 +5,14 @@ fullData <- read.table('performanceTest.csv', sep=",",header=TRUE,quote="")
 # Unique Random Insert
 #####################
 
+data <- fullData[fullData$IndexUnique == "Unique" 
+                 & fullData$ListType == "random"
+                 & fullData$Operation == "insert"
+                 & fullData$numElements == 500000
+                 ,] 
 qplot(data$IndexType, data$Duration, data=data, geom=c("boxplot", "jitter"),
       fill=IndexType, main="Performance of Unique indices",
       xlab="", ylab="Duration in ms") 
-
 
 qplot(data$IndexType, data$NumNodes, data=data, geom=c("boxplot", "jitter"),
       fill=IndexType, main="Performance of Unique indices",
@@ -24,8 +28,8 @@ data <- fullData[fullData$IndexUnique == "Unique"
                  ,] 
 qplot(data$numElements, data$Duration, data=data, geom=c("point", "smooth"),
       method="lm", formula=y~x, color=IndexType,
-      main="Regression of MPG on Weight",
-      xlab="Weight", ylab="Miles per Gallon")
+      main="Performance of Unique indices",
+      xlab="Number of Elements", ylab="Duration")
 
 #####################
 # NonUnique Random Insert
