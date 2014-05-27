@@ -316,6 +316,31 @@ public abstract class BTreeNode {
         }
     }
 
+    public boolean leftSiblingHasExtraKeys(int childIndex) {
+        int leftIndex = childIndex - 1;
+        if (childSizes == null || leftIndex < 0) {
+            return false;
+        }
+        return extraKeysTest(childSizes[leftIndex]);
+    }
+
+    public boolean leftSiblingNotFull(int childIndex) {
+        int leftIndex = childIndex - 1;
+        if (childSizes == null || leftIndex < 0) {
+            return false;
+        }
+        return notFullTest(childSizes[leftIndex]);
+    }
+
+    public boolean rightSiblingHasExtraKeys(int childIndex) {
+        int rightIndex = childIndex + 1;
+        if (childSizes == null || rightIndex > numKeys) {
+            return false;
+        }
+        return extraKeysTest(childSizes[rightIndex]);
+    }
+
+
     public void setKey(int index, long key) {
         getKeys()[index] = key;
 
@@ -334,21 +359,33 @@ public abstract class BTreeNode {
         if (isRoot()) {
             return getNumKeys() == 0;
         }
-        return getCurrentSize() < getPageSize();
+        return notFullTest(currentSize);
     }
 
     public boolean isUnderFull() {
         if (isRoot()) {
             return getNumKeys() == 0;
         }
-        return getCurrentSize() < pageSizeThreshold;
+        return underfullTest(currentSize);
+    }
+
+    private boolean notFullTest(int size) {
+        return size > getPageSize();
+    }
+
+    private boolean underfullTest(int size) {
+        return size < pageSizeThreshold;
+    }
+
+    private boolean extraKeysTest(int size) {
+        return size > pageSizeThreshold;
     }
 
     public boolean hasExtraKeys() {
         if (isRoot()) {
             return true;
         }
-        return getNumKeys() > 2 && getCurrentSize() > pageSizeThreshold;
+        return getNumKeys() > 2 && extraKeysTest(getCurrentSize());
     }
 
     public boolean isFull() {

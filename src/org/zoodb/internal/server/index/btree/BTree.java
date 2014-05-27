@@ -84,8 +84,8 @@ public abstract class BTree {
 	            if (child.overflows()) {
 	            	//first check if some keys can be redistributed to the
 	            	//left sibling
-	                BTreeNode leftSibling = node.leftSibling(childIndex);
-	                if (leftSibling != null && leftSibling.isNotFull()) {
+	                if (node.leftSiblingNotFull(childIndex)) {
+                        BTreeNode leftSibling = node.leftSibling(childIndex);
 	                    //the child index needs to be decreased because redistribution
 	                    //is done with respect to the left node
 	                    //i.e, the child node is the 'right' node of leftSibling
@@ -249,7 +249,6 @@ public abstract class BTree {
                 rebalance(node, child, childIndex);
             } else if (child.overflows()) {
                 handleInsertOverflow(child, node, childIndex);
-                System.out.println("Overflow");
             }
         }
         return oldValue;
@@ -272,14 +271,20 @@ public abstract class BTree {
          //check if can borrow 1 value from the left or right siblings
          BTreeNode rightSibling = node.rightSibling(childIndex);
          BTreeNode leftSibling = node.leftSibling(childIndex);
+
          if (child.fitsIntoOneNodeWith(leftSibling)) {
              mergeWithLeft(this, child, leftSibling, node, childIndex - 1);
          } else if (child.fitsIntoOneNodeWith(rightSibling)) {
              mergeWithRight(this, child, rightSibling, node, childIndex);
-         } else if (leftSibling != null && leftSibling.hasExtraKeys()) {
-             redistributeKeysFromLeft(child, leftSibling, node, childIndex - 1);
-         } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
-             redistributeKeysFromRight(child, rightSibling, node, childIndex);
+         } else {
+             boolean splitIntoLeftAndRight = splitIntoLeftAndRight(child, leftSibling, rightSibling, node, childIndex);
+             if (!splitIntoLeftAndRight) {
+                 if (leftSibling != null && leftSibling.hasExtraKeys()) {
+                     redistributeKeysFromLeft(child, leftSibling, node, childIndex - 1);
+                 } else if (rightSibling != null && rightSibling.hasExtraKeys()) {
+                     redistributeKeysFromRight(child, rightSibling, node, childIndex);
+                 }
+             }
          }
      }
 
@@ -690,6 +695,61 @@ public abstract class BTree {
         right.recomputeSize();
 
         return parent;
+    }
+
+    private boolean splitIntoLeftAndRight(BTreeNode current, BTreeNode left, BTreeNode right, BTreeNode parent, int childIndex) {
+        int keysInLeftNode = 1 + computeSplitIntoLeftAndRight(current, left, right);
+        //ToDo fix this for inner nodes
+        if (keysInLeftNode == 0 || !current.isLeaf()) {
+            return false;
+        }
+        int keysInRightNode = current.getNumKeys() - keysInLeftNode;
+        if (!current.isLeaf()) {
+            right.shiftRecordsRight(1);
+            right.migrateEntry(0, parent, childIndex - 1);
+            right.increaseNumKeys(1);
+        }
+
+        int entryToMoveUpIndex = keysInLeftNode;
+        parent.shiftRecordsLeftWithIndex(childIndex, 1);
+        parent.migrateEntry(childIndex - 1, current, entryToMoveUpIndex);
+        parent.decreaseNumKeys(1);
+        parent.recomputeSize();
+        current.copyFromNodeToNode(0, 0, left, left.getNumKeys(), left.getNumKeys() + 1, keysInLeftNode, keysInLeftNode);
+        left.increaseNumKeys(keysInLeftNode);
+
+        right.shiftRecordsRight(keysInRightNode);
+        copyMergeFromLeftNodeToRightNode(current, keysInLeftNode, right, 0, keysInRightNode, keysInRightNode);
+        right.increaseNumKeys(keysInRightNode);
+
+        parent.recomputeSize();
+        right.recomputeSize();
+        left.recomputeSize();
+        current.close();
+        //System.out.println(getRoot());
+        return true;
+    }
+
+    private int computeSplitIntoLeftAndRight(BTreeNode current, BTreeNode left, BTreeNode right) {
+        if (left == null || right == null) {
+            return -1;
+        }
+        int header = current.storageHeaderSize();
+        int childSize = current.isLeaf() ? 0 : 4;
+        int valueSize = current.getValueElementSize();
+        return PrefixSharingHelper.computeSplitIntoLeftAndRight(
+                current.getKeys(),
+                current.getNumKeys(),
+                left.getKeys(),
+                left.getNumKeys(),
+                right.getKeys(),
+                right.getNumKeys(),
+                header,
+                valueSize,
+                childSize,
+                current.getPageSize()
+
+        );
     }
 
     public void copyMergeFromLeftNodeToRightNode(BTreeNode src, int srcStart, BTreeNode dest, int destStart, int keys, int children) {
