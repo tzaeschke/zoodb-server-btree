@@ -725,7 +725,11 @@ public abstract class BTree {
         parent.recomputeSize();
         right.recomputeSize();
         left.recomputeSize();
+
+        parent.setChildSize(left.getCurrentSize(), childIndex - 1);
+        parent.setChildSize(right.getCurrentSize(), childIndex);
         current.close();
+
         //System.out.println(getRoot());
         return true;
     }
