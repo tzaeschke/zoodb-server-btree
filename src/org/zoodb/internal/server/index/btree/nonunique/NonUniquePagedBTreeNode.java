@@ -148,16 +148,16 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         ret += "]";
 
         if (!isLeaf()) {
-//            ret += "\n\tc:";
-//            if (this.getNumKeys() != 0) {
-//                for (int i = 0; i < this.getNumKeys() + 1; i++) {
-//                    String[] lines = this.getChild(i).toString()
-//                            .split("\r\n|\r|\n");
-//                    for (String l : lines) {
-//                        ret += "\n\t" + l;
-//                    }
-//                }
-//            }
+            ret += "\n\tc:";
+            if (this.getNumKeys() != 0) {
+                for (int i = 0; i < this.getNumKeys() + 1; i++) {
+                    String[] lines = this.getChild(i).toString()
+                            .split("\r\n|\r|\n");
+                    for (String l : lines) {
+                        ret += "\n\t" + l;
+                    }
+                }
+            }
         }
         return ret;
     }
