@@ -370,7 +370,7 @@ public abstract class BTreeNode {
     }
 
     private boolean notFullTest(int size) {
-        return size > getPageSize();
+        return size < getPageSize();
     }
 
     private boolean underfullTest(int size) {
