@@ -698,17 +698,19 @@ public abstract class BTree {
     }
 
     private boolean splitIntoLeftAndRight(BTreeNode current, BTreeNode left, BTreeNode right, BTreeNode parent, int childIndex) {
+        if (current.isLeaf()) {
+            return leafsplitIntoLeftAndRight(current, left, right, parent, childIndex);
+        } else {
+            return innerSplitIntoLeftAndRight(current, left, right, parent, childIndex);
+        }
+    }
+
+    private boolean leafsplitIntoLeftAndRight(BTreeNode current, BTreeNode left, BTreeNode right, BTreeNode parent, int childIndex) {
         int keysInLeftNode = 1 + computeSplitIntoLeftAndRight(current, left, right);
-        //ToDo fix this for inner nodes
-        if (keysInLeftNode == 0 || !current.isLeaf()) {
+        if (keysInLeftNode == 0) {
             return false;
         }
         int keysInRightNode = current.getNumKeys() - keysInLeftNode;
-        if (!current.isLeaf()) {
-            right.shiftRecordsRight(1);
-            right.migrateEntry(0, parent, childIndex - 1);
-            right.increaseNumKeys(1);
-        }
 
         int entryToMoveUpIndex = keysInLeftNode;
         parent.shiftRecordsLeftWithIndex(childIndex, 1);
@@ -730,7 +732,46 @@ public abstract class BTree {
         parent.setChildSize(right.getCurrentSize(), childIndex);
         current.close();
 
-        //System.out.println(getRoot());
+        return true;
+    }
+
+    private boolean innerSplitIntoLeftAndRight(BTreeNode current, BTreeNode left, BTreeNode right, BTreeNode parent, int childIndex) {
+        int keysInLeftNode = 1 + computeSplitIntoLeftAndRight(current, left, right);
+        if (keysInLeftNode == 0) {
+            return false;
+        }
+        int keysInRightNode = current.getNumKeys() - keysInLeftNode;
+
+        left.migrateEntry(left.getNumKeys(), parent, childIndex - 1);
+        left.increaseNumKeys(1);
+
+        right.shiftRecordsRight(1);
+        right.migrateEntry(0, parent, childIndex);
+        right.increaseNumKeys(1);
+
+        keysInLeftNode -= 1;
+        int entryToMoveUpIndex = keysInLeftNode;
+
+        parent.shiftRecordsLeftWithIndex(childIndex, 1);
+        parent.migrateEntry(childIndex - 1, current, entryToMoveUpIndex);
+        parent.decreaseNumKeys(1);
+        parent.recomputeSize();
+        current.copyFromNodeToNode(0, 0, left, left.getNumKeys(), left.getNumKeys(), keysInLeftNode, keysInLeftNode + 1);
+        left.increaseNumKeys(keysInLeftNode);
+
+        right.shiftRecordsRight(keysInRightNode);
+        current.copyFromNodeToNode(keysInLeftNode + 1, keysInLeftNode + 1, right, 0, 0, keysInRightNode, keysInRightNode + 1);
+        //copyMergeFromLeftNodeToRightNode(current, keysInLeftNode, right, 0, keysInRightNode, keysInRightNode);
+        right.increaseNumKeys(keysInRightNode);
+
+        parent.recomputeSize();
+        right.recomputeSize();
+        left.recomputeSize();
+
+        parent.setChildSize(left.getCurrentSize(), childIndex - 1);
+        parent.setChildSize(right.getCurrentSize(), childIndex);
+        current.close();
+
         return true;
     }
 
