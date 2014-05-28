@@ -30,7 +30,7 @@ import org.zoodb.tools.ZooConfig;
 public class PerformanceTest {
 
 	private static final int PAGE_SIZE = 4096;
-	private final int numExperiments = 10;
+	private final int numExperiments = 11;
 	// number of repetitions of a particular operation
 	private static String fileName = "./tst/org/zoodb/test/index2/performance/performanceTest.csv";
 	private final OutputStreamWriter STDOUT = new OutputStreamWriter(System.out);
@@ -114,13 +114,13 @@ public class PerformanceTest {
 	private void insertPerformance(LongLongIndex index) {
 		ArrayList<Integer> numElementsArray = new ArrayList<Integer>(
 
-		Arrays.asList(200000, 500000));
+		Arrays.asList(100000, 500000, 1000000));
 		for (int numElements : numElementsArray) {
 			insertPerformanceHelper(index, randomEntriesUnique(numElements),
 					"random");
 		}
 
-		numElementsArray = new ArrayList<Integer>(Arrays.asList(500000,
+		numElementsArray = new ArrayList<Integer>(Arrays.asList(100000, 500000,
 				1000000));
 		for (int numElements : numElementsArray) {
 			insertPerformanceHelper(index,
@@ -128,7 +128,7 @@ public class PerformanceTest {
 		}
 
 		if (!isUnique(index)) {
-			numElementsArray = new ArrayList<Integer>(Arrays.asList(500000,
+			numElementsArray = new ArrayList<Integer>(Arrays.asList(100000, 500000,
 					1000000));
 			for (int numElements : numElementsArray) {
 				int numDuplicates = 10;
@@ -153,7 +153,7 @@ public class PerformanceTest {
 
 	private void searchPerformance(LongLongIndex index) {
 		ArrayList<Integer> numElementsArray = new ArrayList<Integer>(
-				Arrays.asList(200000, 500000));
+				Arrays.asList(100000, 500000, 1000000));
 
 		if (isUnique(index)) {
 			for (int numElements : numElementsArray) {

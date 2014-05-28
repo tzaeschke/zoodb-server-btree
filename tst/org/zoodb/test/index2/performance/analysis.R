@@ -1,5 +1,6 @@
 require(ggplot2)
 fullData <- read.table('performanceTest.csv', sep=",",header=TRUE,quote="")
+fullData <- fullData[fullData$ExperimentNumber > 0,]
 
 #####################
 # Unique Random Insert
@@ -32,11 +33,16 @@ qplot(data$numElements, data$Duration, data=data, geom=c("point", "smooth"),
       main="Performance of Unique indices",
       xlab="Number of Elements", ylab="Duration")
 
+qplot(data$numElements, data$NumNodes, data=data, geom=c("point", "smooth"),
+      method="lm", formula=y~x, color=IndexType,
+      main="Performance of Unique indices",
+      xlab="Number of Elements", ylab="Duration")
+
 #####################
 # NonUnique Random Insert
 #####################
 data <- fullData[fullData$IndexUnique == "nonUnique" 
-                 & fullData$ListType == "random"
+                 & fullData$ListType == "random_nonUnique"
                  & fullData$Operation == "insert"
                  & fullData$numElements == "500000"
                  ,] 
@@ -51,6 +57,22 @@ qplot(data$IndexType, data$NumNodes, data=data, geom=c("boxplot", "jitter"),
 qplot(data$IndexType, data$Duration, data=data, geom=c("boxplot", "jitter"),
       fill=IndexType, main="Performance of Unique indices",
       xlab="", ylab="write duration") 
+
+
+data <- fullData[fullData$IndexUnique == "nonUnique" 
+                 & fullData$ListType == "random_nonUnique"
+                 & fullData$Operation == "insert"
+                 ,] 
+qplot(data$numElements, data$Duration, data=data, geom=c("point", "smooth"),
+      method="lm", formula=y~x, color=IndexType,
+      main="Performance of Unique indices",
+      xlab="Number of Elements", ylab="Duration")
+
+
+qplot(data$numElements, data$NumNodes, data=data, geom=c("point", "smooth"),
+      method="lm", formula=y~x, color=IndexType,
+      main="Performance of Unique indices",
+      xlab="Number of Elements", ylab="Number of nodes")
 
 #####################
 # Unique Increasing Insert
@@ -106,6 +128,16 @@ qplot(data$IndexType, data$Duration, data=data, geom=c("boxplot", "jitter"),
       fill=IndexType, main="Performance of Unique indices",
       xlab="", ylab="Duration in ms") 
 
+
+data <- fullData[fullData$IndexUnique == "Unique" 
+                 & fullData$Operation == "search" 
+                 & fullData$ListType == "random"
+                 ,]
+qplot(data$numElements, data$Duration, data=data, geom=c("point", "smooth"),
+      method="lm", formula=y~x, color=IndexType,
+      main="Performance of Unique indices",
+      xlab="Number of Elements", ylab="Duration")
+
 #####################
 # Unique Random Remove
 #####################
@@ -119,29 +151,21 @@ qplot(data$IndexType, data$Duration, data=data, geom=c("boxplot", "jitter"),
       xlab="", ylab="Duration in ms") 
 
 
-###############
-# Misc
-##############
-plot(insertRandom[insertRandom$numElements == 200000,]$Duration)
+#########################
+# JDO Harness
+########################
+fullData <- read.table('manualPerformanceTest.csv', sep=",",header=TRUE,quote="")
+data <- fullData[fullData$Operation ==  "jdo_test",]
+qplot(data$IndexType, data$Duration, data=data, geom=c("boxplot", "jitter"),
+      fill=IndexType, main="Performance in JDO test harness",
+      xlab="", ylab="Duration in ms") 
 
-insertIncreasing <- data[data$Operation == "insert" & data$ListType == "increasing",]
-search <- data[data$Operation == "search",]
-remove <- data[data$Operation == "remove",]
 
-plot(density(insertRandom[insertRandom$numElements == 200000,]$Duration))
-
-plot(insertRandom[insertRandom$numElements == 1000000,]$Duration)
-plot(density(insertRandom[insertRandom$numElements == 1000000,]$Duration))
-plot(insertRandom$numElements, insertRandom$Duration)
-
-plot(insertIncreasing[insertIncreasing$numElements == 2000000,]$Duration)
-plot(density(insertIncreasing[insertIncreasing$numElements == 2000000,]$Duration))
-plot(insertIncreasing$numElements, insertIncreasing$Duration)
-
-plot(search[search$numElements == 1000000,]$Duration)
-plot(density(search[search$numElements == 1000000,]$Duration))
-plot(search$numElements, search$Duration)
-
-plot(remove[remove$numElements == 1000000,]$Duration)
-plot(density(remove[remove$numElements == 1000000,]$Duration))
-plot(remove$numElements, remove$Duration)
+#########################
+# Pole
+########################
+fullData <- read.table('manualPerformanceTest.csv', sep=",",header=TRUE,quote="")
+data <- fullData[fullData$Operation ==  "pole",]
+qplot(data$IndexType, data$Duration, data=data, geom=c("boxplot", "jitter"),
+      fill=IndexType, range=0, main="Performance in PolePosition benchmark",
+      xlab="", ylab="Duration in ms") 
