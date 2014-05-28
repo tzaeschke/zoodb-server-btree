@@ -371,4 +371,37 @@ public class PrefixSharingHelper {
     private static int updateCurrentByte(int indexInCurrentByte, int currentByte) {
         return (indexInCurrentByte == 0) ? currentByte + 1 : currentByte;
     }
+
+    public static int computeSplitIntoLeftAndRight(long[] current,
+                                                   int currentSize,
+                                                   long[] left,
+                                                   int leftSize,
+                                                   long[] right,
+                                                   int rightSize,
+                                                   int header,
+                                                   int valueSize,
+                                                   int childSize,
+                                                   int maxSize) {
+        int low = 0 ;
+        int high = (currentSize - 1);
+        int mid;
+        long prefixLeft, prefixRight, sizeLeft, sizeRight;
+        while (low <= high) {
+            mid = low + ((high - low) >> 1);
+            prefixLeft = computePrefix(left[0], current[mid]);
+            prefixRight = computePrefix(current[mid + 1], right[rightSize - 1]);
+            sizeLeft = computeArraySize(prefixLeft, (mid + 1 + leftSize), header, valueSize, childSize);
+            sizeRight = computeArraySize(prefixRight, rightSize + (currentSize - mid - 1), header, valueSize, childSize);
+            if (sizeLeft <= maxSize && sizeRight <= maxSize) {
+                return mid;
+            }
+            if (sizeLeft < sizeRight && sizeLeft < maxSize) {
+                //increase sizeLeft
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return -1;
+    }
 }
