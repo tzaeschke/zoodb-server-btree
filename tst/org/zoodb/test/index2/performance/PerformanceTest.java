@@ -155,21 +155,19 @@ public class PerformanceTest {
 		ArrayList<Integer> numElementsArray = new ArrayList<Integer>(
 				Arrays.asList(100000, 500000, 1000000));
 
-		if (isUnique(index)) {
-			for (int numElements : numElementsArray) {
-				if (isUnique(index)) {
-					searchPerformanceHelper(index,
-							randomEntriesUnique(numElements), "random");
-				} else {
-					int numDuplicates = 10;
-					searchPerformanceHelper(
-							index,
-							randomEntriesNonUnique(numElements / numDuplicates,
-									numDuplicates), "random_nonUnique");
-				}
+		for (int numElements : numElementsArray) {
+			if (isUnique(index)) {
+				searchPerformanceHelper(index,
+						randomEntriesUnique(numElements), "random");
+			} else {
+				int numDuplicates = 10;
+				searchPerformanceHelper(
+						index,
+						randomEntriesNonUnique(numElements / numDuplicates,
+								numDuplicates), "random_nonUnique");
 			}
-
 		}
+
 	}
 
 	private void searchPerformanceHelper(LongLongIndex index,
@@ -186,21 +184,18 @@ public class PerformanceTest {
 	private void removePerformance(LongLongIndex index) {
 		ArrayList<Integer> numElementsArray = new ArrayList<Integer>(
 				Arrays.asList(200000, 500000));
-		if (isUnique(index)) {
-			for (int numElements : numElementsArray) {
-				if (isUnique(index)) {
-					removePerformanceHelper(index,
-							randomEntriesUnique(numElements), "random");
-				} else {
-					int numDuplicates = 10;
-					removePerformanceHelper(
-							index,
-							randomEntriesNonUnique(numElements / numDuplicates,
-									numDuplicates), "random_nonUnique");
-				}
+		for (int numElements : numElementsArray) {
+			if (isUnique(index)) {
+				removePerformanceHelper(index,
+						randomEntriesUnique(numElements), "random");
+			} else {
+				int numDuplicates = 10;
+				removePerformanceHelper(
+						index,
+						randomEntriesNonUnique(numElements / numDuplicates,
+								numDuplicates), "random_nonUnique");
 			}
 		}
-
 	}
 
 	private void removePerformanceHelper(LongLongIndex index,

@@ -14,7 +14,7 @@ data <- fullData[fullData$IndexUnique == "Unique"
 
 qplot(data$IndexType, data$Duration, data=data, geom=c("boxplot", "jitter"),
       fill=IndexType, main="Performance of Unique indices",
-      xlab="", ylab="Duration in ms") 
+      xlab="", ylab="Duration in ms") + expand_limits(y=c(0,700)) + scale_y_continuous(expand = c(0, 0))
 
 qplot(data$IndexType, data$NumNodes, data=data, geom=c("boxplot", "jitter"),
       fill=IndexType, main="Performance of Unique indices",
@@ -150,6 +150,18 @@ qplot(data$IndexType, data$Duration, data=data, geom=c("boxplot", "jitter"),
       fill=IndexType, main="Performance of Unique indices",
       xlab="", ylab="Duration in ms") 
 
+
+#####################
+# nonUnique Random Remove
+#####################
+data <- fullData[fullData$IndexUnique == "nonUnique" 
+                 & fullData$Operation == "remove" 
+                 & fullData$ListType == "random"
+                 & fullData$numElements == 500000
+                 ,]
+qplot(data$IndexType, data$Duration, data=data, geom=c("boxplot", "jitter"),
+      fill=IndexType, main="Performance of Unique indices",
+      xlab="", ylab="Duration in ms") 
 
 #########################
 # JDO Harness
