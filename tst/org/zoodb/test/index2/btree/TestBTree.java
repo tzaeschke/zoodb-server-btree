@@ -6,7 +6,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -119,7 +118,7 @@ public class TestBTree {
             tree.insert(entry.getKey(), entry.getValue());
         }
 
-        Random random = new Random(Calendar.getInstance().getTimeInMillis());
+        Random random = new Random(System.currentTimeMillis());
         while (!keyValueMap.isEmpty()) {
             long key = random.nextInt(numberOfElements);
             if (keyValueMap.containsKey(key)) {
@@ -190,7 +189,7 @@ public class TestBTree {
 
 		// check whether all entries are inserted
 		for (LLEntry entry : entries) {
-			assertEquals(new Long(entry.getValue()), tree.search(entry.getKey()));
+			assertEquals(Long.valueOf(entry.getValue()), tree.search(entry.getKey()));
 		}
 
 		// delete every entry and check that there is indeed no entry anymore
@@ -201,7 +200,7 @@ public class TestBTree {
 			assertEquals(null, tree.search(entry.getKey()));
 		}
 
-        Collections.shuffle(entries, new Random(Calendar.getInstance().getTimeInMillis()));
+        Collections.shuffle(entries, new Random(System.currentTimeMillis()));
         // root is empty and has no children
         assertEquals(0, tree.getRoot().getNumKeys());
         assertTrue(tree.getRoot().isLeaf());
@@ -227,7 +226,7 @@ public class TestBTree {
 			if (i < split) {
 				assertEquals(null, tree.search(entry.getKey()));
 			} else {
-				assertEquals(new Long(entry.getValue()), tree.search(entry.getKey()));
+				assertEquals(Long.valueOf(entry.getValue()), tree.search(entry.getKey()));
 			}
 			i++;
 		}

@@ -1,11 +1,9 @@
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
-
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 public abstract class PagedBTreeNode extends BTreeNode {
 
@@ -204,10 +202,8 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	}
 
 	public void markClean() {
-//		if (isDirty) {
-			isDirty = false;
-			notifyStatus();
-//		}
+		isDirty = false;
+		notifyStatus();
 	}
 	
 	private void notifyStatus() {

@@ -515,7 +515,7 @@ public class TestBTreeStorageBufferManager {
 
 		// check whether all entries are inserted
 		for (LLEntry entry : entries) {
-			assertEquals(new Long(entry.getValue()), tree2.search(entry.getKey()));
+			assertEquals(Long.valueOf(entry.getValue()), tree2.search(entry.getKey()));
 		}
 
 		assertEquals(0, bufferManager2.getDirtyBuffer().size());
@@ -570,7 +570,7 @@ public class TestBTreeStorageBufferManager {
 			if (i < split) {
 				assertEquals(null, tree2.search(entry.getKey()));
 			} else {
-				assertEquals(new Long(entry.getValue()), tree2.search(entry.getKey()));
+				assertEquals(Long.valueOf(entry.getValue()), tree2.search(entry.getKey()));
 			}
 			i++;
 		}
@@ -621,7 +621,7 @@ public class TestBTreeStorageBufferManager {
 		
 		// check if all entries are inserted
 		for (LLEntry entry : entries) {
-			assertEquals(new Long(entry.getValue()), tree.search(entry.getKey()));
+			assertEquals(Long.valueOf(entry.getValue()), tree.search(entry.getKey()));
 		}
 		
 		System.out.println(bufferManager.getCleanBuffer().size());
