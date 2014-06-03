@@ -219,10 +219,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		return pageId;
 	}
 
-	private int nullSafeGetPageId(PagedBTreeNode node) {
-		return node != null ? node.getPageId() : -1;
-
-	}
 	private static PagedBTreeNode toPagedNode(BTreeNode node) {
 		return (PagedBTreeNode) node;
 	}

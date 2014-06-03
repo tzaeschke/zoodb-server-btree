@@ -16,15 +16,10 @@ public class UniquePagedBTree extends PagedBTree {
 	private static final int NO_VALUE = 0;
 
     public UniquePagedBTree(UniquePagedBTreeNode root, int pageSize, BTreeBufferManager bufferManager) {
-		super(root, pageSize, bufferManager);
+		super(root, pageSize, bufferManager, true);
 	}
     public UniquePagedBTree(int pageSize, BTreeBufferManager bufferManager) {
-        super(pageSize, bufferManager);
-    }
-
-    @Override
-    public boolean isUnique() {
-        return true;
+        super(pageSize, bufferManager, true);
     }
 
 	/**

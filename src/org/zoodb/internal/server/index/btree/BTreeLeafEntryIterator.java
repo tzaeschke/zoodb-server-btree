@@ -94,11 +94,11 @@ public abstract class BTreeLeafEntryIterator implements
 	}
 
     protected BTreeNode getLefmostLeaf(BTreeNode node) {
-        if(node.isLeaf()) {
+        if (node.isLeaf()) {
             return node;
         }
         BTreeNode current = node;
-        while(!current.isLeaf()) {
+        while (!current.isLeaf()) {
             ancestors.push(current);
             positions.push(0);
             current = current.getChild(0);
@@ -111,7 +111,7 @@ public abstract class BTreeLeafEntryIterator implements
             return node;
         }
         BTreeNode current = node;
-        while(!current.isLeaf()) {
+        while (!current.isLeaf()) {
             ancestors.push(current);
             int numKeys = current.getNumKeys();
             positions.push(numKeys);
@@ -122,7 +122,7 @@ public abstract class BTreeLeafEntryIterator implements
     
 	public void checkValidity() {
 		long storageTxId = getTxId();
-		if(this.txId != storageTxId) {
+		if (this.txId != storageTxId) {
             throw DBLogger.newUser("This iterator has been invalidated by commit() or rollback().");
 		}
 		if (this.modCount != tree.getModcount()) {
@@ -134,13 +134,9 @@ public abstract class BTreeLeafEntryIterator implements
 		// txId is only relevant when we are dealing with PagedBTrees on
 		// StorageBufferManagers
 		if (this.tree instanceof PagedBTree) {
-			PagedBTree tree = (PagedBTree) this.tree;
-            if(tree.getBufferManager() instanceof BTreeStorageBufferManager) {
-                BTreeStorageBufferManager bm = (BTreeStorageBufferManager) tree.getBufferManager();
-                return bm.getStorageFile().getTxId();
-            }
+			return ((PagedBTree)tree).getBufferManager().getTxId();
 		}
-		throw new UnsupportedOperationException();
+		throw new UnsupportedOperationException(this.tree.getClass().getName());
 	}
 
     private void init(BTree tree) {
@@ -164,7 +160,6 @@ public abstract class BTreeLeafEntryIterator implements
         curLeaf = current;
         curPos = curLeaf.findKeyValuePos(key, value);
     }
-
 
 
 }

@@ -5,13 +5,13 @@ public abstract class PagedBTree extends BTree {
     private BTreeBufferManager bufferManager;
 
 	public PagedBTree(PagedBTreeNode root, int pageSize,
-			BTreeBufferManager bufferManager) {
-		super(root, pageSize, new PagedBTreeNodeFactory(bufferManager));
+			BTreeBufferManager bufferManager, boolean isUnique) {
+		super(root, pageSize, new PagedBTreeNodeFactory(bufferManager), isUnique);
         this.bufferManager = bufferManager;
 	}
 	
-	public PagedBTree(int pageSize, BTreeBufferManager bufferManager) {
-		super(pageSize, new PagedBTreeNodeFactory(bufferManager));
+	public PagedBTree(int pageSize, BTreeBufferManager bufferManager, boolean isUnique) {
+		super(pageSize, new PagedBTreeNodeFactory(bufferManager), isUnique);
         this.bufferManager = bufferManager;
 	}
 	

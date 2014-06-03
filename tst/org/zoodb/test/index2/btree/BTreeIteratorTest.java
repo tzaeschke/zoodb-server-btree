@@ -41,7 +41,7 @@ public class BTreeIteratorTest {
 		BTree tree = new NonUniquePagedBTree(pageSize,
 				new BTreeMemoryBufferManager());
 
-		ArrayList<LongLongIndex.LLEntry> entries = new ArrayList();
+		ArrayList<LongLongIndex.LLEntry> entries = new ArrayList<>();
 		int limit = 1000000;
 		for (int i = 0; i < limit; i++) {
 			long key = i * 2;
@@ -68,7 +68,7 @@ public class BTreeIteratorTest {
 		BTree tree = new NonUniquePagedBTree(pageSize,
 				new BTreeMemoryBufferManager());
 
-		ArrayList<LongLongIndex.LLEntry> entries = new ArrayList();
+		ArrayList<LongLongIndex.LLEntry> entries = new ArrayList<>();
 		int limit = 1000000;
 		for (int i = 0; i < limit; i++) {
 			long key = i * 2;
@@ -288,7 +288,7 @@ public class BTreeIteratorTest {
     }
 
 	public ArrayList<Long> valueListFromIterator(BTreeLeafEntryIterator it) {
-		ArrayList<Long> values = new ArrayList();
+		ArrayList<Long> values = new ArrayList<>();
 		while (it.hasNext()) {
 			values.add(it.next().getValue());
 		}

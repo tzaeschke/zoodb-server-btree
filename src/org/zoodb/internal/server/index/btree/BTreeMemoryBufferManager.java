@@ -3,7 +3,7 @@ package org.zoodb.internal.server.index.btree;
 import java.util.HashMap;
 import java.util.Map;
 
-/*
+/**
  * BufferManager without using a proper storage for testing purposes.
  */
 public class BTreeMemoryBufferManager implements BTreeBufferManager {
@@ -81,5 +81,11 @@ public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	@Override
 	public void updatePageStatus(PagedBTreeNode node) {
 		// do nothing
+	}
+
+	@Override
+	public long getTxId() {
+		//currently not supported
+		return -1;
 	}
 }
