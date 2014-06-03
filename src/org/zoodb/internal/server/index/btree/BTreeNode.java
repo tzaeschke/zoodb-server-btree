@@ -164,6 +164,7 @@ public abstract class BTreeNode {
      * @param newNode
      */
     public void put(long key, long value, BTreeNode newNode) {
+    	//TODO remove? This is a pure test method...
         if (isLeaf()) {
             throw new IllegalStateException(
                     "Should only be called on inner nodes.");

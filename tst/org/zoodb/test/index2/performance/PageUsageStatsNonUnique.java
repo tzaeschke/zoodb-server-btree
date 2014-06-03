@@ -23,7 +23,7 @@ public class PageUsageStatsNonUnique {
     private static final int REPEAT = 10;
     private static final int N_ENTRY = 5000000;
 
-    private static final boolean OLD = false; 
+    private static final boolean OLD = true; 
     private static final boolean NEW = true; 
     
     public static void main(String[] args) {

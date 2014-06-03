@@ -62,7 +62,7 @@ public abstract class BTree {
      * @return	true if the entry was inserted
      */
     public boolean insert(long key, long value, boolean onlyIfNotSet) {
-        if(insert(root, key, value, onlyIfNotSet)) {
+        if (insert(root, key, value, onlyIfNotSet)) {
 	        increaseModcount();
 	        if (root.overflows()) {
 	            handleRootOverflow();
@@ -219,7 +219,7 @@ public abstract class BTree {
      * @return
      */
 	protected long deleteEntry(long key, long value) {
-		if(root.getNumKeys() == 0) {
+		if (root.getNumKeys() == 0) {
 			throw new NoSuchElementException();
 		}
 
