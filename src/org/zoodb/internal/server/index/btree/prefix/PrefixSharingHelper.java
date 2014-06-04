@@ -37,7 +37,7 @@ public class PrefixSharingHelper {
 
     public static final int PREFIX_SHARING_METADATA_SIZE = 5;
     public static final int STORAGE_MANAGER_METADATA_SIZE = 2;
-    public static final int SMALLEST_POSSIBLE_COMPRESSION_SIZE = 8 + PREFIX_SHARING_METADATA_SIZE + STORAGE_MANAGER_METADATA_SIZE;
+    public static final int SMALLEST_POSSIBLE_COMPRESSION_SIZE = PREFIX_SHARING_METADATA_SIZE + STORAGE_MANAGER_METADATA_SIZE;
 
     /**
      * Compute the size of the bit prefix shared by the two long values.

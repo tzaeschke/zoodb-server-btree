@@ -271,7 +271,8 @@ public abstract class BTree {
 
             if (child.isUnderFull()) {
                 rebalance(node, child, childIndex);
-            } else if (child.overflows()) {
+            }
+            if (child.overflows()) {
                 handleInsertOverflow(child, node, childIndex);
             }
         }
