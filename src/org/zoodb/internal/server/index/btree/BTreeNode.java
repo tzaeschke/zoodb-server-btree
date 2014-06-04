@@ -1,8 +1,8 @@
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
-
 import java.util.NoSuchElementException;
+
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 /**
  * Represents the node of a B+ tree.
@@ -76,24 +76,39 @@ public abstract class BTreeNode {
     public abstract int storageHeaderSize();
     public abstract boolean fitsIntoOneNodeWith(BTreeNode neighbour);
 
+    public abstract int binarySearch(long key, long value);
+    
+
     /**
      * Insert a key/value pair into the node. The node must be guaranteed not to overflow
      * after the key/value pair received as an argument is inserted
      * @param key
      * @param value
      */
-    public void put(long key, long value) {
+    public boolean put(long key, long value, boolean onlyIfNotSet) {
         if (!isLeaf()) {
-            throw new IllegalStateException(
-                    "Should only be called on leaf nodes.");
+            throw new IllegalStateException("Should only be called on leaf nodes.");
         }
 
-        int pos = this.findKeyValuePos(key, value);
-        if(checkNonUniqueKey(pos, key) && (!allowNonUniqueKeys() || checkNonUniqueKeyValue(pos,key,value))) {
-        	pos -=1;
-        } else {
-            shiftRecords(pos, pos + 1, getNumKeys() - pos);
+        int pos;
+        if (getNumKeys() == 0) {
+        	pos = 0;
             increaseNumKeys(1);
+        } else {
+        	pos = binarySearch(key, value);
+	        if (onlyIfNotSet && pos >= 0) {
+	        	return false;
+	        }
+	        if (pos >= 0 && getKey(pos) == key && (!allowNonUniqueKeys() || getValue(pos) == value)) {
+	        	//
+	        } else {
+	        	pos = -(pos + 1);
+	            if (!smallerThanKeyValue(pos, key, value)) {
+	            	pos++;
+	            }
+	            shiftRecords(pos, pos + 1, getNumKeys() - pos);
+	            increaseNumKeys(1);
+	        }
         }
         setKey(pos, key);
         setValue(pos, value);
@@ -101,13 +116,7 @@ public abstract class BTreeNode {
         //signal change
         markChanged();
         recomputeSize();
-    }
-    
-    protected boolean checkNonUniqueKey(int pos, long key) {
-        return pos > 0 && getKey(pos-1) == key;
-    }
-    protected boolean checkNonUniqueKeyValue(int position, long key, long value) {
-        return position > 0 && (getKey(position - 1) == key && getValue(position - 1) == value);
+        return true;
     }
 
     public BTreeNode findChild(long key, long value) {
@@ -141,18 +150,6 @@ public abstract class BTreeNode {
         return closest + 1;
     }
     
-    public boolean hasKey(long key, long value) {
-    	int pos = findKeyValuePos(key, value);
-    	boolean ret = false;
-    	if(pos > 0) {
-    		ret = getKey(pos-1) == key;
-    	} 
-    	if(pos < numKeys) {
-    		ret = ret || getKey(pos) == key; 
-    	}
-    	return ret;
-    }
-
     /**
      * Inner-node put. Places key to the left of the next bigger key k'.
      *
@@ -241,26 +238,6 @@ public abstract class BTreeNode {
         decreaseNumKeys(1);
 
         return oldValue;
-    }
-
-    public int binarySearch(long key, long value) {
-        int low = 0;
-        int high = this.getNumKeys() - 1;
-        int mid = 0;
-        boolean found = false;
-        while (!found && low <= high) {
-            mid = low + ((high - low) >> 1);
-            if (containsAtPosition(mid, key, value)) {
-                found = true;
-            } else {
-                if (smallerThanKeyValue(mid, key, value)) {
-                    high = mid - 1;
-                } else {
-                    low = mid + 1;
-                }
-            }
-        }
-        return found ? mid : -mid - 1;
     }
 
     public int computeIndexForSplit(boolean isUnique) {

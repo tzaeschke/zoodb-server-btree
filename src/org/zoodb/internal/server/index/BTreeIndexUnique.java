@@ -1,13 +1,12 @@
 package org.zoodb.internal.server.index;
 
+import java.util.NoSuchElementException;
+
 import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
-
-import java.util.NoSuchElementException;
 
 public class BTreeIndexUnique extends BTreeIndex implements LongLongUIndex  {
 

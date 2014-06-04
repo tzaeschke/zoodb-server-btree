@@ -106,12 +106,12 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    protected boolean containsAtPosition(int position, long key, long value) {
+	public boolean containsAtPosition(int position, long key, long value) {
         return this.getKey(position) == key;
     }
 
     @Override
-    protected boolean smallerThanKeyValue(int position, long key, long value) {
+	public boolean smallerThanKeyValue(int position, long key, long value) {
         return (key < getKey(position));
     }
     
@@ -162,4 +162,24 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
             return (numKeys + 1) << 2;
         }
     }
+
+	@Override
+	public int binarySearch(long key, long value) {
+		int low = 0;
+		int high = getNumKeys() - 1;
+		int mid = 0;
+		while (low <= high) {
+			mid = low + ((high - low) >> 1);
+			if (getKey(mid) == key) {
+				return mid;
+			} else {
+				if (key < getKey(mid)) {
+					high = mid - 1;
+				} else {
+					low = mid + 1;
+				}
+			}
+		}
+		return -mid - 1;
+	}
 }
