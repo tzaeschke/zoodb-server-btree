@@ -100,11 +100,7 @@ public abstract class BTree {
     public boolean insert(BTreeNode node, long key, long value, boolean onlyIfNotSet) {
         node.markChanged();
         if (node.isLeaf()) {
-        	if(onlyIfNotSet && node.hasKey(key, value)) {
-        		return false;
-        	}
-            node.put(key, value);
-            return true;
+        	return node.put(key, value, onlyIfNotSet);
         } else {
             int childIndex = node.findKeyValuePos(key, value);
             BTreeNode child = node.getChild(childIndex);

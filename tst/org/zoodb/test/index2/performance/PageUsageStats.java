@@ -109,7 +109,7 @@ public class PageUsageStats {
 		System.gc();
 		System.out.println("mseconds old: " + findAll(oldIndex, entries, 10));
 		System.gc();
-		System.out.println("mseconds new: " + findAll(oldIndex, entries, 10));
+		System.out.println("mseconds new: " + findAll(newIndex, entries, 10));
 		
 		
 		/*

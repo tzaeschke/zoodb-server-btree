@@ -73,7 +73,7 @@ public class TestBTreeStorageBufferManager {
         PagedBTreeNode node = new NonUniquePagedBTreeNode(currentBufferManager, pageSize, true, false);
 
         for (int i = 0; i < keys.length; i++) {
-            node.put(keys[i], values[i]);
+            node.put(keys[i], values[i], false);
         }
         
         return node;
@@ -251,7 +251,7 @@ public class TestBTreeStorageBufferManager {
 		assertFalse(bufferManager.getDirtyBuffer().containsKey(
 				leafNode.getPageId()));
 
-		leafNode.put(2, 3);
+		leafNode.put(2, 3, false);
 		assertFalse(bufferManager.getCleanBuffer().containsKey(
 				leafNode.getPageId()));
 		assertTrue(bufferManager.getDirtyBuffer().containsKey(
@@ -646,7 +646,7 @@ public class TestBTreeStorageBufferManager {
 	private PagedBTreeNode getTestLeaf(BTreeStorageBufferManager bufferManager) {
 		PagedBTreeNode leafNode = new UniquePagedBTreeNode(bufferManager,
 				bufferManager.getPageSize(), true, true);
-		leafNode.put(1, 2);
+		leafNode.put(1, 2, false);
 		return leafNode;
 	}
 

@@ -1,20 +1,22 @@
 package org.zoodb.test.index2.performance;
 
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.*;
-import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
-import org.zoodb.internal.server.index.btree.BTreeIterator;
-import org.zoodb.test.index2.btree.TestIndex;
-import org.zoodb.tools.DBStatistics;
-import org.zoodb.tools.ZooConfig;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+
+import org.zoodb.internal.server.DiskIO.DATA_TYPE;
+import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.BTreeIndexNonUnique;
+import org.zoodb.internal.server.index.LongLongIndex;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
+import org.zoodb.internal.server.index.PagedLongLong;
+import org.zoodb.internal.server.index.btree.BTreeIterator;
+import org.zoodb.test.index2.btree.TestIndex;
+import org.zoodb.tools.DBStatistics;
+import org.zoodb.tools.ZooConfig;
 
 public class PageUsageStatsNonUnique {
 
@@ -25,6 +27,8 @@ public class PageUsageStatsNonUnique {
 
     private static final boolean OLD = true; 
     private static final boolean NEW = true; 
+    
+    private static final Random R = new Random(0);
     
     public static void main(String[] args) {
         ZooConfig.setFilePageSize(PAGE_SIZE);
@@ -115,7 +119,7 @@ public class PageUsageStatsNonUnique {
         System.gc();
         if (OLD) System.out.println("mseconds old: " + findAll(oldIndex, entries));
         System.gc();
-        if (NEW) System.out.println("mseconds new: " + findAll(oldIndex, entries));
+        if (NEW) System.out.println("mseconds new: " + findAll(newIndex, entries));
 		
 		
 		/*
@@ -124,7 +128,7 @@ public class PageUsageStatsNonUnique {
         System.out.println("");
         int numDeleteEntries = (int) (numElements * 0.9);
         System.out.println("Delete " + numDeleteEntries);
-        Collections.shuffle(entries, new Random(43));
+        Collections.shuffle(entries, R);
         List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
 
         System.gc();
@@ -183,13 +187,13 @@ public class PageUsageStatsNonUnique {
 
         for(int i=0; i<numTimes; i++) {
             ArrayList<LLEntry> entries = PerformanceTest
-                    .randomEntriesNonUnique(numElements / numDuplicates, numDuplicates, System.nanoTime()+i);
+                    .randomEntriesNonUnique(numElements / numDuplicates, numDuplicates, R.nextLong());
             if (OLD) PerformanceTest.insertList(oldIndex, entries);
             if (OLD) oldIndex.write();
             if (NEW) PerformanceTest.insertList(newIndex, entries);
             if (NEW) newIndex.write();
 
-            Collections.shuffle(entries, new Random(43+i));
+            Collections.shuffle(entries, R);
             List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
 
             if (OLD) PerformanceTest.removeList(oldIndex, deleteEntries);

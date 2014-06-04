@@ -26,8 +26,6 @@ import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 
-import java.util.NoSuchElementException;
-
 /**
  * Index backed by a B+ tree that does not allow duplicate keys.
  *
