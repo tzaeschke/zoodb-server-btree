@@ -8,16 +8,11 @@ public class NonUniquePagedBTree extends PagedBTree {
 
 	public NonUniquePagedBTree(NonUniquePagedBTreeNode root,
 			int pageSize, BTreeBufferManager bufferManager) {
-		super(root, pageSize, bufferManager);
+		super(root, pageSize, bufferManager, false);
 	}
 
     public NonUniquePagedBTree(int pageSize, BTreeBufferManager bufferManager) {
-        super(pageSize, bufferManager);
-    }
-
-    @Override
-    public boolean isUnique() {
-        return false;
+        super(pageSize, bufferManager, false);
     }
 
     public boolean contains(long key, long value) {

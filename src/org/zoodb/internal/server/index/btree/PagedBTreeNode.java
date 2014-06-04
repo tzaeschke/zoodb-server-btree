@@ -1,11 +1,9 @@
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
-
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
+
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 public abstract class PagedBTreeNode extends BTreeNode {
 
@@ -177,16 +175,13 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		return this.childrenPageIds;
 	}
 
-	public List<Integer> getChildrenPageIdList() {
-		if(getNumKeys() == 0) {
-			return new ArrayList<>(0);
+	public int[] getChildrenPageIdList() {
+		if (getNumKeys() == 0) {
+			return new int[0];
 		}
 
-		List<Integer> childrenPageIdList = new ArrayList<>(getNumKeys()+1);
-
-		for(int i=0; i<getNumKeys()+1; i++) {
-			childrenPageIdList.add(childrenPageIds[i]);
-		}
+		int[] childrenPageIdList = new int[getNumKeys()+1];
+		System.arraycopy(childrenPageIds, 0, childrenPageIdList, 0, childrenPageIdList.length);
 		return childrenPageIdList;
 	}
 
@@ -195,13 +190,15 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	}
 
     @Override
-    public void markChanged() {
+    public final void markChanged() {
         this.markDirty();
     }
 
 	public void markDirty() {
-		isDirty = true;
-		notifyStatus();
+		if (!isDirty) {
+			isDirty = true;
+			notifyStatus();
+		}
 	}
 
 	public void markClean() {
@@ -210,7 +207,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	}
 	
 	private void notifyStatus() {
-		if(this.bufferManager != null) {
+		if (this.bufferManager != null) {
 			this.bufferManager.updatePageStatus(this);
 		}
 	}
@@ -219,10 +216,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		return pageId;
 	}
 
-	private int nullSafeGetPageId(PagedBTreeNode node) {
-		return node != null ? node.getPageId() : -1;
-
-	}
 	private static PagedBTreeNode toPagedNode(BTreeNode node) {
 		return (PagedBTreeNode) node;
 	}

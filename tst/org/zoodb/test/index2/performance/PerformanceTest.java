@@ -321,7 +321,6 @@ public class PerformanceTest {
 
 	public static ArrayList<LLEntry> decreasingEntriesUnique(int numElements) {
 		// ensure that entries with equal keys can not exists in the set
-		Random prng = new Random(System.nanoTime());
 		long startElement = 0;
 		ArrayList<LLEntry> entryList = new ArrayList<LLEntry>();
 		for (long i = 0; i < numElements; i++) {

@@ -392,4 +392,9 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	public void setMaxCleanBufferElements(int maxCleanBufferElements) {
 		this.maxCleanBufferElements = maxCleanBufferElements;
 	}
+
+	@Override
+	public long getTxId() {
+		return this.storageFile.getTxId();
+	}
 }

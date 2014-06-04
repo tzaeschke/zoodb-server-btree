@@ -49,10 +49,11 @@ public class BTreeIndexUnique extends BTreeIndex implements LongLongUIndex  {
     @Override
 	public LLEntry findValue(long key) {
 		Long value = tree.search(key);
-		if(value != null) 
+		if (value != null) { 
             return new LLEntry(key, value);
-		else 
+		} else { 
 			return null;
+		}
 	}
 
 	@Override

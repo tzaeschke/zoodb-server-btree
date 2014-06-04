@@ -17,7 +17,6 @@ public class DescendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
         } else {
             BTreeNode leftSibling = null;
             BTreeNode ancestor = null;
-            BTreeNode ancestorsChild = curLeaf;
             Integer position = (ancestors.size() == 0) ? 0 : ancestors.peek().getNumKeys();
             while (leftSibling == null && ancestors.size() > 0) {
                 ancestor = ancestors.pop();
@@ -26,7 +25,6 @@ public class DescendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
                 //leftSibling = (T) ancestorsChild.leftSibling(ancestor);
                 leftSibling = ancestor.leftSibling(position);
                 position -= 1;
-                ancestorsChild = ancestor;
             }
             ancestors.push(ancestor);
             positions.push(position);

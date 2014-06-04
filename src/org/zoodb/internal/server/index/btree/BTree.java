@@ -14,18 +14,21 @@ public abstract class BTree {
     protected int pageSize;
     private long maxKey = Long.MIN_VALUE;
     private long minKey = Long.MIN_VALUE;
+    private final boolean isUnique;
     
     private int modcount = 0; // number of modifications of the tree
     
-    public BTree(int pageSize, BTreeNodeFactory nodeFactory) {
-    	this(null, pageSize, nodeFactory);
+    public BTree(int pageSize, BTreeNodeFactory nodeFactory, boolean isUnique) {
+    	this(null, pageSize, nodeFactory, isUnique);
         this.root = nodeFactory.newNode(isUnique(), getPageSize(), true, true);
         this.root.recomputeSize();
     }
     
-    public BTree(PagedBTreeNode root, int pageSize, BTreeNodeFactory nodeFactory) {
+    public BTree(PagedBTreeNode root, int pageSize, BTreeNodeFactory nodeFactory, 
+    		boolean isUnique) {
 	    this.root = root;
-        if (root != null) {
+	    this.isUnique = isUnique;
+	    if (root != null) {
             this.root.recomputeSize();
         }
 
@@ -33,7 +36,9 @@ public abstract class BTree {
         this.nodeFactory = nodeFactory;
 	}
     
-    public abstract boolean isUnique();
+    public final boolean isUnique() {
+    	return isUnique;
+    }
 
     /**
      * Insert a new key value pair to the B+ tree.
@@ -57,7 +62,7 @@ public abstract class BTree {
      * @return	true if the entry was inserted
      */
     public boolean insert(long key, long value, boolean onlyIfNotSet) {
-        if(insert(root, key, value, onlyIfNotSet)) {
+        if (insert(root, key, value, onlyIfNotSet)) {
 	        increaseModcount();
 	        if (root.overflows()) {
 	            handleRootOverflow();
@@ -214,7 +219,7 @@ public abstract class BTree {
      * @return
      */
 	protected long deleteEntry(long key, long value) {
-		if(root.getNumKeys() == 0) {
+		if (root.getNumKeys() == 0) {
 			throw new NoSuchElementException();
 		}
 
@@ -890,14 +895,6 @@ public abstract class BTree {
         }
         if(deletedKey == maxKey) {
             maxKey = computeMaxKey();
-        }
-    }
-
-    private void assertLegalSize(BTreeNode... nodes) {
-        for (BTreeNode node : nodes) {
-            if (node != null) {
-                assert node.getCurrentSize() <= node.getPageSize();
-            }
         }
     }
 }

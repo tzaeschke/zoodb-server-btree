@@ -93,7 +93,7 @@ public abstract class BTreeNode {
         	pos -=1;
         } else {
             shiftRecords(pos, pos + 1, getNumKeys() - pos);
-            incrementNumKeys();
+            increaseNumKeys(1);
         }
         setKey(pos, key);
         setValue(pos, value);
@@ -134,9 +134,7 @@ public abstract class BTreeNode {
         // if the key is not here, find the child subtree that has it
         if (closest < 0) {
             closest = -(closest + 1);
-            if (closest == 0 && smallerThanKeyValue(0, key, value)) {
-                return 0;
-            } else if (smallerThanKeyValue(closest, key, value)) {
+            if (smallerThanKeyValue(closest, key, value)) {
                 return closest;
             }
         }
@@ -166,6 +164,7 @@ public abstract class BTreeNode {
      * @param newNode
      */
     public void put(long key, long value, BTreeNode newNode) {
+    	//TODO remove? This is a pure test method...
         if (isLeaf()) {
             throw new IllegalStateException(
                     "Should only be called on inner nodes.");
@@ -191,7 +190,7 @@ public abstract class BTreeNode {
             shiftValues(pos, pos + 1, recordsToMove);
         }
         setEntry(pos, key, value);
-        incrementNumKeys();
+        increaseNumKeys(1);
 
         recomputeSize();
     }
@@ -239,7 +238,7 @@ public abstract class BTreeNode {
         int recordsToMove = getNumKeys() - keyPos;
         long oldValue = getValue(keyPos - 1);
         shiftRecords(keyPos, keyPos - 1, recordsToMove);
-        decrementNumKeys();
+        decreaseNumKeys(1);
 
         return oldValue;
     }
@@ -396,35 +395,14 @@ public abstract class BTreeNode {
         return getCurrentSize() > pageSize;
     }
 
-    public boolean incrementNumKeys() {
-        markChanged();
-        return increaseNumKeys(1);
-    }
-
-    public boolean decrementNumKeys() {
-        markChanged();
-        return decreaseNumKeys(1);
-    }
-
-    public boolean increaseNumKeys(int amount) {
-        markChanged();
-
+    public void increaseNumKeys(int amount) {
         int newNumKeys = getNumKeys() + amount;
-        if (newNumKeys > getKeys().length) {
-            return false;
-        }
         setNumKeys(newNumKeys);
-        return true;
     }
 
-    public boolean decreaseNumKeys(int amount) {
-        markChanged();
+    public void decreaseNumKeys(int amount) {
         int newNumKeys = getNumKeys() - amount;
-        if (newNumKeys < 0) {
-            return false;
-        }
         setNumKeys(newNumKeys);
-        return true;
     }
 
     protected void initKeys(int size) {
@@ -484,9 +462,12 @@ public abstract class BTreeNode {
         return pageSize;
     }
 
-    public void setNumKeys(int numKeys) {
+    public void setNumKeys(int newNumKeys) {
+        if (newNumKeys < 0 || newNumKeys > getKeys().length) {
+        	throw new IllegalStateException();
+        }
         markChanged();
-        this.numKeys = numKeys;
+        this.numKeys = newNumKeys;
     }
 
     public void setKeys(long[] keys) {
