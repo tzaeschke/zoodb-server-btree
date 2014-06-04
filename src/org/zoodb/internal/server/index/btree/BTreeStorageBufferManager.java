@@ -33,8 +33,10 @@ import java.util.List;
 
 /**
  * Buffer Manager for the B+ tree using the database storage.
+ * Fetches pages from disk and writes them if they are dirty.
+ * Only supports storing *one* tree.
  *
- * - Supports caching thought the dirty and clean buffers.
+ * - Supports caching through the dirty and clean buffers.
  * - Performs encoding of the key array before page write
  * - Performs decoding of the key array after page read
  *
@@ -45,11 +47,17 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
     private int pageSize;
     
+    // stores dirty nodes
 	private PrimLongMapLI<PagedBTreeNode> dirtyBuffer;
+	// stores clean nodes
 	private PrimLongMapLI<PagedBTreeNode> cleanBuffer;
 	private int maxCleanBufferElements = -1;
 
-	private int pageIdCounter;
+	// counter to give nodes that are not written yet
+	// a unique but non-existent "pageId". The counter
+	// only decreases to distinguish proper pageIds from
+	// these negative ids.
+	private int pageIdCounter = 0;
 	private final boolean isUnique;
 
 	private final StorageChannel storageFile;
@@ -60,12 +68,12 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	private int statNWrittenPages = 0;
 	private int statNReadPages = 0;
 
+	// size of a leafs value in byte
 	private int nodeValueElementSize = 8;
 
 	public BTreeStorageBufferManager(StorageChannel storage, boolean isUnique) {
 		this.dirtyBuffer = new PrimLongMapLI<>();
 		this.cleanBuffer = new PrimLongMapLI<>();
-		this.pageIdCounter = 0;
 		this.isUnique = isUnique;
 		this.storageFile = storage;
 		this.storageIn = storage.getReader(false);
@@ -78,9 +86,14 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		this.dataType = dataType;
 	}
 
-	/*
-	 * Only read pageIds that are known to be in BufferManager,
-	 * otherwise the result is undefined
+	/**
+	 * Call this to get nodes from the buffer manager.
+	 * It will first try to find the node in memory, if it 
+	 * can not be found it reads the page from the storage 
+	 * channel. 
+	 * Only read pageIds that are known to be in the 
+	 * BufferManager's cache or on storage,
+	 * otherwise the result is undefined.
 	 */
 	@Override
 	public PagedBTreeNode read(int pageId) {
@@ -172,6 +185,11 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	}
 
 
+	/**
+	 * Recursively writes the tree starting at that node
+	 * to the storage channel. If a node is not dirty
+	 * the sub-tree will not be written.
+	 */
 	@Override
 	public int write(PagedBTreeNode node) {
 		if (!node.isDirty()) {
@@ -206,6 +224,14 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return newPageId;
 	}
 
+	/**
+	 * Put a node in the clean buffer and handle the
+	 * caching policy. For example clear the cache if the
+	 * cache size is exceeded
+	 * 
+	 * @param pageId
+	 * @param node
+	 */
 	private void putInCleanBuffer(int pageId, PagedBTreeNode node) {
 		if(maxCleanBufferElements < 0 || cleanBuffer.size() < maxCleanBufferElements) {
 			cleanBuffer.put(pageId, node);
@@ -214,19 +240,21 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		}
 	}
 
-	/*
+	/**
+	 * The following encoding is used to write a node to
+	 * the storage channel: 
+	 * 
 	 * Leaf node page: 
 	 * 1 byte -1 
 	 * prefixShareEncoding(keys) 
 	 * size(value) bytes * numKeys for values
 	 * 
-	 * Inner node page 
+	 * Inner node page: 
 	 * 1 byte 0 
 	 * prefixShareEncoding(keys) 
-	 * size(value) bytes * numKeys for values
+	 * size(value) bytes * numKeys for values (if NonUniqueNode
 	 * 4 byte * (numKeys + 1) for childrenPageIds 
 	 */
-
 	int writeNodeDataToStorage(PagedBTreeNode node) {
 
 		int previousPageId = node.getPageId() < 0 ? 0 : node.getPageId();
@@ -274,6 +302,11 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		}
 	}
 
+	/**
+	 * Saves a node in the buffer manager.
+	 * Note that it does not write the node to storage but
+	 * only stores it in memory.
+	 */
 	@Override
 	public int save(PagedBTreeNode node) {
 		/*
@@ -290,6 +323,10 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return pageIdCounter;
 	}
 
+	/**
+	 * Removes a node from buffer manager and frees the page
+	 * if it has been written before.
+	 */
 	@Override
 	public void remove(PagedBTreeNode node) {
 		int pageId = node.getPageId();
@@ -304,9 +341,13 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		}
 	}
 	
+	/**
+	 * Clears memory and recursively frees the pages of the 
+	 * nodes.
+	 */
 	@Override
-	public void clear(PagedBTreeNode node) {
-		clearHelper(node);
+	public void clear(PagedBTreeNode root) {
+		clearHelper(root);
 		cleanBuffer.clear();
 		dirtyBuffer.clear();
 	}
