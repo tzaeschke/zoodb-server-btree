@@ -26,6 +26,9 @@ import java.util.NoSuchElementException;
 
 /**
  * Shared behaviour of unique and non-unique B+ tree.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
  */
 public abstract class BTree {
 

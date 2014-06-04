@@ -28,23 +28,70 @@ import java.util.ConcurrentModificationException;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
+/**
+ * An abstract iterator for iterating through entries of the leaf-nodes of a B+ tree.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public abstract class BTreeLeafEntryIterator implements
 		LongLongIndex.LLEntryIterator {
+
+    /**
+     * The B+ tree used for iteration.
+     */
 	protected BTree tree;
+
+    /**
+     * The leaf node that contains the current iterator position.
+     */
 	protected BTreeNode curLeaf;
+
+    /**
+     * The index of the current entry in curLeaf.
+     */
 	protected int curPos;
+
+    /**
+     * The stack of ancestor nodes of the current leaf. Maintained because
+     * of the lack of a parent pointer
+     */
 	protected LinkedList<BTreeNode> ancestors;
+
+    /**
+     * The positions in the ancestor nodes.
+     */
     protected LinkedList<Integer> positions;
 
+    /**
+     * The start of the key range used by the iterator.
+     */
     protected long start = Long.MIN_VALUE;
+
+    /**
+     * The end of the key range used by the iterator.
+     */
     protected long end = Long.MAX_VALUE;
     
     // used to throw errors when modifying the
     // tree while using the iterator
     private final int modCount;
-    private final long txId; 
+    private final long txId;
 
+    /**
+     * Update the position of the iterator.
+     *
+     * This method is implemented
+     * by the AscendingBTreeLeafEntryIterator and DescendingBTreeLeafEntryIterator classes.
+     */
     abstract void updatePosition();
+
+    /**
+     * Set the first leaf at the start of the iteration.
+     *
+     * This method is implemented
+     * by the AscendingBTreeLeafEntryIterator and DescendingBTreeLeafEntryIterator classes.
+     */
     abstract void setFirstLeaf();
 
 	public BTreeLeafEntryIterator(BTree tree) {
@@ -113,6 +160,11 @@ public abstract class BTreeLeafEntryIterator implements
 		return this.next().getKey();
 	}
 
+    /**
+     *
+     * @param node      An arbitrary node from the tree.
+     * @return          The left-most leaf of the sub-tree rooted in node.
+     */
     protected BTreeNode getLefmostLeaf(BTreeNode node) {
         if (node.isLeaf()) {
             return node;
@@ -126,6 +178,11 @@ public abstract class BTreeLeafEntryIterator implements
         return current;
     }
 
+    /**
+     *
+     * @param node      An arbitrary node from the tree.
+     * @return          The right-most leaf of the sub-tree rooted in node.
+     */
     protected BTreeNode getRightMostLeaf(BTreeNode node) {
         if(node.isLeaf()) {
             return node;
@@ -139,7 +196,14 @@ public abstract class BTreeLeafEntryIterator implements
         }
         return current;
     }
-    
+
+    /**
+     * Check if the current iterator is still valid.
+     *
+     * First checks if the transaction in which the iterator was created was commited or rolledback.
+     *
+     * The check if the tree was modified by comparing the modification counts.
+     */
 	public void checkValidity() {
 		long storageTxId = getTxId();
 		if (this.txId != storageTxId) {

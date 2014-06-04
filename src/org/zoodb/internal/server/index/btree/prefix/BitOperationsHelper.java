@@ -20,6 +20,13 @@
  */
 package org.zoodb.internal.server.index.btree.prefix;
 
+/**
+ * Contains helper methods for bit operations used when encoding/decoding
+ * arrays based on the binary prefix.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public class BitOperationsHelper {
 
     public static boolean isBitSet(long number, int position) {

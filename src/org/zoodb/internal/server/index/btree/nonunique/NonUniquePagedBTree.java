@@ -24,6 +24,14 @@ import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.PagedBTree;
 
+/**
+ * key-value unique B+ Tree.
+ *
+ * It allows duplicate keys, but no duplicate key-value pairs.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public class NonUniquePagedBTree extends PagedBTree {
 
 	public NonUniquePagedBTree(NonUniquePagedBTreeNode root,

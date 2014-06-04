@@ -20,6 +20,12 @@
  */
 package org.zoodb.internal.server.index.btree;
 
+/**
+ * An ascending iterator for the entries in the leaf nodes of the B+ tree.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public class AscendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
 
     public AscendingBTreeLeafEntryIterator(BTree tree) {
@@ -31,7 +37,6 @@ public class AscendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
     }
 
     void updatePosition() {
-        //TODO fix this
         if (curPos < curLeaf.getNumKeys() - 1) {
             curPos++;
         } else {

@@ -25,6 +25,9 @@ import java.util.Map;
 
 /**
  * BufferManager without using a proper storage for testing purposes.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
  */
 public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	private Map<Integer, PagedBTreeNode> map;

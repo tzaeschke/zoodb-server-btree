@@ -28,22 +28,28 @@ import org.zoodb.internal.server.index.btree.*;
 import java.util.List;
 
 
+/**
+ * Contains shared logic between {@link BTreeIndexUnique} and {@link BTreeIndexNonUnique}.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public abstract class BTreeIndex extends AbstractIndex {
-	
+
     protected BTreeStorageBufferManager bufferManager;
     protected DATA_TYPE dataType;
-    
+
 	public BTreeIndex(DATA_TYPE dataType, StorageChannel file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
         this.dataType = dataType;
         bufferManager = new BTreeStorageBufferManager(file, isUnique, dataType);
         this.dataType = dataType;
 	}
-	
+
 	public void insertLong(long key, long value) {
 		getTree().insert(key, value);
 	}
-	
+
     public boolean insertLongIfNotSet(long key, long value) {
         return getTree().insert(key, value, true);
     }
@@ -51,7 +57,7 @@ public abstract class BTreeIndex extends AbstractIndex {
 	public void print() {
         System.out.println(getTree());
 	}
-	
+
 	public int statsGetLeavesN() {
 		return getTree().statsGetLeavesN();
 	}
@@ -95,7 +101,7 @@ public abstract class BTreeIndex extends AbstractIndex {
 	public DATA_TYPE getDataType() {
 		return dataType;
 	}
-	
+
     public List<Integer> debugPageIds() {
 		return bufferManager.debugPageIds(getTree());
 	}
@@ -103,15 +109,15 @@ public abstract class BTreeIndex extends AbstractIndex {
 	public int statsGetWrittenPagesN() {
 		return bufferManager.getStatNWrittenPages();
 	}
-	
+
     public abstract PagedBTree getTree();
-	
+
     public BTreeStorageBufferManager getBufferManager() {
 		return bufferManager;
 	}
-    
+
     public void setNodeValueSize(int sizeInByte) {
     	bufferManager.setNodeValueElementSize(sizeInByte);
-    	
+
     }
 }

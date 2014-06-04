@@ -26,6 +26,12 @@ import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTreeNode;
 
+/**
+ * Index backed by a B+ tree that allows duplicate keys.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public class BTreeIndexNonUnique extends BTreeIndex implements LongLongIndex {
 
     private NonUniquePagedBTree tree;

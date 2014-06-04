@@ -23,8 +23,15 @@ package org.zoodb.internal.server.index.btree;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 import java.lang.ref.WeakReference;
-import java.util.Arrays;
 
+/**
+ * Variant of B+ tree node that is aware of the buffer manager.
+ *
+ * It abstracts the access to the child nodes.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public abstract class PagedBTreeNode extends BTreeNode {
 
     private int pageId;
@@ -252,14 +259,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	public void setChildrenPageIds(int[] childrenPageIds) {
 		this.childrenPageIds = childrenPageIds;
 	}
-
-    public void cloneInto(PagedBTreeNode clone) {
-        clone.setPageId(this.getPageId());
-        clone.setKeys(Arrays.copyOf(this.getKeys(), this.getKeys().length));
-        copyValues(clone);
-    }
-
-    protected abstract void copyValues(PagedBTreeNode node);
 
 	@Override
 	public void close() {

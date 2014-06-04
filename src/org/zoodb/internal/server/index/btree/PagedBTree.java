@@ -20,6 +20,12 @@
  */
 package org.zoodb.internal.server.index.btree;
 
+/**
+ * Variant of the B+ tree that is aware of the {@link BTreeBufferManager}
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public abstract class PagedBTree extends BTree {
 
     private BTreeBufferManager bufferManager;

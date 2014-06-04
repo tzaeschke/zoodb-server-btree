@@ -31,6 +31,16 @@ import org.zoodb.internal.util.PrimLongMapLI;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Buffer Manager for the B+ tree using the database storage.
+ *
+ * - Supports caching thought the dirty and clean buffers.
+ * - Performs encoding of the key array before page write
+ * - Performs decoding of the key array after page read
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
     private int pageSize;

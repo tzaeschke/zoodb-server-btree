@@ -26,6 +26,12 @@ import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
 import java.util.Arrays;
 
+/**
+ * Node class for key-value unique trees.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public class NonUniquePagedBTreeNode extends PagedBTreeNode {
 
     public NonUniquePagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {

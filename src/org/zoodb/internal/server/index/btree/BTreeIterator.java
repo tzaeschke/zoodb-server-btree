@@ -24,8 +24,11 @@ import java.util.Iterator;
 import java.util.ListIterator;
 import java.util.Stack;
 
-/*
+/**
  * Iterates through all nodes (inner & leafs) of the tree in pre-order.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
  */
 public class BTreeIterator implements Iterator<BTreeNode> {
 

@@ -21,6 +21,12 @@
 package org.zoodb.internal.server.index.btree;
 
 
+/**
+ * Factory class for B+ tree nodes.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public interface BTreeNodeFactory {
 	
 	public BTreeNode newUniqueNode(int pageSize, boolean isLeaf, boolean isRoot);

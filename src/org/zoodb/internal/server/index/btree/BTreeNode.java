@@ -27,7 +27,8 @@ import java.util.NoSuchElementException;
 /**
  * Represents the node of a B+ tree.
  * 
- * Support for linked-lists of nodes on the leaf level is yet to be added.
+ * @author Jonas Nick
+ * @author Bogdan Vancea
  */
 public abstract class BTreeNode {
 

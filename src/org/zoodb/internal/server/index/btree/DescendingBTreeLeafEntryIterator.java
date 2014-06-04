@@ -20,6 +20,12 @@
  */
 package org.zoodb.internal.server.index.btree;
 
+/**
+ * A descending iterator for the entries in the leaf nodes of the B+ tree.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public class DescendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
 
     public DescendingBTreeLeafEntryIterator(BTree tree) {

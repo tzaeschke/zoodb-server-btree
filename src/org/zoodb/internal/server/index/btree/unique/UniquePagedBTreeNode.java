@@ -25,7 +25,7 @@ import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
 /**
- * Corresponds to Unique B+ tree indices.
+ * Corresponds to Unique B+ trees.
  */
 public class UniquePagedBTreeNode extends PagedBTreeNode {
 

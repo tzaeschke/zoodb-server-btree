@@ -28,6 +28,12 @@ import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
 
 import java.util.NoSuchElementException;
 
+/**
+ * Index backed by a B+ tree that does not allow duplicate keys.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public class BTreeIndexUnique extends BTreeIndex implements LongLongUIndex  {
 
     private UniquePagedBTree tree;
