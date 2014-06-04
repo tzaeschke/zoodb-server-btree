@@ -38,11 +38,6 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    protected void copyValues(PagedBTreeNode node) {
-        //do nothing
-    }
-
-    @Override
     public void initializeEntries() {
         int size = computeMaxPossibleEntries();
         initKeys(size);
