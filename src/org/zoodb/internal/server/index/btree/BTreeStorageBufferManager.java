@@ -373,6 +373,10 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return ret;
 	}
 
+	/**
+	 * This has to be called when a node changes its status from
+	 * dirty to clean or vice versa.
+	 */
 	public void updatePageStatus(PagedBTreeNode node) {
 		int pageId = node.getPageId();
 		if(node.isDirty()) {
@@ -400,7 +404,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return statNReadPages;
 	}
 	
-	/*
+	/**
 	 * Iterates through tree and returns pageId of every reachable node
 	 * that has been written to storage. Every non-reachable node should have
 	 * been removed using BTree.remove and thus its page has been reported
