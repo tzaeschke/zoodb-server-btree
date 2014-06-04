@@ -165,8 +165,14 @@ public abstract class PagedBTreeNode extends BTreeNode {
 			int destIndex, int size) {
         PagedBTreeNode pagedSource = toPagedNode(source);
         PagedBTreeNode pagedDest = toPagedNode(dest);
-		System.arraycopy(pagedSource.getChildrenPageIds(), sourceIndex,
-				pagedDest.getChildrenPageIds(), destIndex, size);
+        try {
+			System.arraycopy(pagedSource.getChildrenPageIds(), sourceIndex,
+					pagedDest.getChildrenPageIds(), destIndex, size);
+        } catch (ArrayIndexOutOfBoundsException e) {
+        	//TODO TZ remove me
+            System.out.println("coci: " + pagedSource.getChildrenPageIds().length + "/"+ sourceIndex + "  "
+            		+ pagedDest.getChildrenPageIds().length + "/" + destIndex + "    s=" + size);
+        }
         System.arraycopy(pagedSource.getChildSizes(), sourceIndex, pagedDest.getChildSizes(), destIndex, size);
         System.arraycopy(pagedSource.getChildren(), sourceIndex, pagedDest.getChildren(), destIndex, size);
 	}

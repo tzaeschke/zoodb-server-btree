@@ -15,8 +15,8 @@ public class BTreeTestUtils {
         return map;
     }
     
-    public static List<LLEntry> nonUniqueEntries(int numElements, int numTimes) {
-        Random random = new Random();
+    public static List<LLEntry> nonUniqueEntries(int numElements, int numTimes, int seed) {
+        Random random = new Random(seed);
         Set<LLEntry> entrySet = new HashSet<>();
         for(int j=0; j<numTimes; j++) {
 	        for (int i = 0; i < numElements; i++) {

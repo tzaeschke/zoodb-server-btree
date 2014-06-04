@@ -26,7 +26,7 @@ public class TestNonUnique {
     }
 
     @Parameterized.Parameters
-    public static Collection data() {
+    public static Collection<?> data() {
         Object[][] data = new Object[][] { {128}, {256}, {512}};
         return Arrays.asList(data);
     }
@@ -67,11 +67,22 @@ public class TestNonUnique {
 
     @Test
     public void testInsertAndDelete() {
+    	for (int i = 0; i < 5; i++) {
+    		try {
+    			testInsertAndDelete(i);
+    		} catch (Throwable t) {
+    			throw new RuntimeException("seed=" + i, t);
+    		}
+    	}
+    }
+
+    private void testInsertAndDelete(int seed) {
         int numEntries = 1000;
         int numTimes = 200;
         BTreeFactory factory = factory();
         NonUniquePagedBTree tree = (NonUniquePagedBTree) factory.getTree();
-        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.nonUniqueEntries(numEntries, numTimes);
+        List<LongLongIndex.LLEntry> entries = 
+        		BTreeTestUtils.nonUniqueEntries(numEntries, numTimes, seed);
 
         for (LongLongIndex.LLEntry entry : entries) {
             tree.insert(entry.getKey(), entry.getValue());

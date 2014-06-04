@@ -320,7 +320,7 @@ public abstract class BTree {
     }
 
     public String toString() {
-        if(this.root != null) {
+        if (this.root != null) {
             return this.root.toString();
         } else {
             return "Empty tree";

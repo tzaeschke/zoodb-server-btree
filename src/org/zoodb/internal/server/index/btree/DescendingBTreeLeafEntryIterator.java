@@ -24,7 +24,7 @@ public class DescendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
 
                 //leftSibling = (T) ancestorsChild.leftSibling(ancestor);
                 leftSibling = ancestor.leftSibling(position);
-                position -= 1;
+                position --;
             }
             ancestors.push(ancestor);
             positions.push(position);
@@ -35,7 +35,7 @@ public class DescendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
                 curPos = curLeaf.getNumKeys() - 1;
             }
         }
-        if (curLeaf != null && curLeaf.getKey(curPos) < start) {
+        if (curLeaf != null && curLeaf.getKey(curPos) < min) {
             curLeaf = null;
         }
     }
@@ -44,21 +44,19 @@ public class DescendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
         if (tree.isEmpty()) {
             return;
         }
-        populateAncestorStack(end, Long.MAX_VALUE);
-        // findKeyValuePos looks for a position to insert an entry
-        // and thus it is one off
-        curPos = curPos > 0 ? curPos-1 : 0; 
+        
+        populateAncestorStack(max, Long.MAX_VALUE);
     
         // the following code is necessary for non unique trees,
         // because searchNodeWithHistory returns the correct node
         // for inserting an entry but here we need the last
-        // entry whose key <= end.
-	    while(this.hasNext() && curLeaf.getKey(curPos) > end) {
+        // entry whose key <= max.
+	    while (curLeaf != null && curLeaf.getKey(curPos) > max) {
 	    	this.next();
 	    }
 	    
-	    // case when start is bigger than every element in the tree
-        if(curLeaf!=null && start > curLeaf.getKey(curPos)) {
+	    // case when min is bigger than every element in the tree
+        if (curLeaf != null && min > curLeaf.getKey(curPos)) {
         	curLeaf = null;
         }
     }

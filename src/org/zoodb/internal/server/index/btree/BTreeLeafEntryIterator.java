@@ -1,23 +1,23 @@
 package org.zoodb.internal.server.index.btree;
 
 import java.util.ConcurrentModificationException;
-import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.util.DBLogger;
+import org.zoodb.internal.util.FastStack;
 
 public abstract class BTreeLeafEntryIterator implements
 		LongLongIndex.LLEntryIterator {
-	protected BTree tree;
+	protected final BTree tree;
 	protected BTreeNode curLeaf;
 	protected int curPos;
-	protected LinkedList<BTreeNode> ancestors;
-    protected LinkedList<Integer> positions;
+	protected final FastStack<BTreeNode> ancestors;
+    protected final FastStack<Integer> positions;
 
-    protected long start = Long.MIN_VALUE;
-    protected long end = Long.MAX_VALUE;
+    protected final long min;
+    protected final long max;
     
     // used to throw errors when modifying the
     // tree while using the iterator
@@ -28,19 +28,20 @@ public abstract class BTreeLeafEntryIterator implements
     abstract void setFirstLeaf();
 
 	public BTreeLeafEntryIterator(BTree tree) {
-		init(tree);
-        this.modCount = tree.getModcount();
-        this.txId = this.getTxId();
-		setFirstLeaf();
+		this(tree, Long.MIN_VALUE, Long.MAX_VALUE);
 	}
 
-    public BTreeLeafEntryIterator(BTree tree, long start, long end) {
-        init(tree);
+    public BTreeLeafEntryIterator(BTree tree, long min, long max) {
+		this.tree = tree;
+		this.curLeaf = null;
+		this.curPos = -1;
+		this.ancestors = new FastStack<>();
+		this.positions = new FastStack<>();
         this.modCount = tree.getModcount();
         this.txId = this.getTxId();
         //ToDo get smallest key and value from tree
-        this.start = start;
-        this.end = end;
+        this.min = min;
+        this.max = max;
         setFirstLeaf();
     }
 
@@ -139,19 +140,12 @@ public abstract class BTreeLeafEntryIterator implements
 		throw new UnsupportedOperationException(this.tree.getClass().getName());
 	}
 
-    private void init(BTree tree) {
-        this.tree = tree;
-        this.curLeaf = null;
-        this.curPos = -1;
-        this.ancestors = new LinkedList<>();
-        this.positions = new LinkedList<>();
-    }
-
-    protected void populateAncestorStack(long key, long value) {
+	protected void populateAncestorStack(long key, long value) {
         BTreeNode current = tree.getRoot();
         int position;
         while (!current.isLeaf()) {
             position = current.findKeyValuePos(key, value);
+        	
             //position = position > 0 ? position - 1 : 0;
             positions.push(position);
             ancestors.push(current);
@@ -159,6 +153,9 @@ public abstract class BTreeLeafEntryIterator implements
         }
         curLeaf = current;
         curPos = curLeaf.findKeyValuePos(key, value);
+    	// findKeyValuePos looks for a position to insert an entry
+        // and thus it is one off
+        curPos = curPos > 0 ? curPos-1 : 0; 
     }
 
 
