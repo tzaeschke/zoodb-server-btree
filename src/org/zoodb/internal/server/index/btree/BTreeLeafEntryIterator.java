@@ -1,3 +1,23 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.internal.server.index.btree;
 
 import java.util.ConcurrentModificationException;
@@ -8,23 +28,70 @@ import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.util.DBLogger;
 import org.zoodb.internal.util.FastStack;
 
+/**
+ * An abstract iterator for iterating through entries of the leaf-nodes of a B+ tree.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public abstract class BTreeLeafEntryIterator implements
 		LongLongIndex.LLEntryIterator {
+
+	/**
+	 * The B+ tree used for iteration.
+	 */
 	protected final BTree tree;
+
+	/**
+	 * The leaf node that contains the current iterator position.
+	 */
 	protected BTreeNode curLeaf;
+
+	/**
+	 * The index of the current entry in curLeaf.
+	 */
 	protected int curPos;
+	
+	/**
+	 * The stack of ancestor nodes of the current leaf. Maintained because
+	 * of the lack of a parent pointer
+	 */
 	protected final FastStack<BTreeNode> ancestors;
+
+	/**
+	 * The positions in the ancestor nodes.
+	 */
     protected final FastStack<Integer> positions;
 
-    protected final long min;
-    protected final long max;
+	/**
+	 * The start of the key range used by the iterator.
+	 */
+	protected final long min;
+
+	/**
+	 * The end of the key range used by the iterator.
+	 */
+	protected final long max;
     
     // used to throw errors when modifying the
     // tree while using the iterator
     private final int modCount;
-    private final long txId; 
+    private final long txId;
 
+    /**
+     * Update the position of the iterator.
+     *
+     * This method is implemented
+     * by the AscendingBTreeLeafEntryIterator and DescendingBTreeLeafEntryIterator classes.
+     */
     abstract void updatePosition();
+
+    /**
+     * Set the first leaf at the start of the iteration.
+     *
+     * This method is implemented
+     * by the AscendingBTreeLeafEntryIterator and DescendingBTreeLeafEntryIterator classes.
+     */
     abstract void setFirstLeaf();
 
 	public BTreeLeafEntryIterator(BTree tree) {
@@ -94,6 +161,11 @@ public abstract class BTreeLeafEntryIterator implements
 		return this.next().getKey();
 	}
 
+    /**
+     *
+     * @param node      An arbitrary node from the tree.
+     * @return          The left-most leaf of the sub-tree rooted in node.
+     */
     protected BTreeNode getLefmostLeaf(BTreeNode node) {
         if (node.isLeaf()) {
             return node;
@@ -107,6 +179,11 @@ public abstract class BTreeLeafEntryIterator implements
         return current;
     }
 
+    /**
+     *
+     * @param node      An arbitrary node from the tree.
+     * @return          The right-most leaf of the sub-tree rooted in node.
+     */
     protected BTreeNode getRightMostLeaf(BTreeNode node) {
         if(node.isLeaf()) {
             return node;
@@ -120,7 +197,14 @@ public abstract class BTreeLeafEntryIterator implements
         }
         return current;
     }
-    
+
+    /**
+     * Check if the current iterator is still valid.
+     *
+     * First checks if the transaction in which the iterator was created was commited or rolledback.
+     *
+     * The check if the tree was modified by comparing the modification counts.
+     */
 	public void checkValidity() {
 		long storageTxId = getTxId();
 		if (this.txId != storageTxId) {
