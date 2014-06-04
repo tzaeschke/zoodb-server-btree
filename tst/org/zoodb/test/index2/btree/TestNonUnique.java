@@ -5,9 +5,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex;
-import org.zoodb.internal.server.index.btree.BTree;
-import org.zoodb.internal.server.index.btree.BTreeBufferManager;
-import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.*;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 
 import java.util.Arrays;
@@ -26,7 +24,7 @@ public class TestNonUnique {
     }
 
     @Parameterized.Parameters
-    public static Collection data() {
+    public static Collection<?> data() {
         Object[][] data = new Object[][] { {128}, {256}, {512}};
         return Arrays.asList(data);
     }
@@ -59,19 +57,64 @@ public class TestNonUnique {
         BTreeFactory factory = factory();
         NonUniquePagedBTree tree = (NonUniquePagedBTree) factory.getTree();
 
-        for (int i = 0; i < 100; i++) {
+        int numElements = 1000000;
+        for (int i = 0; i < numElements; i++) {
             tree.insert(1, i);
         }
-        System.out.println(tree);
+        BTreeLeafEntryIterator it = new DescendingBTreeLeafEntryIterator(tree);
+        int count = numElements;
+        while (it.hasNext()) {
+            count--;
+            LongLongIndex.LLEntry entry = it.next();
+            assertEquals(1, entry.getKey());
+            assertEquals(count, entry.getValue());
+        }
+        assertEquals(0, count);
+
+        for (int i = 0; i < numElements / 2; i++) {
+            tree.delete(1, i);
+        }
+
+        it = new DescendingBTreeLeafEntryIterator(tree);
+        count = numElements;
+        while (it.hasNext()) {
+            count--;
+            LongLongIndex.LLEntry entry = it.next();
+            assertEquals(1, entry.getKey());
+            assertEquals(count, entry.getValue());
+        }
+        assertEquals(numElements / 2, count);
     }
 
     @Test
     public void testInsertAndDelete() {
+
+        testInsertAndDelete(73);
+
+    	for (int i = 0; i < 10; i++) {
+    		try {
+    			testInsertAndDelete(i);
+    		} catch (Throwable t) {
+    			throw new RuntimeException("seed=" + i, t);
+    		}
+    	}
+
+        for (int i = 0; i < 10; i++) {
+            try {
+                testInsertAndDelete((int) System.nanoTime());
+            } catch (Throwable t) {
+                throw new RuntimeException("seed=" + i, t);
+            }
+        }
+    }
+
+    private void testInsertAndDelete(int seed) {
         int numEntries = 1000;
         int numTimes = 200;
         BTreeFactory factory = factory();
         NonUniquePagedBTree tree = (NonUniquePagedBTree) factory.getTree();
-        List<LongLongIndex.LLEntry> entries = BTreeTestUtils.nonUniqueEntries(numEntries, numTimes);
+        List<LongLongIndex.LLEntry> entries = 
+        		BTreeTestUtils.nonUniqueEntries(numEntries, numTimes, seed);
 
         for (LongLongIndex.LLEntry entry : entries) {
             tree.insert(entry.getKey(), entry.getValue());
@@ -80,7 +123,6 @@ public class TestNonUnique {
 
         // check whether all entries are inserted
         for (LongLongIndex.LLEntry entry : entries) {
-            //ToDo check why it does not work
             assertTrue(tree.contains(entry.getKey(), entry.getValue()));
         }
 

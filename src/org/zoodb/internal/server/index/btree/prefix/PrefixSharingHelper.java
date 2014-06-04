@@ -1,12 +1,43 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.internal.server.index.btree.prefix;
 
 import java.util.Arrays;
 
+/**
+ * Contains useful methods for operations used by the prefix-sharing B+ tree.
+ *
+ * Includes:
+ *  - computing the prefix
+ *  - encoding/decoding arrays according to the prefix
+ *  - helper methods for the tree re-balancing operations
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public class PrefixSharingHelper {
 
     public static final int PREFIX_SHARING_METADATA_SIZE = 5;
     public static final int STORAGE_MANAGER_METADATA_SIZE = 2;
-    public static final int SMALLEST_POSSIBLE_COMPRESSION_SIZE = 8 + PREFIX_SHARING_METADATA_SIZE + STORAGE_MANAGER_METADATA_SIZE;
+    public static final int SMALLEST_POSSIBLE_COMPRESSION_SIZE = PREFIX_SHARING_METADATA_SIZE + STORAGE_MANAGER_METADATA_SIZE;
 
     /**
      * Compute the size of the bit prefix shared by the two long values.
@@ -45,7 +76,17 @@ public class PrefixSharingHelper {
         return computeIndexForSplitAfterInsert(arr, arrayLength, 0, 0, 0, Long.MAX_VALUE);
     }
 
-    public static int computeIndexForSplitAfterInsert(long[] arr, int arrayLength, int header, int weightKey, int weightChild, long maxSize) {
+    /**
+     * Compute and index
+     * @param arr                       The key array of the current node
+     * @param arraySize                 The size of the key array of the current node
+     * @param header                    An additional header to be taken into consideration when computing the size
+     * @param valueSize                 The size of the value associated with each key
+     * @param childSize                 The size of the children pointers associated with each node
+     * @param maxSize                   The maximum valid size for the nodes.
+     * @return                          The index for the split, -1 if a split is not possible
+     */
+    public static int computeIndexForSplitAfterInsert(long[] arr, int arraySize, int header, int valueSize, int childSize, long maxSize) {
          /*
          *  Perform a binary search by computing the sizes of the left and right array
          *  after splitting by a certain index.
@@ -53,16 +94,16 @@ public class PrefixSharingHelper {
          *  If the left array has a larger size, move the splitting point to the right.
          */
         int low = 0 ;
-        int high = arrayLength - 1;
-        int mid = 0;
+        int high = arraySize - 1;
+        int mid;
         int optimalIndex = 0;
         long optimalDiff = Long.MAX_VALUE;
         while (low <= high) {
             mid = low + ((high - low) >> 1);
             long prefixLeft = computePrefix(arr[0], arr[mid]);
-            long prefixRight = computePrefix(arr[mid+1], arr[arrayLength - 1]);
-            long sizeLeft = computeArraySize(prefixLeft, (mid + 1), header, weightKey, weightChild);
-            long sizeRight = computeArraySize(prefixRight, (arrayLength - 1 - mid), header, weightKey, weightChild);
+            long prefixRight = computePrefix(arr[mid+1], arr[arraySize - 1]);
+            long sizeLeft = computeArraySize(prefixLeft, (mid + 1), header, valueSize, childSize);
+            long sizeRight = computeArraySize(prefixRight, (arraySize - 1 - mid), header, valueSize, childSize);
             if (optimalDiff > Math.abs(sizeLeft - sizeRight)) {
                 optimalIndex = mid;
                 optimalDiff = Math.abs(sizeLeft - sizeRight);
@@ -104,9 +145,23 @@ public class PrefixSharingHelper {
         return computeIndexForRedistributeLeftToRight(first, first.length, second, second.length);
     }
 
+    /**
+     * Compute the split index for the first array, such that all of the keys on right
+     * of the split index can be moved to second array.
+     *
+     * @param first                     The key array of the left node
+     * @param firstArraySize            The size of the key array of the left node
+     * @param second                    The key array of the right node
+     * @param secondArraySize           The size of the key array of the right node
+     * @param header                    An additional header to be taken into consideration when computing the size
+     * @param valueSize                 The size of the value associated with each key
+     * @param childSize                 The size of the children pointers associated with each node
+     * @param maxSize                   The maximum valid size for the nodes.
+     * @return                          The index for the split, -1 if a split is not possible
+     */
     public static int computeIndexForRedistributeLeftToRight(long[] first, int firstArraySize,
                                                              long[] second, int secondArraySize,
-                                                             int header, int weightKey, int weightChild,
+                                                             int header, int valueSize, int childSize,
                                                              int maxSize) {
 
         if (firstArraySize == 0) {
@@ -120,9 +175,7 @@ public class PrefixSharingHelper {
          */
         int low = 0 ;
         int high = (firstArraySize - 1) >> 1;
-        int mid = 0;
-        int optimalIndex = 0;
-        long optimalDiff = Long.MAX_VALUE;
+        int mid;
         long prefixLeft, prefixRight, sizeLeft, sizeRight;
         while (low < high) {
             mid = low + ((high - low) >> 1);
@@ -131,8 +184,8 @@ public class PrefixSharingHelper {
             }
             prefixLeft = computePrefix(first[0], first[mid - 1]);
             prefixRight = computePrefix(first[mid], second[secondArraySize - 1]);
-            sizeLeft = computeArraySize(prefixLeft, mid, header, weightKey, weightChild);
-            sizeRight = computeArraySize(prefixRight, (firstArraySize - mid + secondArraySize), header, weightKey,weightChild);
+            sizeLeft = computeArraySize(prefixLeft, mid, header, valueSize, childSize);
+            sizeRight = computeArraySize(prefixRight, (firstArraySize - mid + secondArraySize), header, valueSize,childSize);
             if (sizeLeft <= maxSize && sizeRight <= maxSize) {
                 return mid;
             }
@@ -176,9 +229,23 @@ public class PrefixSharingHelper {
         return computeIndexForRedistributeRightToLeft(first, firstArraySize, second, secondArraySize, 0, 0, 0, Integer.MAX_VALUE);
     }
 
+    /**
+     * Compute the split index for the second array, such that all of the keys on left
+     * of the split index can be moved to right array.
+     *
+     * @param first                     The key array of the left node
+     * @param firstArraySize            The size of the key array of the left node
+     * @param second                    The key array of the right node
+     * @param secondArraySize           The size of the key array of the right node
+     * @param header                    An additional header to be taken into consideration when computing the size
+     * @param valueSize                 The size of the value associated with each key
+     * @param childSize                 The size of the children pointers associated with each node
+     * @param maxSize                   The maximum valid size for the nodes.
+     * @return                          The index for the split, -1 if a split is not possible
+     */
     public static int computeIndexForRedistributeRightToLeft(long[] first, int firstArraySize,
                                                              long[] second, int secondArraySize,
-                                                             int header, int weightKey, int weightChild, int maxSize) {
+                                                             int header, int valueSize, int childSize, int maxSize) {
         if (firstArraySize == 0) {
             return secondArraySize >> 1;
         } else if (secondArraySize == 0) {
@@ -192,8 +259,8 @@ public class PrefixSharingHelper {
             mid = low + ((high - low) >> 1);
             prefixLeft = computePrefix(first[0], second[mid]);
             prefixRight = computePrefix(second[mid + 1], second[secondArraySize - 1]);
-            sizeLeft = computeArraySize(prefixLeft, (mid + 1 + firstArraySize), header, weightKey, weightChild);
-            sizeRight = computeArraySize(prefixRight, (secondArraySize - mid - 1), header, weightKey, weightChild);
+            sizeLeft = computeArraySize(prefixLeft, (mid + 1 + firstArraySize), header, valueSize, childSize);
+            sizeRight = computeArraySize(prefixRight, (secondArraySize - mid - 1), header, valueSize, childSize);
             if (sizeLeft <= maxSize && sizeRight <= maxSize) {
                 return mid;
             }
@@ -297,7 +364,14 @@ public class PrefixSharingHelper {
         }
         return outputArray;
     }
-    
+
+    /**
+     * Compute the size of the byte array used to encode the array of longs.
+     *
+     * @param arraySize             The size of the long array
+     * @param prefixLength          The size of the prefix
+     * @return                      The size of the encoded by array
+     */
     public static int encodedArraySizeWithoutMetadata(int arraySize, long prefixLength) {
 	    int bitsToStore = (int) (prefixLength + (64 - prefixLength) * arraySize);
 //        int outputArraySize = (int) Math.ceil(bitsToStore/ 8.0);
@@ -323,6 +397,14 @@ public class PrefixSharingHelper {
         return decodeArray(Arrays.copyOfRange(encodedArray, 5, encodedArray.length), decodedArraySize, prefix);
     }
 
+    /**
+     * Decode a prefix encoded array from an array of bytes.
+     *
+     * @param encodedArrayWithoutMetadata   The bytes containing the encoded key array
+     * @param decodedArraySize              The number of keys encoded
+     * @param prefixLength                  The size of the prefix
+     * @return                              The decoded long array.
+     */
     public static long[] decodeArray(byte[] encodedArrayWithoutMetadata, int decodedArraySize, byte prefixLength) {
         return decodeArray(encodedArrayWithoutMetadata, decodedArraySize, decodedArraySize, prefixLength);
     }
@@ -372,6 +454,23 @@ public class PrefixSharingHelper {
         return (indexInCurrentByte == 0) ? currentByte + 1 : currentByte;
     }
 
+    /**
+     * Compute a split point for a prefix encoded array such that all keys before the
+     * split index are moved to the left array and all keys after the split array are moved
+     * to the right array and the left and right array remain under a certain size.
+     *
+     * @param current           The key array of the current node
+     * @param currentSize       The number of elements to take into account for the current array
+     * @param left              The key array of the left node
+     * @param leftSize          The number of elements to take into account for the left array
+     * @param right             The key array of the right node
+     * @param rightSize         The number of elements to take into account for the right array
+     * @param header            An additional header to be taken into consideration when computing the size
+     * @param valueSize         The size of the value associated with each key
+     * @param childSize         The size of the children pointers associated with each node
+     * @param maxSize           The maximum valid size for the nodes.
+     * @return                  The index for the split, -1 if a split is not possible
+     */
     public static int computeSplitIntoLeftAndRight(long[] current,
                                                    int currentSize,
                                                    long[] left,

@@ -1,11 +1,35 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.internal.server.index.btree.nonunique;
 
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 
-import java.util.Arrays;
-
+/**
+ * Node class for key-value unique trees.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public class NonUniquePagedBTreeNode extends PagedBTreeNode {
 
     public NonUniquePagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot) {
@@ -14,11 +38,6 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
 
     public NonUniquePagedBTreeNode(BTreeBufferManager bufferManager, int order, boolean isLeaf, boolean isRoot, int pageId) {
         super(bufferManager, order, isLeaf, isRoot, pageId);
-    }
-
-    @Override
-    protected void copyValues(PagedBTreeNode node) {
-        node.setValues(Arrays.copyOf(node.getValues(), node.getValues().length));
     }
 
     @Override
@@ -103,12 +122,12 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    protected boolean containsAtPosition(int position, long key, long value) {
+    public boolean containsAtPosition(int position, long key, long value) {
         return this.getKey(position) == key && getValue(position) == value;
     }
 
     @Override
-    protected boolean smallerThanKeyValue(int position, long key, long value) {
+	public boolean smallerThanKeyValue(int position, long key, long value) {
         return (key < getKey(position) ||
                 (key == getKey(position) && value < getValue(position)));
     }
@@ -161,4 +180,24 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         }
         return ret;
     }
+
+	@Override
+	public int binarySearch(long key, long value) {
+		int low = 0;
+		int high = this.getNumKeys() - 1;
+		int mid = 0;
+		while (low <= high) {
+			mid = low + ((high - low) >> 1);
+			if (getKey(mid) == key && getValue(mid) == value) {
+				return mid;
+			} else {
+				if (key < getKey(mid) || (key == getKey(mid) && value < getValue(mid))) {
+					high = mid - 1;
+				} else {
+					low = mid + 1;
+				}
+			}
+		}
+		return -mid - 1;
+	}
 }

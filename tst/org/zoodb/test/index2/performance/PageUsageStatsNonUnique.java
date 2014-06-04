@@ -1,26 +1,35 @@
 package org.zoodb.test.index2.performance;
 
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.*;
-import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
-import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
-import org.zoodb.internal.server.index.btree.BTreeIterator;
-import org.zoodb.test.index2.btree.TestIndex;
-import org.zoodb.tools.DBStatistics;
-import org.zoodb.tools.ZooConfig;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import org.zoodb.internal.server.DiskIO.DATA_TYPE;
+import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.BTreeIndexNonUnique;
+import org.zoodb.internal.server.index.LongLongIndex;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
+import org.zoodb.internal.server.index.PagedLongLong;
+import org.zoodb.internal.server.index.btree.BTreeIterator;
+import org.zoodb.test.index2.btree.TestIndex;
+import org.zoodb.tools.DBStatistics;
+import org.zoodb.tools.ZooConfig;
+
 public class PageUsageStatsNonUnique {
 
     private static final int PAGE_SIZE = 4096;
-    private static final boolean MEMORY = false;
+    private static final boolean MEMORY = true;
+    private static final int REPEAT = 10;
+    private static final int N_ENTRY = 5000000;
 
+    private static final boolean OLD = true; 
+    private static final boolean NEW = true; 
+    
+    private static final Random R = new Random(0);
+    
     public static void main(String[] args) {
         ZooConfig.setFilePageSize(PAGE_SIZE);
         DBStatistics.enable(true);
@@ -63,7 +72,7 @@ public class PageUsageStatsNonUnique {
                 + (oldIndex.getMaxLeafN() + 1) + "\t" + "New Order: "
                 + newIndex.getTree().getPageSize());
 
-        int numElements = 1000000;
+        int numElements = N_ENTRY;
         int duplicates = 10;
         ArrayList<LLEntry> entries = PerformanceTest
                 .randomEntriesNonUnique(numElements / duplicates, duplicates, 42);
@@ -75,12 +84,12 @@ public class PageUsageStatsNonUnique {
         System.out.println("Insert " + numElements);
 
         System.gc();
-        System.out.println("mseconds old: " + PerformanceTest.insertList(oldIndex, entries));
+        if (OLD) System.out.println("mseconds old: " + PerformanceTest.insertList(oldIndex, entries));
         System.gc();
-        System.out.println("mseconds new: " + PerformanceTest.insertList(newIndex, entries));
+        if (NEW) System.out.println("mseconds new: " + PerformanceTest.insertList(newIndex, entries));
         System.out.println("Write");
-        System.out.println("mseconds old: " + write(oldIndex));
-        System.out.println("mseconds new: " + write(newIndex));
+        if (OLD) System.out.println("mseconds old: " + write(oldIndex));
+        if (NEW) System.out.println("mseconds new: " + write(newIndex));
 
         BTreeIterator it = new BTreeIterator(newIndex.getTree());
         int height = 1;
@@ -98,9 +107,9 @@ public class PageUsageStatsNonUnique {
         System.out.println("");
         System.out.println("Iterate " + numElements);
         System.gc();
-        System.out.println("mseconds old: " + iterate(oldIndex, 10));
+        if (OLD) System.out.println("mseconds old: " + iterate(oldIndex));
         System.gc();
-        System.out.println("mseconds new: " + iterate(newIndex, 10));
+        if (NEW) System.out.println("mseconds new: " + iterate(newIndex));
 		
         /*
 		 * Find all
@@ -108,9 +117,9 @@ public class PageUsageStatsNonUnique {
         System.out.println("");
         System.out.println("Find all " + numElements);
         System.gc();
-        System.out.println("mseconds old: " + findAll(oldIndex, entries, 10));
+        if (OLD) System.out.println("mseconds old: " + findAll(oldIndex, entries));
         System.gc();
-        System.out.println("mseconds new: " + findAll(oldIndex, entries, 10));
+        if (NEW) System.out.println("mseconds new: " + findAll(newIndex, entries));
 		
 		
 		/*
@@ -119,16 +128,16 @@ public class PageUsageStatsNonUnique {
         System.out.println("");
         int numDeleteEntries = (int) (numElements * 0.9);
         System.out.println("Delete " + numDeleteEntries);
-        Collections.shuffle(entries, new Random(43));
+        Collections.shuffle(entries, R);
         List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
 
         System.gc();
-        System.out.println("mseconds old: " + PerformanceTest.removeList(oldIndex, deleteEntries));
+        if (OLD) System.out.println("mseconds old: " + PerformanceTest.removeList(oldIndex, deleteEntries));
         System.gc();
-        System.out.println("mseconds new: " + PerformanceTest.removeList(newIndex, deleteEntries));
+        if (NEW) System.out.println("mseconds new: " + PerformanceTest.removeList(newIndex, deleteEntries));
         System.out.println("Write");
-        System.out.println("mseconds old: " + write(oldIndex));
-        System.out.println("mseconds new: " + write(newIndex));
+        if (OLD) System.out.println("mseconds old: " + write(oldIndex));
+        if (NEW) System.out.println("mseconds new: " + write(newIndex));
 
         printStats();
     }
@@ -145,9 +154,9 @@ public class PageUsageStatsNonUnique {
     /*
      * iterates through index and returns duration
      */
-    public long iterate(LongLongIndex index, int repetitions) {
+    public long iterate(LongLongIndex index) {
         long startTime = System.nanoTime();
-        for(int i=0; i<repetitions; i++) {
+        for(int i=0; i<REPEAT; i++) {
             LongLongIterator<?> it = index.iterator();
             while(it.hasNext()) {
                 it.next();
@@ -157,9 +166,9 @@ public class PageUsageStatsNonUnique {
     }
 
 
-    public static long findAll(LongLongIndex index, List<LLEntry> list, int repetitions) {
+    public static long findAll(LongLongIndex index, List<LLEntry> list) {
         long startTime = System.nanoTime();
-        for(int i=0; i<repetitions; i++) {
+        for(int i=0; i<REPEAT; i++) {
             for (LLEntry entry : list) {
                 index.iterator(entry.getKey(), entry.getKey());
             }
@@ -171,26 +180,26 @@ public class PageUsageStatsNonUnique {
     public void insertAndDeleteMultiple() {
         int numElements = 5000;
         int numDeleteEntries = (int) (numElements * 0.5);
-        int numTimes = 10;
+        int numTimes = REPEAT;
         int numDuplicates = 10;
         System.out.println("");
         System.out.println("Insert " + numElements + " and delete " + numDeleteEntries +  ", " + numTimes + " times.");
 
         for(int i=0; i<numTimes; i++) {
             ArrayList<LLEntry> entries = PerformanceTest
-                    .randomEntriesNonUnique(numElements / numDuplicates, numDuplicates, System.nanoTime()+i);
-            PerformanceTest.insertList(oldIndex, entries);
-            oldIndex.write();
-            PerformanceTest.insertList(newIndex, entries);
-            newIndex.write();
+                    .randomEntriesNonUnique(numElements / numDuplicates, numDuplicates, R.nextLong());
+            if (OLD) PerformanceTest.insertList(oldIndex, entries);
+            if (OLD) oldIndex.write();
+            if (NEW) PerformanceTest.insertList(newIndex, entries);
+            if (NEW) newIndex.write();
 
-            Collections.shuffle(entries, new Random(43+i));
+            Collections.shuffle(entries, R);
             List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
 
-            PerformanceTest.removeList(oldIndex, deleteEntries);
-            oldIndex.write();
-            PerformanceTest.removeList(newIndex, deleteEntries);
-            newIndex.write();
+            if (OLD) PerformanceTest.removeList(oldIndex, deleteEntries);
+            if (OLD) oldIndex.write();
+            if (NEW) PerformanceTest.removeList(newIndex, deleteEntries);
+            if (NEW) newIndex.write();
         }
         printStats();
     }

@@ -1,13 +1,34 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
-
 import java.util.NoSuchElementException;
+
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 /**
  * Represents the node of a B+ tree.
  * 
- * Support for linked-lists of nodes on the leaf level is yet to be added.
+ * @author Jonas Nick
+ * @author Bogdan Vancea
  */
 public abstract class BTreeNode {
 
@@ -76,24 +97,39 @@ public abstract class BTreeNode {
     public abstract int storageHeaderSize();
     public abstract boolean fitsIntoOneNodeWith(BTreeNode neighbour);
 
+    public abstract int binarySearch(long key, long value);
+    
+
     /**
      * Insert a key/value pair into the node. The node must be guaranteed not to overflow
      * after the key/value pair received as an argument is inserted
      * @param key
      * @param value
      */
-    public void put(long key, long value) {
+    public boolean put(long key, long value, boolean onlyIfNotSet) {
         if (!isLeaf()) {
-            throw new IllegalStateException(
-                    "Should only be called on leaf nodes.");
+            throw new IllegalStateException("Should only be called on leaf nodes.");
         }
 
-        int pos = this.findKeyValuePos(key, value);
-        if(checkNonUniqueKey(pos, key) && (!allowNonUniqueKeys() || checkNonUniqueKeyValue(pos,key,value))) {
-        	pos -=1;
+        int pos;
+        if (getNumKeys() == 0) {
+        	pos = 0;
+            increaseNumKeys(1);
         } else {
-            shiftRecords(pos, pos + 1, getNumKeys() - pos);
-            incrementNumKeys();
+        	pos = binarySearch(key, value);
+	        if (onlyIfNotSet && pos >= 0) {
+	        	return false;
+	        }
+	        if (pos >= 0 && getKey(pos) == key && (!allowNonUniqueKeys() || getValue(pos) == value)) {
+	        	//
+	        } else {
+	        	pos = -(pos + 1);
+	            if (!smallerThanKeyValue(pos, key, value)) {
+	            	pos++;
+	            }
+	            shiftRecords(pos, pos + 1, getNumKeys() - pos);
+	            increaseNumKeys(1);
+	        }
         }
         setKey(pos, key);
         setValue(pos, value);
@@ -101,13 +137,7 @@ public abstract class BTreeNode {
         //signal change
         markChanged();
         recomputeSize();
-    }
-    
-    protected boolean checkNonUniqueKey(int pos, long key) {
-        return pos > 0 && getKey(pos-1) == key;
-    }
-    protected boolean checkNonUniqueKeyValue(int position, long key, long value) {
-        return position > 0 && (getKey(position - 1) == key && getValue(position - 1) == value);
+        return true;
     }
 
     public BTreeNode findChild(long key, long value) {
@@ -134,27 +164,13 @@ public abstract class BTreeNode {
         // if the key is not here, find the child subtree that has it
         if (closest < 0) {
             closest = -(closest + 1);
-            if (closest == 0 && smallerThanKeyValue(0, key, value)) {
-                return 0;
-            } else if (smallerThanKeyValue(closest, key, value)) {
+            if (smallerThanKeyValue(closest, key, value)) {
                 return closest;
             }
         }
         return closest + 1;
     }
     
-    public boolean hasKey(long key, long value) {
-    	int pos = findKeyValuePos(key, value);
-    	boolean ret = false;
-    	if(pos > 0) {
-    		ret = getKey(pos-1) == key;
-    	} 
-    	if(pos < numKeys) {
-    		ret = ret || getKey(pos) == key; 
-    	}
-    	return ret;
-    }
-
     /**
      * Inner-node put. Places key to the left of the next bigger key k'.
      *
@@ -166,6 +182,7 @@ public abstract class BTreeNode {
      * @param newNode
      */
     public void put(long key, long value, BTreeNode newNode) {
+    	//TODO remove? This is a pure test method...
         if (isLeaf()) {
             throw new IllegalStateException(
                     "Should only be called on inner nodes.");
@@ -191,7 +208,7 @@ public abstract class BTreeNode {
             shiftValues(pos, pos + 1, recordsToMove);
         }
         setEntry(pos, key, value);
-        incrementNumKeys();
+        increaseNumKeys(1);
 
         recomputeSize();
     }
@@ -239,29 +256,9 @@ public abstract class BTreeNode {
         int recordsToMove = getNumKeys() - keyPos;
         long oldValue = getValue(keyPos - 1);
         shiftRecords(keyPos, keyPos - 1, recordsToMove);
-        decrementNumKeys();
+        decreaseNumKeys(1);
 
         return oldValue;
-    }
-
-    public int binarySearch(long key, long value) {
-        int low = 0;
-        int high = this.getNumKeys() - 1;
-        int mid = 0;
-        boolean found = false;
-        while (!found && low <= high) {
-            mid = low + ((high - low) >> 1);
-            if (containsAtPosition(mid, key, value)) {
-                found = true;
-            } else {
-                if (smallerThanKeyValue(mid, key, value)) {
-                    high = mid - 1;
-                } else {
-                    low = mid + 1;
-                }
-            }
-        }
-        return found ? mid : -mid - 1;
     }
 
     public int computeIndexForSplit(boolean isUnique) {
@@ -396,35 +393,14 @@ public abstract class BTreeNode {
         return getCurrentSize() > pageSize;
     }
 
-    public boolean incrementNumKeys() {
-        markChanged();
-        return increaseNumKeys(1);
-    }
-
-    public boolean decrementNumKeys() {
-        markChanged();
-        return decreaseNumKeys(1);
-    }
-
-    public boolean increaseNumKeys(int amount) {
-        markChanged();
-
+    public void increaseNumKeys(int amount) {
         int newNumKeys = getNumKeys() + amount;
-        if (newNumKeys > getKeys().length) {
-            return false;
-        }
         setNumKeys(newNumKeys);
-        return true;
     }
 
-    public boolean decreaseNumKeys(int amount) {
-        markChanged();
+    public void decreaseNumKeys(int amount) {
         int newNumKeys = getNumKeys() - amount;
-        if (newNumKeys < 0) {
-            return false;
-        }
         setNumKeys(newNumKeys);
-        return true;
     }
 
     protected void initKeys(int size) {
@@ -484,9 +460,12 @@ public abstract class BTreeNode {
         return pageSize;
     }
 
-    public void setNumKeys(int numKeys) {
+    public void setNumKeys(int newNumKeys) {
+        if (newNumKeys < 0 || newNumKeys > getKeys().length) {
+        	throw new IllegalStateException();
+        }
         markChanged();
-        this.numKeys = numKeys;
+        this.numKeys = newNumKeys;
     }
 
     public void setKeys(long[] keys) {

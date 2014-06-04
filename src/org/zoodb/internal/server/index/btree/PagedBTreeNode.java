@@ -1,12 +1,37 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
+/**
+ * Variant of B+ tree node that is aware of the buffer manager.
+ *
+ * It abstracts the access to the child nodes.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public abstract class PagedBTreeNode extends BTreeNode {
 
     private int pageId;
@@ -167,8 +192,14 @@ public abstract class PagedBTreeNode extends BTreeNode {
 			int destIndex, int size) {
         PagedBTreeNode pagedSource = toPagedNode(source);
         PagedBTreeNode pagedDest = toPagedNode(dest);
-		System.arraycopy(pagedSource.getChildrenPageIds(), sourceIndex,
-				pagedDest.getChildrenPageIds(), destIndex, size);
+        try {
+			System.arraycopy(pagedSource.getChildrenPageIds(), sourceIndex,
+					pagedDest.getChildrenPageIds(), destIndex, size);
+        } catch (ArrayIndexOutOfBoundsException e) {
+        	//TODO TZ remove me
+            System.out.println("coci: " + pagedSource.getChildrenPageIds().length + "/"+ sourceIndex + "  "
+            		+ pagedDest.getChildrenPageIds().length + "/" + destIndex + "    s=" + size);
+        }
         System.arraycopy(pagedSource.getChildSizes(), sourceIndex, pagedDest.getChildSizes(), destIndex, size);
         System.arraycopy(pagedSource.getChildren(), sourceIndex, pagedDest.getChildren(), destIndex, size);
 	}
@@ -177,16 +208,13 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		return this.childrenPageIds;
 	}
 
-	public List<Integer> getChildrenPageIdList() {
-		if(getNumKeys() == 0) {
-			return new ArrayList<>(0);
+	public int[] getChildrenPageIdList() {
+		if (getNumKeys() == 0) {
+			return new int[0];
 		}
 
-		List<Integer> childrenPageIdList = new ArrayList<>(getNumKeys()+1);
-
-		for(int i=0; i<getNumKeys()+1; i++) {
-			childrenPageIdList.add(childrenPageIds[i]);
-		}
+		int[] childrenPageIdList = new int[getNumKeys()+1];
+		System.arraycopy(childrenPageIds, 0, childrenPageIdList, 0, childrenPageIdList.length);
 		return childrenPageIdList;
 	}
 
@@ -195,13 +223,15 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	}
 
     @Override
-    public void markChanged() {
+    public final void markChanged() {
         this.markDirty();
     }
 
 	public void markDirty() {
-		isDirty = true;
-		notifyStatus();
+		if (!isDirty) {
+			isDirty = true;
+			notifyStatus();
+		}
 	}
 
 	public void markClean() {
@@ -210,7 +240,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	}
 	
 	private void notifyStatus() {
-		if(this.bufferManager != null) {
+		if (this.bufferManager != null) {
 			this.bufferManager.updatePageStatus(this);
 		}
 	}
@@ -219,10 +249,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		return pageId;
 	}
 
-	private int nullSafeGetPageId(PagedBTreeNode node) {
-		return node != null ? node.getPageId() : -1;
-
-	}
 	private static PagedBTreeNode toPagedNode(BTreeNode node) {
 		return (PagedBTreeNode) node;
 	}
@@ -239,14 +265,6 @@ public abstract class PagedBTreeNode extends BTreeNode {
 	public void setChildrenPageIds(int[] childrenPageIds) {
 		this.childrenPageIds = childrenPageIds;
 	}
-
-    public void cloneInto(PagedBTreeNode clone) {
-        clone.setPageId(this.getPageId());
-        clone.setKeys(Arrays.copyOf(this.getKeys(), this.getKeys().length));
-        copyValues(clone);
-    }
-
-    protected abstract void copyValues(PagedBTreeNode node);
 
 	@Override
 	public void close() {

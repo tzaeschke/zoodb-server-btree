@@ -1,7 +1,24 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.internal.server.index.btree;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
@@ -11,6 +28,19 @@ import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 import org.zoodb.internal.util.PrimLongMapLI;
 
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Buffer Manager for the B+ tree using the database storage.
+ *
+ * - Supports caching thought the dirty and clean buffers.
+ * - Performs encoding of the key array before page write
+ * - Performs decoding of the key array after page read
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
     private int pageSize;
@@ -391,5 +421,10 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	public void setMaxCleanBufferElements(int maxCleanBufferElements) {
 		this.maxCleanBufferElements = maxCleanBufferElements;
+	}
+
+	@Override
+	public long getTxId() {
+		return this.storageFile.getTxId();
 	}
 }

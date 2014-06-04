@@ -6,7 +6,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -15,7 +14,10 @@ import java.util.Random;
 import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
+import org.zoodb.internal.server.index.PagedLongLong;
+import org.zoodb.internal.server.index.PagedUniqueLongLong;
 import org.zoodb.internal.server.index.btree.BTreeBufferManager;
 import org.zoodb.internal.server.index.btree.BTreeIterator;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
@@ -119,7 +121,7 @@ public class TestBTree {
             tree.insert(entry.getKey(), entry.getValue());
         }
 
-        Random random = new Random(Calendar.getInstance().getTimeInMillis());
+        Random random = new Random(System.currentTimeMillis());
         while (!keyValueMap.isEmpty()) {
             long key = random.nextInt(numberOfElements);
             if (keyValueMap.containsKey(key)) {
@@ -190,7 +192,7 @@ public class TestBTree {
 
 		// check whether all entries are inserted
 		for (LLEntry entry : entries) {
-			assertEquals(new Long(entry.getValue()), tree.search(entry.getKey()));
+			assertEquals(Long.valueOf(entry.getValue()), tree.search(entry.getKey()));
 		}
 
 		// delete every entry and check that there is indeed no entry anymore
@@ -201,7 +203,7 @@ public class TestBTree {
 			assertEquals(null, tree.search(entry.getKey()));
 		}
 
-        Collections.shuffle(entries, new Random(Calendar.getInstance().getTimeInMillis()));
+        Collections.shuffle(entries, new Random(System.currentTimeMillis()));
         // root is empty and has no children
         assertEquals(0, tree.getRoot().getNumKeys());
         assertTrue(tree.getRoot().isLeaf());
@@ -227,7 +229,7 @@ public class TestBTree {
 			if (i < split) {
 				assertEquals(null, tree.search(entry.getKey()));
 			} else {
-				assertEquals(new Long(entry.getValue()), tree.search(entry.getKey()));
+				assertEquals(Long.valueOf(entry.getValue()), tree.search(entry.getKey()));
 			}
 			i++;
 		}
@@ -254,10 +256,34 @@ public class TestBTree {
         NonUniquePagedBTree nonUniqueTree = new NonUniquePagedBTree(pageSize, newBufferManager(pageSize));
         assertTrue(nonUniqueTree.insert(1, 1, true));
         assertFalse(nonUniqueTree.insert(1, 1, true));
-        assertFalse(nonUniqueTree.insert(1, 2, true));
+//        assertFalse(nonUniqueTree.insert(1, 2, true));
+//        assertTrue(nonUniqueTree.insert(2, 2, true));
+//        assertFalse(nonUniqueTree.insert(1, 0, true));
+//        assertFalse(nonUniqueTree.insert(1, 0, true));
+        assertTrue(nonUniqueTree.insert(1, 2, true));
         assertTrue(nonUniqueTree.insert(2, 2, true));
+        assertTrue(nonUniqueTree.insert(1, 0, true));
         assertFalse(nonUniqueTree.insert(1, 0, true));
-        assertFalse(nonUniqueTree.insert(1, 0, true));
+	}
+
+	@Test
+	public void testInsertLongIfNotSet_OLD_INDEX() {
+		int pageSize = 128;
+    	StorageChannel paf = new StorageRootInMemory(pageSize);
+        PagedUniqueLongLong uniqueTree = new PagedUniqueLongLong(DATA_TYPE.GENERIC_INDEX,paf);
+        assertTrue(uniqueTree.insertLongIfNotSet(1, 1));
+        assertFalse(uniqueTree.insertLongIfNotSet(1, 1));
+        assertFalse(uniqueTree.insertLongIfNotSet(1, 2));
+        assertTrue(uniqueTree.insertLongIfNotSet(2, 2));
+        assertFalse(uniqueTree.insertLongIfNotSet(1, 1));
+        
+        PagedLongLong nonUniqueTree = new PagedLongLong(DATA_TYPE.GENERIC_INDEX,paf);
+        assertTrue(nonUniqueTree.insertLongIfNotSet(1, 1));
+        assertFalse(nonUniqueTree.insertLongIfNotSet(1, 1));
+        assertTrue(nonUniqueTree.insertLongIfNotSet(1, 2));
+        assertTrue(nonUniqueTree.insertLongIfNotSet(2, 2));
+        assertTrue(nonUniqueTree.insertLongIfNotSet(1, 0));
+        assertFalse(nonUniqueTree.insertLongIfNotSet(1, 0));
 	}
 
 	public static PagedBTree getTestTreeWithThreeLayers(

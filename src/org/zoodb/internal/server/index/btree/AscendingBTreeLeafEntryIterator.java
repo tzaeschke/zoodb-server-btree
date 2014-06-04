@@ -1,5 +1,31 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.internal.server.index.btree;
 
+/**
+ * An ascending iterator for the entries in the leaf nodes of the B+ tree.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
+ */
 public class AscendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
 
     public AscendingBTreeLeafEntryIterator(BTree tree) {
@@ -11,7 +37,6 @@ public class AscendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
     }
 
     void updatePosition() {
-        //TODO fix this
         if (curPos < curLeaf.getNumKeys() - 1) {
             curPos++;
         } else {
@@ -23,7 +48,7 @@ public class AscendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
                 ancestor = ancestors.pop();
                 position = positions.pop();
                 rightSibling = ancestor.rightSibling(position);
-                position += 1;
+                position ++;
             }
             ancestors.push(ancestor);
             positions.push(position);
@@ -33,7 +58,7 @@ public class AscendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
                 curLeaf = getLefmostLeaf(rightSibling);
             }
         }
-        if (curLeaf != null && curLeaf.getKey(curPos) > end) {
+        if (curLeaf != null && curLeaf.getKey(curPos) > max) {
             curLeaf = null;
         }
     }
@@ -43,23 +68,19 @@ public class AscendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
             return;
         }
 
-        populateAncestorStack(start, Long.MIN_VALUE);
-        // findKeyValuePos looks for a position to insert an entry
-        // and thus it is one off
-        curPos = curPos > 0 ? curPos-1 : 0; 
+        populateAncestorStack(min, Long.MIN_VALUE);
         
         // the following code is necessary for non unique trees,
         // because searchNodeWithHistory returns the correct node
         // for inserting an entry but here we need the first
-        // entry whose key >= start.
-        while(this.hasNext() && curLeaf.getKey(curPos) < start) {
+        // entry whose key >= min.
+        while (curLeaf != null && curLeaf.getKey(curPos) < min) {
         	this.next();
         }
         
-	    // case when end is smaller than every element in the tree
-        if(curLeaf!=null && end < curLeaf.getKey(curPos)) {
+	    // case when max is smaller than every element in the tree
+        if (curLeaf != null && max < curLeaf.getKey(curPos)) {
         	curLeaf = null;
         }
     }
-
 }

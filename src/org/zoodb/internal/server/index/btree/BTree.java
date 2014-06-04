@@ -1,3 +1,23 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
@@ -6,6 +26,9 @@ import java.util.NoSuchElementException;
 
 /**
  * Shared behaviour of unique and non-unique B+ tree.
+ *
+ * @author Jonas Nick
+ * @author Bogdan Vancea
  */
 public abstract class BTree {
 
@@ -14,18 +37,21 @@ public abstract class BTree {
     protected int pageSize;
     private long maxKey = Long.MIN_VALUE;
     private long minKey = Long.MIN_VALUE;
+    private final boolean isUnique;
     
     private int modcount = 0; // number of modifications of the tree
     
-    public BTree(int pageSize, BTreeNodeFactory nodeFactory) {
-    	this(null, pageSize, nodeFactory);
+    public BTree(int pageSize, BTreeNodeFactory nodeFactory, boolean isUnique) {
+    	this(null, pageSize, nodeFactory, isUnique);
         this.root = nodeFactory.newNode(isUnique(), getPageSize(), true, true);
         this.root.recomputeSize();
     }
     
-    public BTree(PagedBTreeNode root, int pageSize, BTreeNodeFactory nodeFactory) {
+    public BTree(PagedBTreeNode root, int pageSize, BTreeNodeFactory nodeFactory, 
+    		boolean isUnique) {
 	    this.root = root;
-        if (root != null) {
+	    this.isUnique = isUnique;
+	    if (root != null) {
             this.root.recomputeSize();
         }
 
@@ -33,7 +59,9 @@ public abstract class BTree {
         this.nodeFactory = nodeFactory;
 	}
     
-    public abstract boolean isUnique();
+    public final boolean isUnique() {
+    	return isUnique;
+    }
 
     /**
      * Insert a new key value pair to the B+ tree.
@@ -57,7 +85,7 @@ public abstract class BTree {
      * @return	true if the entry was inserted
      */
     public boolean insert(long key, long value, boolean onlyIfNotSet) {
-        if(insert(root, key, value, onlyIfNotSet)) {
+        if (insert(root, key, value, onlyIfNotSet)) {
 	        increaseModcount();
 	        if (root.overflows()) {
 	            handleRootOverflow();
@@ -72,11 +100,7 @@ public abstract class BTree {
     public boolean insert(BTreeNode node, long key, long value, boolean onlyIfNotSet) {
         node.markChanged();
         if (node.isLeaf()) {
-        	if(onlyIfNotSet && node.hasKey(key, value)) {
-        		return false;
-        	}
-            node.put(key, value);
-            return true;
+        	return node.put(key, value, onlyIfNotSet);
         } else {
             int childIndex = node.findKeyValuePos(key, value);
             BTreeNode child = node.getChild(childIndex);
@@ -214,13 +238,15 @@ public abstract class BTree {
      * @return
      */
 	protected long deleteEntry(long key, long value) {
-		if(root.getNumKeys() == 0) {
+		if (root.getNumKeys() == 0) {
 			throw new NoSuchElementException();
 		}
 
         increaseModcount();
         long oldValue = delete(root, key, value);
-
+        if (root.overflows()) {
+            handleRootOverflow();
+        }
         recomputeMinAndMax(key);
         return oldValue;
     }
@@ -247,7 +273,8 @@ public abstract class BTree {
 
             if (child.isUnderFull()) {
                 rebalance(node, child, childIndex);
-            } else if (child.overflows()) {
+            }
+            if (child.overflows()) {
                 handleInsertOverflow(child, node, childIndex);
             }
         }
@@ -319,7 +346,7 @@ public abstract class BTree {
     }
 
     public String toString() {
-        if(this.root != null) {
+        if (this.root != null) {
             return this.root.toString();
         } else {
             return "Empty tree";
@@ -890,14 +917,6 @@ public abstract class BTree {
         }
         if(deletedKey == maxKey) {
             maxKey = computeMaxKey();
-        }
-    }
-
-    private void assertLegalSize(BTreeNode... nodes) {
-        for (BTreeNode node : nodes) {
-            if (node != null) {
-                assert node.getCurrentSize() <= node.getPageSize();
-            }
         }
     }
 }

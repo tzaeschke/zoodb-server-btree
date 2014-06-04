@@ -42,19 +42,19 @@ public class TestNode {
         int pageSize = 128;
 		BTreeNode leafNode = nodeFactory.newUniqueNode( pageSize, true, true);
 
-		leafNode.put(3, 3);
+		leafNode.put(3, 3, false);
 		assertArrayEquals(new long[] { 3 }, getKeys(leafNode));
 
-		leafNode.put(1, 5);
+		leafNode.put(1, 5, false);
 		assertArrayEquals(new long[] { 1, 3 }, getKeys(leafNode));
 
-		leafNode.put(5, 1);
+		leafNode.put(5, 1, false);
 		assertArrayEquals(new long[] { 1, 3, 5 }, getKeys(leafNode));
 
-		leafNode.put(4, 2);
+		leafNode.put(4, 2, false);
 		assertArrayEquals(new long[] { 1, 3, 4, 5 }, getKeys(leafNode));
 
-		leafNode.put(2, 4);
+		leafNode.put(2, 4, false);
 		assertArrayEquals(new long[] { 1, 2, 3, 4, 5 }, getKeys(leafNode));
 
 		assertArrayEquals(new long[] { 5, 4, 3, 2, 1 }, getValues(leafNode));
@@ -66,17 +66,17 @@ public class TestNode {
 		BTreeNode innerNode = nodeFactory.newUniqueNode(pageSize, false, true);
 
 		BTreeNode child1 = nodeFactory.newUniqueNode(pageSize, true, true);
-		child1.put(1, 1);
+		child1.put(1, 1, false);
 		BTreeNode child2 = nodeFactory.newUniqueNode(pageSize, true, true);
-		child2.put(2, 2);
+		child2.put(2, 2, false);
 		BTreeNode child3 = nodeFactory.newUniqueNode(pageSize, true, true);
-		child3.put(3, 3);
+		child3.put(3, 3, false);
 		BTreeNode child4 = nodeFactory.newUniqueNode(pageSize, true, true);
-		child4.put(4, 4);
+		child4.put(4, 4, false);
 		BTreeNode child5 = nodeFactory.newUniqueNode(pageSize, true, true);
-		child5.put(5, 5);
+		child5.put(5, 5, false);
 		BTreeNode child6 = nodeFactory.newUniqueNode(pageSize, true, true);
-		child6.put(6, 6);
+		child6.put(6, 6, false);
 
         innerNode.put(3, NO_VALUE, child1, child4);
 		assertArrayEquals(new long[] { 3 }, getKeys(innerNode));
