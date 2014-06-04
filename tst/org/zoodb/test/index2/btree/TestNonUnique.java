@@ -88,13 +88,24 @@ public class TestNonUnique {
 
     @Test
     public void testInsertAndDelete() {
-    	for (int i = 0; i < 5; i++) {
+
+        testInsertAndDelete(73);
+
+    	for (int i = 0; i < 10; i++) {
     		try {
     			testInsertAndDelete(i);
     		} catch (Throwable t) {
     			throw new RuntimeException("seed=" + i, t);
     		}
     	}
+
+        for (int i = 0; i < 10; i++) {
+            try {
+                testInsertAndDelete((int) System.nanoTime());
+            } catch (Throwable t) {
+                throw new RuntimeException("seed=" + i, t);
+            }
+        }
     }
 
     private void testInsertAndDelete(int seed) {

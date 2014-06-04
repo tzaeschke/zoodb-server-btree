@@ -244,7 +244,9 @@ public abstract class BTree {
 
         increaseModcount();
         long oldValue = delete(root, key, value);
-
+        if (root.overflows()) {
+            handleRootOverflow();
+        }
         recomputeMinAndMax(key);
         return oldValue;
     }
