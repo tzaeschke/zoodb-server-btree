@@ -25,7 +25,7 @@ public class PageUsageStatsNonUnique {
     private static final int REPEAT = 10;
     private static final int N_ENTRY = 5000000;
 
-    private static final boolean OLD = false; 
+    private static final boolean OLD = true; 
     private static final boolean NEW = true; 
     
     private static final Random R = new Random(0);
@@ -119,7 +119,7 @@ public class PageUsageStatsNonUnique {
         System.gc();
         if (OLD) System.out.println("mseconds old: " + findAll(oldIndex, entries));
         System.gc();
-        if (NEW) System.out.println("mseconds new: " + findAll(oldIndex, entries));
+        if (NEW) System.out.println("mseconds new: " + findAll(newIndex, entries));
 		
 		
 		/*
