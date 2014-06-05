@@ -218,9 +218,9 @@ public class PerformanceTest {
 	 * Removes every element from the list in the index and returns its duration
 	 */
 	public static long removeList(LongLongIndex index, List<LLEntry> list) {
-		long startTime = System.nanoTime();
         list = list.subList(0, (int) (0.9 * list.size()));
         Collections.shuffle(list);
+		long startTime = System.nanoTime();
 		for (LLEntry entry : list) {
 			index.removeLong(entry.getKey(), entry.getValue());
 		}
