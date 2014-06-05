@@ -1,31 +1,14 @@
 package org.zoodb.test.index2.performance;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
-import java.util.TreeSet;
-
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.index.AbstractPagedIndex;
-import org.zoodb.internal.server.index.BTreeIndex;
-import org.zoodb.internal.server.index.BTreeIndexNonUnique;
-import org.zoodb.internal.server.index.BTreeIndexUnique;
-import org.zoodb.internal.server.index.LongLongIndex;
+import org.zoodb.internal.server.index.*;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntryIterator;
-import org.zoodb.internal.server.index.PagedLongLong;
-import org.zoodb.internal.server.index.PagedUniqueLongLong;
 import org.zoodb.test.index2.btree.TestIndex;
 import org.zoodb.tools.ZooConfig;
+
+import java.io.*;
+import java.util.*;
 
 public class PerformanceTest {
 
@@ -153,7 +136,7 @@ public class PerformanceTest {
 
 	private void searchPerformance(LongLongIndex index) {
 		ArrayList<Integer> numElementsArray = new ArrayList<Integer>(
-				Arrays.asList(100000, 500000, 1000000));
+				Arrays.asList(100000));
 
 		for (int numElements : numElementsArray) {
 			if (isUnique(index)) {
@@ -167,7 +150,6 @@ public class PerformanceTest {
 								numDuplicates), "random_nonUnique");
 			}
 		}
-
 	}
 
 	private void searchPerformanceHelper(LongLongIndex index,
@@ -237,6 +219,8 @@ public class PerformanceTest {
 	 */
 	public static long removeList(LongLongIndex index, List<LLEntry> list) {
 		long startTime = System.nanoTime();
+        list = list.subList(0, (int) (0.9 * list.size()));
+        Collections.shuffle(list);
 		for (LLEntry entry : list) {
 			index.removeLong(entry.getKey(), entry.getValue());
 		}
