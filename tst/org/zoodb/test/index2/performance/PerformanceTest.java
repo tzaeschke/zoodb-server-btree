@@ -120,8 +120,8 @@ public class PerformanceTest {
 					"random");
 		}
 
-		numElementsArray = new ArrayList<Integer>(Arrays.asList(100000, 500000,
-				1000000));
+		numElementsArray = new ArrayList<Integer>(Arrays.asList(500000,
+				1000000, 2000000));
 		for (int numElements : numElementsArray) {
 			insertPerformanceHelper(index,
 					increasingEntriesUnique(numElements), "increasing");
@@ -158,14 +158,15 @@ public class PerformanceTest {
 		for (int numElements : numElementsArray) {
 			if (isUnique(index)) {
 				searchPerformanceHelper(index,
-						randomEntriesUnique(numElements), "random");
-			} else {
-				int numDuplicates = 10;
-				searchPerformanceHelper(
-						index,
-						randomEntriesNonUnique(numElements / numDuplicates,
-								numDuplicates), "random_nonUnique");
-			}
+						increasingEntriesUnique(numElements), "increasing");
+			} 
+//			else {
+//				int numDuplicates = 10;
+//				searchPerformanceHelper(
+//						index,
+//						randomEntriesNonUnique(numElements / numDuplicates,
+//								numDuplicates), "random_nonUnique");
+//			}
 		}
 
 	}
@@ -183,18 +184,22 @@ public class PerformanceTest {
 
 	private void removePerformance(LongLongIndex index) {
 		ArrayList<Integer> numElementsArray = new ArrayList<Integer>(
-				Arrays.asList(200000, 500000));
+				Arrays.asList(200000, 500000, 1000000));
 		for (int numElements : numElementsArray) {
 			if (isUnique(index)) {
 				removePerformanceHelper(index,
+						increasingEntriesUnique(numElements), "increasing");
+				removePerformanceHelper(index,
 						randomEntriesUnique(numElements), "random");
-			} else {
-				int numDuplicates = 10;
-				removePerformanceHelper(
-						index,
-						randomEntriesNonUnique(numElements / numDuplicates,
-								numDuplicates), "random_nonUnique");
-			}
+				
+			} 
+//			else {
+//				int numDuplicates = 10;
+//				removePerformanceHelper(
+//						index,
+//						randomEntriesNonUnique(numElements / numDuplicates,
+//								numDuplicates), "random_nonUnique");
+//			}
 		}
 	}
 
@@ -202,8 +207,11 @@ public class PerformanceTest {
 			ArrayList<LLEntry> entryList, String entryListName) {
 		for (int i = 0; i < this.numExperiments; i++) {
 			index.clear();
+			List<LLEntry> deleteEntries = new ArrayList<LLEntry>(entryList);
 			insertList(index, entryList);
-			long duration = removeList(index, entryList);
+	        Collections.shuffle(deleteEntries, new Random(System.nanoTime()));
+	        deleteEntries = deleteEntries.subList(0, (int)(0.9*entryList.size()));
+			long duration = removeList(index, deleteEntries);
 			printLine(index, "remove", entryListName, entryList.size(), i,
 					duration);
 		}
