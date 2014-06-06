@@ -34,7 +34,6 @@ public abstract class BTreeNode {
 
 	private boolean isLeaf;
 	private boolean isRoot;
-	//protected int order;
     protected int pageSize;
     protected int pageSizeThreshold;
 
