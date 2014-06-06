@@ -26,6 +26,7 @@ import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageChannelInput;
 import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
+import org.zoodb.internal.util.DBLogger;
 import org.zoodb.internal.util.PrimLongMapLI;
 
 import java.util.ArrayList;
@@ -236,6 +237,8 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		if(maxCleanBufferElements < 0 || cleanBuffer.size() < maxCleanBufferElements) {
 			cleanBuffer.put(pageId, node);
 		} else {
+			DBLogger.warning("Flushing whole buffer.");
+			//TODO TZ We should only flush old and rarely used elements. 
 			cleanBuffer.clear();
 		}
 	}

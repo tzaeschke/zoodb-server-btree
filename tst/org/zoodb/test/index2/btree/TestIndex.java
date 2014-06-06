@@ -1,3 +1,23 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.test.index2.btree;
 
 import static org.junit.Assert.assertEquals;
@@ -45,8 +65,7 @@ public class TestIndex {
 		BTreeIndexUnique ind1 = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX,
 				file);
 
-		ArrayList<LLEntry> entries = PerformanceTest.randomEntriesUnique(1000,
-				42);
+		ArrayList<LLEntry> entries = PerformanceTest.randomEntriesUnique(1000, new Random(42));
 		PerformanceTest.insertList(ind1, entries);
 		int rootPageId = ind1.write();
 
@@ -61,8 +80,8 @@ public class TestIndex {
 		BTreeIndexNonUnique ind1 = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX,
 				file);
 
-		ArrayList<LLEntry> entries = PerformanceTest.randomEntriesNonUnique(1000, 10,
-				42);
+		ArrayList<LLEntry> entries = 
+				PerformanceTest.randomEntriesNonUnique(1000, 10, new Random(42));
 		PerformanceTest.insertList(ind1, entries);
 		int rootPageId = ind1.write();
 
@@ -76,14 +95,16 @@ public class TestIndex {
 		StorageChannel file = createPageAccessFile();
 		int keySize = 16;
 		int valSize = 4;
-		LongLongUIndex ind1 = IndexFactory.createUniqueIndex(DATA_TYPE.GENERIC_INDEX, file, keySize, valSize);
+		LongLongUIndex ind1 = 
+				IndexFactory.createUniqueIndex(DATA_TYPE.GENERIC_INDEX, file, keySize, valSize);
 
 		int numElements = 10000;
 		ArrayList<LLEntry> entries = PerformanceTest.randomEntriesUniqueByteValues(numElements,
 				42);
 		PerformanceTest.insertList(ind1, entries);
 		int rootPageId = ind1.write();
-		LongLongUIndex ind2 = IndexFactory.loadUniqueIndex(DATA_TYPE.GENERIC_INDEX, file, rootPageId, keySize, valSize);
+		LongLongUIndex ind2 = IndexFactory.loadUniqueIndex(
+				DATA_TYPE.GENERIC_INDEX, file, rootPageId, keySize, valSize);
 		findAll(ind2, entries);
 		
 		int numDeleteEntries = (int) (numElements * 0.9);
@@ -96,7 +117,8 @@ public class TestIndex {
 //		System.out.println((System.nanoTime() - startTime) / 1000000);
 //		System.out.println(ind1.statsGetWrittenPagesN());
 
-		LongLongUIndex ind3 = IndexFactory.loadUniqueIndex(DATA_TYPE.GENERIC_INDEX, file, rootPageId, keySize, valSize);
+		LongLongUIndex ind3 = IndexFactory.loadUniqueIndex(
+				DATA_TYPE.GENERIC_INDEX, file, rootPageId, keySize, valSize);
 		entries.removeAll(deleteEntries);
 		findAll(ind3, entries);
 	}
@@ -149,6 +171,7 @@ public class TestIndex {
         	n++;
         	i.next();
         }
+        assertEquals(MAX, n);
         ind2.write();
         int w2 = ind2.statsGetWrittenPagesN();
         //no pages written on freshly read root
@@ -181,7 +204,6 @@ public class TestIndex {
 		final int MAX = 2000;
 		final int MAX_ITER = 50;
 		
-		String dbName = "TestIndex.zdb";
 		StorageChannel paf = newMemoryStorage(); 
 		
 		for (int j = 0; j < MAX_ITER; j++) {
@@ -218,7 +240,8 @@ public class TestIndex {
 			for(Integer pageId : pageIds) {
 				assertTrue(bufferManager.getStorageFile().getFsm().debugIsPageIdInFreeList(pageId));
 			}
-			assertFalse(bufferManager.getStorageFile().getFsm().debugIsPageIdInFreeList(rootPageId));
+			assertFalse(
+					bufferManager.getStorageFile().getFsm().debugIsPageIdInFreeList(rootPageId));
 		}
 	}
 	
@@ -227,7 +250,6 @@ public class TestIndex {
 		final int MAX = 2000;
 		final int MAX_ITER = 50;
 		
-		String dbName = "TestIndex.zdb";
 		StorageChannel paf = newMemoryStorage();
 		for (int j = 0; j < MAX_ITER; j++) {
 			BTreeIndexNonUnique ind = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX,paf);
