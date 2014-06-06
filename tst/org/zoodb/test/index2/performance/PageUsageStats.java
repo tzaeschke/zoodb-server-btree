@@ -38,7 +38,7 @@ import java.util.*;
 public class PageUsageStats {
 
 	private static final int PAGE_SIZE = 4096;
-    private static final boolean MEMORY = false;
+    private static final boolean MEMORY = true;
     private static final int REPEAT = 10;
     private static final int N_ENTRY = 5000000;
 
@@ -47,38 +47,43 @@ public class PageUsageStats {
     
     private static final Random R = new Random(0);
 
+    private PagedUniqueLongLong oldIndex;
+    private StorageChannel oldStorage; 
+    private BTreeIndexUnique newIndex;
+    private StorageChannel newStorage;
+
 	public static void main(String[] args) {
+		new PageUsageStats().run();
+	}
+
+	public void run() {
 		ZooConfig.setFilePageSize(PAGE_SIZE);
 		DBStatistics.enable(true);
 
-		PageUsageStats stats = new PageUsageStats();
-		stats.insertAndDelete();
-		stats.clear();
-		stats.insertAndDeleteMultiple();
+		clear();
+		insertAndDelete();
+		clear();
+		insertAndDeleteMultiple();
 
 		ZooConfig.setFilePageSize(ZooConfig.FILE_PAGE_SIZE_DEFAULT);
 	}
 
-    PagedUniqueLongLong oldIndex;
-    StorageChannel oldStorage; 
-    BTreeIndexUnique newIndex;
-    StorageChannel newStorage;
-
-	public PageUsageStats() {
-		this.clear();
-	}
-
     public void clear() {
+    	if (oldStorage != null) {
+    		oldStorage.close();
+    	}
         if (MEMORY) {
-            oldStorage = newMemoryStorage();
+            oldStorage = new StorageRootInMemory(PAGE_SIZE);
         } else {
             oldStorage = TestIndex.newDiskStorage("old_storage.db");
         }
-		oldIndex = new PagedUniqueLongLong(
-				DATA_TYPE.GENERIC_INDEX, oldStorage);
+		oldIndex = new PagedUniqueLongLong(DATA_TYPE.GENERIC_INDEX, oldStorage);
 
+    	if (newStorage != null) {
+    		newStorage.close();
+    	}
 		if (MEMORY) {
-            newStorage = newMemoryStorage();
+            newStorage = new StorageRootInMemory(PAGE_SIZE);
         } else {
             newStorage = TestIndex.newDiskStorage("new_storage.db");
         }
@@ -158,7 +163,7 @@ public class PageUsageStats {
 		printStats();
 	}
 	
-	/*
+	/**
 	 * writes and returns the time it took
 	 */
 	public long write(LongLongIndex index) {
@@ -167,7 +172,7 @@ public class PageUsageStats {
 		return (System.nanoTime() - startTime) / 1000000;
 	}
 	
-	/*
+	/**
 	 * iterates through index and returns duration
 	 */
 	public long iterate(LongLongIndex index) {
@@ -237,10 +242,4 @@ public class PageUsageStats {
 				+ "), (New Index, "
 				+ String.valueOf(newStorage.statsGetReadCount() + ")"));
 	}
-	
-    public static StorageChannel newMemoryStorage() {
-        return new StorageRootInMemory(
-                            ZooConfig.getFilePageSize());
-    }
-	
 }

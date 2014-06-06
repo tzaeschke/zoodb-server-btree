@@ -55,11 +55,6 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    public BTreeNode newNode(int order, boolean isLeaf, boolean isRoot) {
-        return new NonUniquePagedBTreeNode(bufferManager, order, isLeaf, isRoot);
-    }
-
-    @Override
     public void migrateEntry(int destinationPos, BTreeNode source, int sourcePos) {
         long key = source.getKey(sourcePos);
         long value = source.getValue(sourcePos);
@@ -119,11 +114,6 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         }
         
         markDirty();
-    }
-
-    @Override
-    public boolean containsAtPosition(int position, long key, long value) {
-        return this.getKey(position) == key && getValue(position) == value;
     }
 
     @Override

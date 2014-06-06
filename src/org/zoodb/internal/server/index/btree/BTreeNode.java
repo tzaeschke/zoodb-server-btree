@@ -65,7 +65,6 @@ public abstract class BTreeNode {
     public abstract void initializeEntries();
     protected abstract void initChildren(int size);
 
-    public abstract BTreeNode newNode(int order, boolean isLeaf, boolean isRoot);
     public abstract boolean equalChildren(BTreeNode other);
     public abstract void copyChildren(BTreeNode source, int sourceIndex,
                                       BTreeNode dest, int destIndex, int size);
@@ -88,7 +87,6 @@ public abstract class BTreeNode {
     public abstract void shiftRecords(int startIndex, int endIndex, int amount);
     public abstract void shiftRecordsRight(int amount);
     public abstract void shiftRecordsLeftWithIndex(int startIndex, int amount);
-    protected abstract boolean containsAtPosition(int position, long key, long value);
     protected abstract boolean smallerThanKeyValue(int position, long key, long value);
     protected abstract boolean allowNonUniqueKeys();
     public abstract int computeMaxPossibleEntries();
@@ -312,14 +310,6 @@ public abstract class BTreeNode {
         }
     }
 
-    public boolean leftSiblingHasExtraKeys(int childIndex) {
-        int leftIndex = childIndex - 1;
-        if (childSizes == null || leftIndex < 0) {
-            return false;
-        }
-        return extraKeysTest(childSizes[leftIndex]);
-    }
-
     public boolean leftSiblingNotFull(int childIndex) {
         int leftIndex = childIndex - 1;
         if (childSizes == null || leftIndex < 0) {
@@ -327,15 +317,6 @@ public abstract class BTreeNode {
         }
         return notFullTest(childSizes[leftIndex]);
     }
-
-    public boolean rightSiblingHasExtraKeys(int childIndex) {
-        int rightIndex = childIndex + 1;
-        if (childSizes == null || rightIndex > numKeys) {
-            return false;
-        }
-        return extraKeysTest(childSizes[rightIndex]);
-    }
-
 
     public void setKey(int index, long key) {
         getKeys()[index] = key;
@@ -349,13 +330,6 @@ public abstract class BTreeNode {
 
         //signal change
         markChanged();
-    }
-
-    public boolean isNotFull() {
-        if (isRoot()) {
-            return getNumKeys() == 0;
-        }
-        return notFullTest(currentSize);
     }
 
     public boolean isUnderFull() {

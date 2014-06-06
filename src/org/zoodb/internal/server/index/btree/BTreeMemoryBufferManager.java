@@ -20,8 +20,7 @@
  */
 package org.zoodb.internal.server.index.btree;
 
-import java.util.HashMap;
-import java.util.Map;
+import org.zoodb.internal.util.PrimLongMapLI;
 
 /**
  * BufferManager without using a proper storage for testing purposes.
@@ -30,18 +29,16 @@ import java.util.Map;
  * @author Bogdan Vancea
  */
 public class BTreeMemoryBufferManager implements BTreeBufferManager {
-	private Map<Integer, PagedBTreeNode> map;
+	private PrimLongMapLI<PagedBTreeNode> map;
 	private int pageId;
 	private int pageSize;
 
 	public BTreeMemoryBufferManager() {
-		this.map = new HashMap<Integer, PagedBTreeNode>();
-		this.pageId = 0;
-		this.pageSize = 256;
+		this(256);
 	}
 	
 	public BTreeMemoryBufferManager(int pageSize) {
-		this.map = new HashMap<Integer, PagedBTreeNode>();
+		this.map = new PrimLongMapLI<PagedBTreeNode>();
 		this.pageId = 0;
 		this.pageSize = pageSize;
 	}

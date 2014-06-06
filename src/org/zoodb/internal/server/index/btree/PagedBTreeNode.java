@@ -49,7 +49,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
 		this.setPageId(bufferManager.save(this));
 	}
 	
-	/*
+	/**
 	 * Constructor when we know on which page this node lies. 
 	 * Does not save the node in the buffer managers memory.
 	 */

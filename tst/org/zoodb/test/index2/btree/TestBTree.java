@@ -204,15 +204,18 @@ public class TestBTree {
 	
 	public void deleteMassively(BTreeFactory factory, int numEntries) {
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
-		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries, System.nanoTime());
+		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries, 0);
 
 		for (LLEntry entry : entries) {
 			tree.insert(entry.getKey(), entry.getValue());
+			assertEquals(entry.getValue(), (long)tree.search(entry.getKey()));
 		}
 
 		// check whether all entries are inserted
+		int n = 0;
 		for (LLEntry entry : entries) {
-			assertEquals(Long.valueOf(entry.getValue()), tree.search(entry.getKey()));
+			n++;
+			assertEquals("n=" + n, entry.getValue(), (long)tree.search(entry.getKey()));
 		}
 
 		// delete every entry and check that there is indeed no entry anymore

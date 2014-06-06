@@ -50,37 +50,43 @@ public class PageUsageStatsNonUnique {
     
     private static final Random R = new Random(0);
     
-    public static void main(String[] args) {
-        ZooConfig.setFilePageSize(PAGE_SIZE);
-        DBStatistics.enable(true);
+    private PagedLongLong oldIndex;
+    private StorageChannel oldStorage;
+    private BTreeIndexNonUnique newIndex;
+    private StorageChannel newStorage;
 
-        PageUsageStatsNonUnique stats = new PageUsageStatsNonUnique();
-        stats.insertAndDelete();
-        stats.clear();
-        stats.insertAndDeleteMultiple();
+	public static void main(String[] args) {
+		new PageUsageStatsNonUnique().run();
+	}
 
-        ZooConfig.setFilePageSize(ZooConfig.FILE_PAGE_SIZE_DEFAULT);
-    }
+	public void run() {
+		ZooConfig.setFilePageSize(PAGE_SIZE);
+		DBStatistics.enable(true);
 
-    PagedLongLong oldIndex;
-    StorageChannel oldStorage;
-    BTreeIndexNonUnique newIndex;
-    StorageChannel newStorage;
+		clear();
+		insertAndDelete();
+		clear();
+		insertAndDeleteMultiple();
 
-    public PageUsageStatsNonUnique() {
-        this.clear();
-    }
+		ZooConfig.setFilePageSize(ZooConfig.FILE_PAGE_SIZE_DEFAULT);
+	}
 
     public void clear() {
+    	if (oldStorage != null) {
+    		oldStorage.close();
+    	}
         if (MEMORY) {
-            oldStorage = newMemoryStorage();
+            oldStorage = new StorageRootInMemory(PAGE_SIZE);
         } else {
             oldStorage = TestIndex.newDiskStorage("old_storage.db");
         }
         oldIndex = new PagedLongLong(DATA_TYPE.GENERIC_INDEX, oldStorage);
 
+    	if (newStorage != null) {
+    		newStorage.close();
+    	}
         if (MEMORY) {
-            newStorage = newMemoryStorage();
+            newStorage = new StorageRootInMemory(PAGE_SIZE);
         } else {
             newStorage = TestIndex.newDiskStorage("new_storage.db");
         }
@@ -162,7 +168,7 @@ public class PageUsageStatsNonUnique {
         printStats();
     }
 
-    /*
+    /**
      * writes and returns the time it took
      */
     public long write(LongLongIndex index) {
@@ -171,7 +177,7 @@ public class PageUsageStatsNonUnique {
         return (System.nanoTime() - startTime) / 1000000;
     }
 
-    /*
+    /**
      * iterates through index and returns duration
      */
     public long iterate(LongLongIndex index) {
@@ -243,10 +249,4 @@ public class PageUsageStatsNonUnique {
                 + "), (New Index, "
                 + String.valueOf(newStorage.statsGetReadCount() + ")"));
     }
-
-    public static StorageChannel newMemoryStorage() {
-        return new StorageRootInMemory(
-                ZooConfig.getFilePageSize());
-    }
-
 }

@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -281,12 +282,7 @@ public class PerformanceTest {
 
 	public static ArrayList<LLEntry> randomEntriesUnique(int numElements, Random R) {
 		// ensure that entries with equal keys can not exists in the set
-		Set<LLEntry> randomEntryList = new TreeSet<LLEntry>(
-				new Comparator<LLEntry>() {
-					public int compare(LLEntry e1, LLEntry e2) {
-						return Long.compare(e1.getKey(), e2.getKey());
-					}
-				});
+		HashSet<LLEntry> randomEntryList = new HashSet<>();
 		while (randomEntryList.size() < numElements) {
 			randomEntryList.add(new LLEntry(R.nextLong(), R.nextLong()));
 		}

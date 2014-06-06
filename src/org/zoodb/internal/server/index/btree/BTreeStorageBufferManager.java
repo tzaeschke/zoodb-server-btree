@@ -49,9 +49,9 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
     private int pageSize;
     
     // stores dirty nodes
-	private PrimLongMapLI<PagedBTreeNode> dirtyBuffer;
+	private final PrimLongMapLI<PagedBTreeNode> dirtyBuffer;
 	// stores clean nodes
-	private PrimLongMapLI<PagedBTreeNode> cleanBuffer;
+	private final PrimLongMapLI<PagedBTreeNode> cleanBuffer;
 	private int maxCleanBufferElements = -1;
 
 	// counter to give nodes that are not written yet
