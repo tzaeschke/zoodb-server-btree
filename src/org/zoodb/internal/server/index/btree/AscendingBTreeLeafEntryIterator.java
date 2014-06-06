@@ -48,8 +48,8 @@ public class AscendingBTreeLeafEntryIterator extends BTreeLeafEntryIterator {
                 ancestor = ancestors.pop();
                 position = positions.pop();
                 rightSibling = ancestor.rightSibling(position);
-                position ++;
             }
+            position ++;
             ancestors.push(ancestor);
             positions.push(position);
             if (rightSibling == null) {

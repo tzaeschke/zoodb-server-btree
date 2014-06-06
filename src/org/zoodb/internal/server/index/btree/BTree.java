@@ -21,6 +21,7 @@
 package org.zoodb.internal.server.index.btree;
 
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
+import org.zoodb.internal.util.DBLogger;
 
 import java.util.NoSuchElementException;
 
@@ -385,6 +386,8 @@ public abstract class BTree {
      * WARNING: SLOW! has to iterate over whole tree
      */
     public int size() {
+    	DBLogger.warning("WARNING: BTree.size() is SLOW! has to iterate over whole tree.");
+    	//TODO Shouldn't this return the number of entries instead?
         BTreeIterator it = new BTreeIterator(this);
         int counter = 0;
         while(it.hasNext()) {
