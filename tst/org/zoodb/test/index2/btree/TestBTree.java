@@ -20,21 +20,10 @@
  */
 package org.zoodb.test.index2.btree;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
 import org.junit.Test;
+import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.PagedLongLong;
 import org.zoodb.internal.server.index.PagedUniqueLongLong;
@@ -46,6 +35,10 @@ import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.util.Pair;
 import org.zoodb.tools.ZooConfig;
+
+import java.util.*;
+
+import static org.junit.Assert.*;
 
 public class TestBTree {
 
@@ -207,6 +200,9 @@ public class TestBTree {
 		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries, 0);
 
 		for (LLEntry entry : entries) {
+            if (tree.search(entry.getKey()) != null) {
+                throw new IllegalStateException("Entry set contains duplicate keys.");
+            }
 			tree.insert(entry.getKey(), entry.getValue());
 			assertEquals(entry.getValue(), (long)tree.search(entry.getKey()));
 		}
