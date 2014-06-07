@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
 import java.util.Set;
-import java.util.TreeMap;
 
 /**
  * A Red-Black tree based {@link NavigableMap} implementation.

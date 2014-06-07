@@ -53,11 +53,6 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
     }
 
     @Override
-    public UniquePagedBTreeNode newNode(int pageSize, boolean isLeaf, boolean isRoot) {
-        return new UniquePagedBTreeNode(bufferManager, pageSize, isLeaf, isRoot);
-    }
-
-    @Override
     public void migrateEntry(int destinationPos, BTreeNode source, int sourcePos) {
         long key = source.getKey(sourcePos);
         setKey(destinationPos, key);
@@ -118,11 +113,6 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
         }
         
         markDirty();
-    }
-
-    @Override
-	public boolean containsAtPosition(int position, long key, long value) {
-        return this.getKey(position) == key;
     }
 
     @Override

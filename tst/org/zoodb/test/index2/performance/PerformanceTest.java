@@ -1,17 +1,57 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.test.index2.performance;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
+import java.util.TreeSet;
+
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.index.*;
+import org.zoodb.internal.server.index.AbstractPagedIndex;
+import org.zoodb.internal.server.index.BTreeIndex;
+import org.zoodb.internal.server.index.BTreeIndexNonUnique;
+import org.zoodb.internal.server.index.BTreeIndexUnique;
+import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntryIterator;
+import org.zoodb.internal.server.index.PagedLongLong;
+import org.zoodb.internal.server.index.PagedUniqueLongLong;
 import org.zoodb.test.index2.btree.TestIndex;
 import org.zoodb.tools.ZooConfig;
 
-import java.io.*;
-import java.util.*;
-
 public class PerformanceTest {
 
+	private static final boolean USE_CONSOLE = false;
+	
 	private static final int PAGE_SIZE = 4096;
 	private final int numExperiments = 11;
 	// number of repetitions of a particular operation
@@ -41,8 +81,11 @@ public class PerformanceTest {
 				.newDiskStorage("perfTestNewNonUnique")));
 
 		try {
-			this.fileWriter = new BufferedWriter(new FileWriter(fileName));
-			// this.fileWriter = new BufferedWriter(STDOUT);
+			if (USE_CONSOLE) {
+				this.fileWriter = new BufferedWriter(STDOUT);
+			} else {
+				this.fileWriter = new BufferedWriter(new FileWriter(fileName));
+			}
 			this.printHeader();
 			for (LongLongIndex index : indices) {
 				System.out.println("Index: " + stringType(index) + " "
@@ -99,8 +142,7 @@ public class PerformanceTest {
 
 		Arrays.asList(100000, 500000, 1000000));
 		for (int numElements : numElementsArray) {
-			insertPerformanceHelper(index, randomEntriesUnique(numElements),
-					"random");
+			insertPerformanceHelper(index, randomEntriesUnique(numElements), "random");
 		}
 
 		numElementsArray = new ArrayList<Integer>(Arrays.asList(500000,
@@ -136,7 +178,7 @@ public class PerformanceTest {
 
 	private void searchPerformance(LongLongIndex index) {
 		ArrayList<Integer> numElementsArray = new ArrayList<Integer>(
-				Arrays.asList(100000));
+				Arrays.asList(100000, 500000, 1000000));
 
 		for (int numElements : numElementsArray) {
 			if (isUnique(index)) {
@@ -151,6 +193,7 @@ public class PerformanceTest {
 //								numDuplicates), "random_nonUnique");
 //			}
 		}
+
 	}
 
 	private void searchPerformanceHelper(LongLongIndex index,
@@ -226,8 +269,6 @@ public class PerformanceTest {
 	 * Removes every element from the list in the index and returns its duration
 	 */
 	public static long removeList(LongLongIndex index, List<LLEntry> list) {
-        list = list.subList(0, (int) (0.9 * list.size()));
-        Collections.shuffle(list);
 		long startTime = System.nanoTime();
 		for (LLEntry entry : list) {
 			index.removeLong(entry.getKey(), entry.getValue());
@@ -236,42 +277,33 @@ public class PerformanceTest {
 	}
 
 	public static ArrayList<LLEntry> randomEntriesUnique(int numElements) {
-		return randomEntriesUnique(numElements, System.nanoTime());
+		return randomEntriesUnique(numElements, new Random(0));
 	}
 
-	public static ArrayList<LLEntry> randomEntriesUnique(int numElements,
-			long seed) {
+	public static ArrayList<LLEntry> randomEntriesUnique(int numElements, Random R) {
 		// ensure that entries with equal keys can not exists in the set
-		Set<LLEntry> randomEntryList = new TreeSet<LLEntry>(
-				new Comparator<LLEntry>() {
-					public int compare(LLEntry e1, LLEntry e2) {
-						return Long.compare(e1.getKey(), e2.getKey());
-					}
-				});
-		Random prng = new Random(seed);
+		HashSet<LLEntry> randomEntryList = new HashSet<>();
 		while (randomEntryList.size() < numElements) {
-			randomEntryList.add(new LLEntry(prng.nextLong(), prng.nextLong()));
+			randomEntryList.add(new LLEntry(R.nextLong(), R.nextLong()));
 		}
 		ArrayList<LLEntry> l = new ArrayList<LLEntry>(randomEntryList);
-		Collections.shuffle(l, prng);
+		Collections.shuffle(l, R);
 		return l;
 	}
 
 	public static ArrayList<LLEntry> randomEntriesNonUnique(int numElements,
 			int numKeyDuplicates) {
-		return randomEntriesNonUnique(numElements, numKeyDuplicates,
-				System.nanoTime());
+		return randomEntriesNonUnique(numElements, numKeyDuplicates, new Random(0));
 	}
 
 	public static ArrayList<LLEntry> randomEntriesNonUnique(int numElements,
-			int numKeyDuplicates, long seed) {
+			int numKeyDuplicates, Random R) {
 		ArrayList<LLEntry> entries = new ArrayList<LLEntry>();
-		Random prng = new Random(seed);
-
+		
 		for (int i = 0; i < numKeyDuplicates; i++) {
-			long key = prng.nextLong();
+			long key = R.nextLong();
 			for (int j = 0; j < numElements; j++) {
-				entries.add(new LLEntry(key, prng.nextLong()));
+				entries.add(new LLEntry(key, R.nextLong()));
 			}
 		}
 		return entries;

@@ -1,3 +1,23 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.test.index2.performance;
 
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
@@ -18,40 +38,52 @@ import java.util.*;
 public class PageUsageStats {
 
 	private static final int PAGE_SIZE = 4096;
-    private static final boolean MEMORY = false;
+    private static final boolean MEMORY = true;
+    private static final int REPEAT = 10;
+    private static final int N_ENTRY = 5000000;
+
+    private static final boolean OLD = true; 
+    private static final boolean NEW = true; 
+    
+    private static final Random R = new Random(0);
+
+    private PagedUniqueLongLong oldIndex;
+    private StorageChannel oldStorage; 
+    private BTreeIndexUnique newIndex;
+    private StorageChannel newStorage;
 
 	public static void main(String[] args) {
+		new PageUsageStats().run();
+	}
+
+	public void run() {
 		ZooConfig.setFilePageSize(PAGE_SIZE);
 		DBStatistics.enable(true);
 
-		PageUsageStats stats = new PageUsageStats();
-		stats.insertAndDelete();
-		stats.clear();
-		stats.insertAndDeleteMultiple();
+		clear();
+		insertAndDelete();
+		clear();
+		insertAndDeleteMultiple();
 
 		ZooConfig.setFilePageSize(ZooConfig.FILE_PAGE_SIZE_DEFAULT);
 	}
 
-    PagedUniqueLongLong oldIndex;
-    StorageChannel oldStorage; 
-    BTreeIndexUnique newIndex;
-    StorageChannel newStorage;
-
-	public PageUsageStats() {
-		this.clear();
-	}
-
     public void clear() {
+    	if (oldStorage != null) {
+    		oldStorage.close();
+    	}
         if (MEMORY) {
-            oldStorage = newMemoryStorage();
+            oldStorage = new StorageRootInMemory(PAGE_SIZE);
         } else {
             oldStorage = TestIndex.newDiskStorage("old_storage.db");
         }
-		oldIndex = new PagedUniqueLongLong(
-				DATA_TYPE.GENERIC_INDEX, oldStorage);
+		oldIndex = new PagedUniqueLongLong(DATA_TYPE.GENERIC_INDEX, oldStorage);
 
+    	if (newStorage != null) {
+    		newStorage.close();
+    	}
 		if (MEMORY) {
-            newStorage = newMemoryStorage();
+            newStorage = new StorageRootInMemory(PAGE_SIZE);
         } else {
             newStorage = TestIndex.newDiskStorage("new_storage.db");
         }
@@ -63,9 +95,8 @@ public class PageUsageStats {
 				+ (oldIndex.getMaxLeafN() + 1) + "\t" + "New Order: "
 				+ newIndex.getTree().getPageSize());
 
-		int numElements = 500000;
-		ArrayList<LLEntry> entries = PerformanceTest
-				.randomEntriesUnique(numElements, System.nanoTime());
+		int numElements = N_ENTRY;
+		ArrayList<LLEntry> entries = PerformanceTest.randomEntriesUnique(numElements, R);
 		
 		/*
 		 * Insert elements
@@ -74,12 +105,12 @@ public class PageUsageStats {
 		System.out.println("Insert " + numElements);
 
 		System.gc();
-		System.out.println("mseconds old: " + PerformanceTest.insertList(oldIndex, entries));
+		if (OLD) System.out.println("mseconds old: " + PerformanceTest.insertList(oldIndex, entries));
 		System.gc();
-		System.out.println("mseconds new: " + PerformanceTest.insertList(newIndex, entries));
+		if (NEW) System.out.println("mseconds new: " + PerformanceTest.insertList(newIndex, entries));
 		System.out.println("Write");
-		System.out.println("mseconds old: " + write(oldIndex));
-		System.out.println("mseconds new: " + write(newIndex));
+		if (OLD) System.out.println("mseconds old: " + write(oldIndex));
+		if (NEW) System.out.println("mseconds new: " + write(newIndex));
 		
 		BTreeIterator it = new BTreeIterator(newIndex.getTree());
 		int height = 1;
@@ -97,9 +128,9 @@ public class PageUsageStats {
         System.out.println("");
 		System.out.println("Iterate " + numElements);
 		System.gc();
-		System.out.println("mseconds old: " + iterate(oldIndex, 10));
+		if (OLD) System.out.println("mseconds old: " + iterate(oldIndex));
 		System.gc();
-		System.out.println("mseconds new: " + iterate(newIndex, 10));
+		if (NEW) System.out.println("mseconds new: " + iterate(newIndex));
 		
         /*
 		 * Find all
@@ -107,9 +138,9 @@ public class PageUsageStats {
         System.out.println("");
 		System.out.println("Find all " + numElements);
 		System.gc();
-		System.out.println("mseconds old: " + findAll(oldIndex, entries, 10));
+		if (OLD) System.out.println("mseconds old: " + findAll(oldIndex, entries));
 		System.gc();
-		System.out.println("mseconds new: " + findAll(newIndex, entries, 10));
+		if (NEW) System.out.println("mseconds new: " + findAll(newIndex, entries));
 		
 		
 		/*
@@ -118,21 +149,21 @@ public class PageUsageStats {
 		System.out.println("");
 		int numDeleteEntries = (int) (numElements * 0.9);
         System.out.println("Delete " + numDeleteEntries);
-        Collections.shuffle(entries, new Random(System.nanoTime()));
+        Collections.shuffle(entries, R);
         List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
         
 		System.gc();
-		System.out.println("mseconds old: " + PerformanceTest.removeList(oldIndex, deleteEntries));
+		if (OLD) System.out.println("mseconds old: " + PerformanceTest.removeList(oldIndex, deleteEntries));
 		System.gc();
-		System.out.println("mseconds new: " + PerformanceTest.removeList(newIndex, deleteEntries));
+		if (NEW) System.out.println("mseconds new: " + PerformanceTest.removeList(newIndex, deleteEntries));
 		System.out.println("Write");
-		System.out.println("mseconds old: " + write(oldIndex));
-		System.out.println("mseconds new: " + write(newIndex));
+		if (OLD) System.out.println("mseconds old: " + write(oldIndex));
+		if (NEW) System.out.println("mseconds new: " + write(newIndex));
 		
 		printStats();
 	}
 	
-	/*
+	/**
 	 * writes and returns the time it took
 	 */
 	public long write(LongLongIndex index) {
@@ -141,12 +172,12 @@ public class PageUsageStats {
 		return (System.nanoTime() - startTime) / 1000000;
 	}
 	
-	/*
+	/**
 	 * iterates through index and returns duration
 	 */
-	public long iterate(LongLongIndex index, int repetitions) {
+	public long iterate(LongLongIndex index) {
         long startTime = System.nanoTime();
-		for(int i=0; i<repetitions; i++) {
+		for(int i=0; i<REPEAT; i++) {
             LongLongIterator<?> it = index.iterator();
             while(it.hasNext()) {
                     it.next();
@@ -156,9 +187,9 @@ public class PageUsageStats {
 	}
 	
 	
-	public static long findAll(LongLongIndex index, List<LLEntry> list, int repetitions) {
+	public static long findAll(LongLongIndex index, List<LLEntry> list) {
 		long startTime = System.nanoTime();
-		for(int i=0; i<repetitions; i++) {
+		for(int i=0; i<REPEAT; i++) {
             for (LLEntry entry : list) {
                     index.iterator(entry.getKey(), entry.getKey());
             }
@@ -170,25 +201,24 @@ public class PageUsageStats {
 	public void insertAndDeleteMultiple() {
 		int numElements = 5000;
         int numDeleteEntries = (int) (numElements * 0.5);
-		int numTimes = 10;
+		int numTimes = REPEAT;
 		System.out.println("");
 		System.out.println("Insert " + numElements + " and delete " + numDeleteEntries +  ", " + numTimes + " times.");
 
         for(int i=0; i<numTimes; i++) {
-            ArrayList<LLEntry> entries = PerformanceTest
-                                    .randomEntriesUnique(numElements, System.nanoTime()+i);
-            PerformanceTest.insertList(oldIndex, entries);
-            oldIndex.write();
-            PerformanceTest.insertList(newIndex, entries);
-            newIndex.write();
+            ArrayList<LLEntry> entries = PerformanceTest.randomEntriesUnique(numElements, R);
+            if (OLD)  PerformanceTest.insertList(oldIndex, entries);
+            if (OLD) oldIndex.write();
+            if (NEW) PerformanceTest.insertList(newIndex, entries);
+            if (NEW) newIndex.write();
 
-            Collections.shuffle(entries, new Random(43+i));
+            Collections.shuffle(entries, R);
             List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
 
-            PerformanceTest.removeList(oldIndex, deleteEntries);
-            oldIndex.write();
-            PerformanceTest.removeList(newIndex, deleteEntries);
-            newIndex.write();
+            if (OLD) PerformanceTest.removeList(oldIndex, deleteEntries);
+            if (OLD) oldIndex.write();
+            if (NEW) PerformanceTest.removeList(newIndex, deleteEntries);
+            if (NEW) newIndex.write();
         }
         printStats();
 	}
@@ -212,10 +242,4 @@ public class PageUsageStats {
 				+ "), (New Index, "
 				+ String.valueOf(newStorage.statsGetReadCount() + ")"));
 	}
-	
-    public static StorageChannel newMemoryStorage() {
-        return new StorageRootInMemory(
-                            ZooConfig.getFilePageSize());
-    }
-	
 }

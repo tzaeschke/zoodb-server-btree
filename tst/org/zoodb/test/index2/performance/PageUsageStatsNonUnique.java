@@ -1,3 +1,23 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.test.index2.performance;
 
 import java.util.ArrayList;
@@ -30,37 +50,43 @@ public class PageUsageStatsNonUnique {
     
     private static final Random R = new Random(0);
     
-    public static void main(String[] args) {
-        ZooConfig.setFilePageSize(PAGE_SIZE);
-        DBStatistics.enable(true);
+    private PagedLongLong oldIndex;
+    private StorageChannel oldStorage;
+    private BTreeIndexNonUnique newIndex;
+    private StorageChannel newStorage;
 
-        PageUsageStatsNonUnique stats = new PageUsageStatsNonUnique();
-        stats.insertAndDelete();
-        stats.clear();
-        stats.insertAndDeleteMultiple();
+	public static void main(String[] args) {
+		new PageUsageStatsNonUnique().run();
+	}
 
-        ZooConfig.setFilePageSize(ZooConfig.FILE_PAGE_SIZE_DEFAULT);
-    }
+	public void run() {
+		ZooConfig.setFilePageSize(PAGE_SIZE);
+		DBStatistics.enable(true);
 
-    PagedLongLong oldIndex;
-    StorageChannel oldStorage;
-    BTreeIndexNonUnique newIndex;
-    StorageChannel newStorage;
+		clear();
+		insertAndDelete();
+		clear();
+		insertAndDeleteMultiple();
 
-    public PageUsageStatsNonUnique() {
-        this.clear();
-    }
+		ZooConfig.setFilePageSize(ZooConfig.FILE_PAGE_SIZE_DEFAULT);
+	}
 
     public void clear() {
+    	if (oldStorage != null) {
+    		oldStorage.close();
+    	}
         if (MEMORY) {
-            oldStorage = newMemoryStorage();
+            oldStorage = new StorageRootInMemory(PAGE_SIZE);
         } else {
             oldStorage = TestIndex.newDiskStorage("old_storage.db");
         }
         oldIndex = new PagedLongLong(DATA_TYPE.GENERIC_INDEX, oldStorage);
 
+    	if (newStorage != null) {
+    		newStorage.close();
+    	}
         if (MEMORY) {
-            newStorage = newMemoryStorage();
+            newStorage = new StorageRootInMemory(PAGE_SIZE);
         } else {
             newStorage = TestIndex.newDiskStorage("new_storage.db");
         }
@@ -75,7 +101,7 @@ public class PageUsageStatsNonUnique {
         int numElements = N_ENTRY;
         int duplicates = 10;
         ArrayList<LLEntry> entries = PerformanceTest
-                .randomEntriesNonUnique(numElements / duplicates, duplicates, 42);
+                .randomEntriesNonUnique(numElements / duplicates, duplicates, R);
 		
 		/*
 		 * Insert elements
@@ -142,7 +168,7 @@ public class PageUsageStatsNonUnique {
         printStats();
     }
 
-    /*
+    /**
      * writes and returns the time it took
      */
     public long write(LongLongIndex index) {
@@ -151,7 +177,7 @@ public class PageUsageStatsNonUnique {
         return (System.nanoTime() - startTime) / 1000000;
     }
 
-    /*
+    /**
      * iterates through index and returns duration
      */
     public long iterate(LongLongIndex index) {
@@ -187,7 +213,7 @@ public class PageUsageStatsNonUnique {
 
         for(int i=0; i<numTimes; i++) {
             ArrayList<LLEntry> entries = PerformanceTest
-                    .randomEntriesNonUnique(numElements / numDuplicates, numDuplicates, R.nextLong());
+                    .randomEntriesNonUnique(numElements / numDuplicates, numDuplicates, R);
             if (OLD) PerformanceTest.insertList(oldIndex, entries);
             if (OLD) oldIndex.write();
             if (NEW) PerformanceTest.insertList(newIndex, entries);
@@ -223,10 +249,4 @@ public class PageUsageStatsNonUnique {
                 + "), (New Index, "
                 + String.valueOf(newStorage.statsGetReadCount() + ")"));
     }
-
-    public static StorageChannel newMemoryStorage() {
-        return new StorageRootInMemory(
-                ZooConfig.getFilePageSize());
-    }
-
 }

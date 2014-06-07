@@ -1,4 +1,28 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.test.index2.btree;
+
+import static org.junit.Assert.assertArrayEquals;
+
+import java.util.Arrays;
 
 import org.junit.Test;
 import org.zoodb.internal.server.StorageChannel;
@@ -8,11 +32,6 @@ import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
 import org.zoodb.tools.ZooConfig;
-
-import java.util.Arrays;
-
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 
 public class TestNode {
 
@@ -285,25 +304,25 @@ public class TestNode {
 //
 //	}
 
-	private void checkEvenInnerNodeSplit(BTreeNode node, BTreeNode right,
-			long keyToMoveUp, BTreeNode[] childArray) {
-		assertEquals(3, keyToMoveUp);
-		assertArrayEquals(new long[] { 2 }, getKeys(node));
-		assertArrayEquals(new BTreeNode[] { childArray[0], childArray[1] },
-				getChildren(node));
-		assertArrayEquals(new long[] { 4 }, getKeys(right));
-		assertArrayEquals(new BTreeNode[] { childArray[2], childArray[3] },
-				getChildren(right));
-	}
-
-	private void checkUnevenInnerNodeSplit(BTreeNode node, BTreeNode right,
-			long keyToMoveUp, BTreeNode[] childArray) {
-		assertEquals(2, keyToMoveUp);
-		assertArrayEquals(new long[] { 1 }, getKeys(node));
-		assertArrayEquals(new BTreeNode[] { childArray[0], childArray[1] }, getChildren(node));
-		assertArrayEquals(new long[] { 3, 4 }, getKeys(right));
-		assertArrayEquals(new BTreeNode[] { childArray[2], childArray[3], childArray[4] },
-				getChildren(right));
-	}
+//	private void checkEvenInnerNodeSplit(BTreeNode node, BTreeNode right,
+//			long keyToMoveUp, BTreeNode[] childArray) {
+//		assertEquals(3, keyToMoveUp);
+//		assertArrayEquals(new long[] { 2 }, getKeys(node));
+//		assertArrayEquals(new BTreeNode[] { childArray[0], childArray[1] },
+//				getChildren(node));
+//		assertArrayEquals(new long[] { 4 }, getKeys(right));
+//		assertArrayEquals(new BTreeNode[] { childArray[2], childArray[3] },
+//				getChildren(right));
+//	}
+//
+//	private void checkUnevenInnerNodeSplit(BTreeNode node, BTreeNode right,
+//			long keyToMoveUp, BTreeNode[] childArray) {
+//		assertEquals(2, keyToMoveUp);
+//		assertArrayEquals(new long[] { 1 }, getKeys(node));
+//		assertArrayEquals(new BTreeNode[] { childArray[0], childArray[1] }, getChildren(node));
+//		assertArrayEquals(new long[] { 3, 4 }, getKeys(right));
+//		assertArrayEquals(new BTreeNode[] { childArray[2], childArray[3], childArray[4] },
+//				getChildren(right));
+//	}
 
 }

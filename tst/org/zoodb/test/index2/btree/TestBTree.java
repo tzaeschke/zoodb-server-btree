@@ -1,3 +1,23 @@
+/*
+ * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ *
+ * This file is part of ZooDB.
+ *
+ * ZooDB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * ZooDB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with ZooDB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * See the README and COPYING files for further information.
+ */
 package org.zoodb.test.index2.btree;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -184,15 +204,18 @@ public class TestBTree {
 	
 	public void deleteMassively(BTreeFactory factory, int numEntries) {
 		UniquePagedBTree tree = (UniquePagedBTree) factory.getTree();
-		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries, System.nanoTime());
+		List<LLEntry> entries = BTreeTestUtils.randomUniqueEntries(numEntries, 0);
 
 		for (LLEntry entry : entries) {
 			tree.insert(entry.getKey(), entry.getValue());
+			assertEquals(entry.getValue(), (long)tree.search(entry.getKey()));
 		}
 
 		// check whether all entries are inserted
+		int n = 0;
 		for (LLEntry entry : entries) {
-			assertEquals(Long.valueOf(entry.getValue()), tree.search(entry.getKey()));
+			n++;
+			assertEquals("n=" + n, entry.getValue(), (long)tree.search(entry.getKey()));
 		}
 
 		// delete every entry and check that there is indeed no entry anymore
