@@ -208,10 +208,8 @@ public class TestBTree {
 		}
 
 		// check whether all entries are inserted
-		int n = 0;
 		for (LLEntry entry : entries) {
-			n++;
-			assertEquals("n=" + n, entry.getValue(), (long)tree.search(entry.getKey()));
+			assertEquals(entry.getValue(), (long)tree.search(entry.getKey()));
 		}
 
 		// delete every entry and check that there is indeed no entry anymore

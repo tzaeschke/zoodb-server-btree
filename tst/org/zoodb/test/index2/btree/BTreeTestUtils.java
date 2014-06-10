@@ -33,7 +33,6 @@ public class BTreeTestUtils {
     }
     
     public static List<LLEntry> randomUniqueEntries(int numElements, long seed) {
-    	//TODO set this to true to let tests pass
     	return randomUniqueEntries(numElements, seed, false);
     }
 
@@ -48,6 +47,7 @@ public class BTreeTestUtils {
      * @return
      */
     public static List<LLEntry> randomUniqueEntries(int numElements, long seed, boolean isOrdered) {
+		Random prng = new Random(seed);
 		// ensure that entries with equal keys can not exists in the set
     	if (isOrdered) {
     		Set<LLEntry> randomEntryList = new TreeSet<>(
@@ -56,18 +56,12 @@ public class BTreeTestUtils {
     						return Long.compare(e1.getKey(), e2.getKey());
     					}
     				});
-    		Random prng = new Random(seed);
-    		int n = 0;
     		while (randomEntryList.size() < numElements) {
-    			n++;
     			randomEntryList.add(new LLEntry(prng.nextInt(2 * numElements), prng.nextInt(Integer.MAX_VALUE)));
     		}
-    		System.out.println("n=" + n);
-    		System.out.println("l=" + randomEntryList.size());
     		return new ArrayList<>(randomEntryList);
     	} else {
             PrimLongMapLI<Integer> map = new PrimLongMapLI<>();
-            Random prng = new Random(seed);
             while (map.size() < numElements) {
                 map.put(prng.nextInt(2 * numElements), prng.nextInt(Integer.MAX_VALUE));
             }
@@ -78,26 +72,6 @@ public class BTreeTestUtils {
 
             Collections.shuffle(randomEntryList);
             return randomEntryList;
-//    		HashSet<LLEntry> randomEntryList = new HashSet<>();
-//    		Random prng = new Random(seed);
-//    		int n = 0;
-//    		while (randomEntryList.size() < numElements) {
-//    			n++;
-//    			randomEntryList.add(new LLEntry(prng.nextInt(2 * numElements), prng.nextInt(Integer.MAX_VALUE)));
-//    		}
-//    		System.out.println("n=" + n);
-//    		ArrayList<LLEntry> xyz = new ArrayList<>(randomEntryList);
-//    		HashSet<LLEntry> hs2 = new HashSet<>(randomEntryList);
-//    		for (LLEntry e: xyz) {
-//    			LLEntry e2 = new LLEntry(e.getKey(), e.getValue());
-//    			n++;
-//    			if (!hs2.remove(e2)) {
-//    				throw new IllegalStateException();
-//    			}
-//    		}
-//    		System.out.println("n=" + n);
-//    		System.out.println("l=" + randomEntryList.size());
-//    		return new ArrayList<>(randomEntryList);
     	}
 	}
 }
