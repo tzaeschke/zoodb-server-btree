@@ -50,6 +50,7 @@ public class NonUniquePagedBTreeNode extends PagedBTreeNode {
         }
     }
     
+    //TZ: Pure testing method
     public int computeMaxPossibleEntries() {
     	return PagedBTreeNode.computeMaxPossibleEntries(false, isLeaf(), pageSize, valueElementSize);
     }

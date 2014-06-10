@@ -114,21 +114,12 @@ public abstract class BTreeLeafEntryIterator implements
 
 	@Override
 	public boolean hasNext() {
-        checkValidity();
-		return  curLeaf != null && !tree.isEmpty() && tree.getRoot().getNumKeys() > 0;
+		return this.hasNextULL();
 	}
 
 	@Override
 	public LLEntry next() {
-        checkValidity();
-		if (curLeaf == null) {
-			throw new NoSuchElementException();
-		} else {
-			LLEntry retEntry = new LLEntry(curLeaf.getKey(curPos),
-					curLeaf.getValue(curPos));
-            updatePosition();
-			return retEntry;
-		}
+		return this.nextULL();
 	}
 
 	@Override
@@ -148,12 +139,21 @@ public abstract class BTreeLeafEntryIterator implements
 	
 	@Override
 	public boolean hasNextULL() {
-		return this.hasNext();
+        checkValidity();
+		return curLeaf != null;
 	}
 
 	@Override
 	public LongLongIndex.LLEntry nextULL() {
-		return this.next();
+        checkValidity();
+		if (curLeaf == null) {
+			throw new NoSuchElementException();
+		} else {
+			LLEntry retEntry = new LLEntry(curLeaf.getKey(curPos),
+					curLeaf.getValue(curPos));
+            updatePosition();
+			return retEntry;
+		}
 	}
 
 	@Override
@@ -218,10 +218,7 @@ public abstract class BTreeLeafEntryIterator implements
 	public long getTxId() {
 		// txId is only relevant when we are dealing with PagedBTrees on
 		// StorageBufferManagers
-		if (this.tree instanceof PagedBTree) {
-			return ((PagedBTree)tree).getBufferManager().getTxId();
-		}
-		throw new UnsupportedOperationException(this.tree.getClass().getName());
+		return ((PagedBTree)tree).getBufferManager().getTxId();
 	}
 
 	protected void populateAncestorStack(long key, long value) {

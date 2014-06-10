@@ -66,10 +66,11 @@ public class BTreeFactory {
 
     public void addLeafLayer(List<List<Pair<Long,Long>>> nodeKeysValues) {
         List<List<Long>> nodeKeys = splitList(true, nodeKeysValues);
+        //TODO TZ what is this for?
         splitList(true, nodeKeysValues);
         this.addLayer(true,nodeKeys);
-        List<List<Long>> nodeValues = splitList(false, nodeKeysValues);;
-        for(int i=0; i<prevLayer.size(); i++) {
+        List<List<Long>> nodeValues = splitList(false, nodeKeysValues);
+        for (int i=0; i<prevLayer.size(); i++) {
             List<Long> values = nodeValues.get(i);
             prevLayer.get(i).setValues(padLongArray(toPrimitives(
                     values.toArray(new Long[values.size()])),
@@ -149,10 +150,12 @@ public class BTreeFactory {
     }
 
     private static long[] padLongArray(long[] keys, int size) {
+    	//TODO TZ use System.arrayCopy?
         long[] paddedKeyArray = new long[size - 1];
         for (int i = 0; i < keys.length; i++) {
             paddedKeyArray[i] = keys[i];
         }
+    	//TODO TZ what is this good for?
         for (int i = keys.length; i < size - 1; i++) {
             paddedKeyArray[i] = 0;
         }
@@ -160,10 +163,12 @@ public class BTreeFactory {
     }
 
     private static BTreeNode[] padChildrenArray(BTreeNode[] children, int size) {
+    	//TODO TZ use System.arrayCopy?
         BTreeNode[] paddedNodeArray = new BTreeNode[size];
         for (int i = 0; i < children.length; i++) {
             paddedNodeArray[i] = children[i];
         }
+    	//TODO TZ use System.arrayCopy?
         for (int i = children.length; i < size; i++) {
             paddedNodeArray[i] = null;
         }

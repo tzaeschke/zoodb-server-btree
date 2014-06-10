@@ -20,6 +20,11 @@
  */
 package org.zoodb.test.index2.performance;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
@@ -32,8 +37,6 @@ import org.zoodb.internal.server.index.btree.BTreeIterator;
 import org.zoodb.test.index2.btree.TestIndex;
 import org.zoodb.tools.DBStatistics;
 import org.zoodb.tools.ZooConfig;
-
-import java.util.*;
 
 public class PageUsageStats {
 
@@ -177,10 +180,10 @@ public class PageUsageStats {
 	 */
 	public long iterate(LongLongIndex index) {
         long startTime = System.nanoTime();
-		for(int i=0; i<REPEAT; i++) {
+		for (int i=0; i<REPEAT; i++) {
             LongLongIterator<?> it = index.iterator();
-            while(it.hasNext()) {
-                    it.next();
+            while (it.hasNext()) {
+            	it.next();
             }
 		}
 		return (System.nanoTime() - startTime) / 1000000;
@@ -189,9 +192,9 @@ public class PageUsageStats {
 	
 	public static long findAll(LongLongIndex index, List<LLEntry> list) {
 		long startTime = System.nanoTime();
-		for(int i=0; i<REPEAT; i++) {
+		for (int i=0; i<REPEAT; i++) {
             for (LLEntry entry : list) {
-                    index.iterator(entry.getKey(), entry.getKey());
+            	index.iterator(entry.getKey(), entry.getKey());
             }
 		}
 		return (System.nanoTime() - startTime) / 1000000;
@@ -207,7 +210,7 @@ public class PageUsageStats {
 
         for(int i=0; i<numTimes; i++) {
             ArrayList<LLEntry> entries = PerformanceTest.randomEntriesUnique(numElements, R);
-            if (OLD)  PerformanceTest.insertList(oldIndex, entries);
+            if (OLD) PerformanceTest.insertList(oldIndex, entries);
             if (OLD) oldIndex.write();
             if (NEW) PerformanceTest.insertList(newIndex, entries);
             if (NEW) newIndex.write();

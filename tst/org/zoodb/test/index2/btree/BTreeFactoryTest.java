@@ -20,6 +20,8 @@
  */
 package org.zoodb.test.index2.btree;
 
+import static org.junit.Assert.assertNotNull;
+
 import java.util.Arrays;
 
 import org.junit.Test;
@@ -41,9 +43,10 @@ public class BTreeFactoryTest {
 		BTreeFactory factory = new BTreeFactory(bufferManager, true);
 		factory.addInnerLayer(Arrays.asList(Arrays.asList(17L)));
 
-		System.out.println(getTestTree());
-		
+		//System.out.println(getTestTree());
+		assertNotNull(getTestTree());  //enforce execution of method
 	}
+	
 	public static PagedBTree getTestTree() {
 		StorageChannel storage = new StorageRootInMemory(ZooConfig.getFilePageSize());
 		boolean isUnique = true;

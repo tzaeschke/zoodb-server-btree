@@ -39,7 +39,7 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
 
     @Override
     public void initializeEntries() {
-        int size = computeMaxPossibleEntries();
+        int size = computeMaxPossibleEntries(true, isLeaf(), pageSize, valueElementSize);
         initKeys(size);
         if (!isLeaf()) {
             initChildren(size + 1);
@@ -48,6 +48,7 @@ public class UniquePagedBTreeNode extends PagedBTreeNode {
         }
     }
     
+    //TZ: Pure testing method
     public int computeMaxPossibleEntries() {
     	return PagedBTreeNode.computeMaxPossibleEntries(true, isLeaf(), pageSize, valueElementSize);
     }

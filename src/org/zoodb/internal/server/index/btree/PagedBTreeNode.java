@@ -192,14 +192,8 @@ public abstract class PagedBTreeNode extends BTreeNode {
 			int destIndex, int size) {
         PagedBTreeNode pagedSource = toPagedNode(source);
         PagedBTreeNode pagedDest = toPagedNode(dest);
-        try {
-			System.arraycopy(pagedSource.getChildrenPageIds(), sourceIndex,
-					pagedDest.getChildrenPageIds(), destIndex, size);
-        } catch (ArrayIndexOutOfBoundsException e) {
-        	//TODO TZ remove me
-            System.out.println("coci: " + pagedSource.getChildrenPageIds().length + "/"+ sourceIndex + "  "
-            		+ pagedDest.getChildrenPageIds().length + "/" + destIndex + "    s=" + size);
-        }
+        System.arraycopy(pagedSource.getChildrenPageIds(), sourceIndex,
+        		pagedDest.getChildrenPageIds(), destIndex, size);
         System.arraycopy(pagedSource.getChildSizes(), sourceIndex, pagedDest.getChildSizes(), destIndex, size);
         System.arraycopy(pagedSource.getChildren(), sourceIndex, pagedDest.getChildren(), destIndex, size);
 	}
@@ -295,10 +289,10 @@ public abstract class PagedBTreeNode extends BTreeNode {
         /*
             In the case of the best compression, all keys would have the same value.
          */
-        int encodedKeyArraySize = PrefixSharingHelper.SMALLEST_POSSIBLE_COMPRESSION_SIZE;
+        int encodedKeyArraySize = PrefixSharingHelper.TOTAL_METADATA_SIZE;
 
         if (isLeaf) {
-            //subtract a 64 bit prefix and divide by 8 (the number of bytes in a long)
+            //subtract the prefix and divide by 8 (the number of bytes in a long)
             maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) / valueElementSize) + 1;
         } else {
             //inner nodes also contain children ids which are ints
@@ -308,6 +302,7 @@ public abstract class PagedBTreeNode extends BTreeNode {
                 maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) >>> 2 ) + 1;
             } else {
                 //ToDo this might not be right
+            	//TODO TZ this is not right
                 maxPossibleNumEntries = ((pageSize - encodedKeyArraySize) / (valueElementSize + 4) ) + 1;
             }
 

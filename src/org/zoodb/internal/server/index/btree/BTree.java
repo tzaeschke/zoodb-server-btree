@@ -142,6 +142,7 @@ public abstract class BTree {
             right = split(left);
             root.put(right.getSmallestKey(), right.getSmallestValue(), left, right);
         } else {
+        	//TODO TZ merge putInnerNodeInRoot / putInnerNodeInparent / split into one!
             putInnerNodeInRoot(left);
         }
     }
