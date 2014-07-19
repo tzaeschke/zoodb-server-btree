@@ -20,11 +20,12 @@
  */
 package org.zoodb.internal;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.zoodb.api.impl.ZooPC;
+import org.zoodb.internal.server.OptimisticTransactionResult;
 import org.zoodb.internal.util.CloseableIterator;
-import org.zoodb.internal.util.DBLogger;
 import org.zoodb.tools.DBStatistics.STATS;
 
 public abstract class Node {
@@ -40,12 +41,6 @@ public abstract class Node {
 	}
 
 	public abstract OidBuffer getOidBuffer();
-
-	public void rollback() {
-		//TODO
-		DBLogger.debugPrintln(2, "STUB: Node.rollback()");
-		//System.err.println("STUB: Node.rollback()");
-	}
 
 	public abstract void makePersistent(ZooPC obj);
 
@@ -79,6 +74,8 @@ public abstract class Node {
 
 	public abstract void defineSchema(ZooClassDef def);
 
+	public abstract void renameSchema(ZooClassDef def, String newName);
+
 	public abstract void newSchemaVersion(ZooClassDef defNew);
 
 	public abstract void undefineSchema(ZooClassProxy def);
@@ -106,7 +103,15 @@ public abstract class Node {
 	
 	public abstract boolean checkIfObjectExists(long oid);
 
-	public abstract void beginTransaction();
-    
+	public abstract long beginTransaction();
+
+	public abstract OptimisticTransactionResult rollbackTransaction();
+
+	public abstract OptimisticTransactionResult beginCommit(ArrayList<Long> updateOids, 
+			ArrayList<Long> updatesTimstamps);
+
+	public abstract OptimisticTransactionResult checkTxConsistency(ArrayList<Long> updateOids,
+			ArrayList<Long> updateTimstamps);
+
 }
    

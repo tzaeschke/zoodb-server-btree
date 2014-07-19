@@ -20,10 +20,6 @@
  */
 package org.zoodb.tools.impl;
 
-import static org.zoodb.internal.server.DiskAccessOneFile.DB_FILE_TYPE_ID;
-import static org.zoodb.internal.server.DiskAccessOneFile.DB_FILE_VERSION_MAJ;
-import static org.zoodb.internal.server.DiskAccessOneFile.DB_FILE_VERSION_MIN;
-
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -37,6 +33,7 @@ import javax.jdo.PersistenceManagerFactory;
 
 import org.zoodb.api.DBArrayList;
 import org.zoodb.api.DBHashMap;
+import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.DiskIO.DATA_TYPE;
 import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.server.StorageRootInMemory;
@@ -80,7 +77,7 @@ public class DataStoreManagerInMemory implements DataStoreManager {
 
 		int headerPage = out.allocateAndSeek(DATA_TYPE.DB_HEADER, 0);
 		if (headerPage != 0) {
-			throw DBLogger.newFatal("Header page = " + headerPage);
+			throw DBLogger.newFatalInternal("Header page = " + headerPage);
 		}
 		int rootPage1 = out.allocateAndSeek(DATA_TYPE.ROOT_PAGE, 0);
 		int rootPage2 = out.allocateAndSeek(DATA_TYPE.ROOT_PAGE, 0);
@@ -116,9 +113,9 @@ public class DataStoreManagerInMemory implements DataStoreManager {
 		
 		//write header
 		out.seekPageForWrite(DATA_TYPE.DB_HEADER, headerPage);
-		out.writeInt(DB_FILE_TYPE_ID);
-		out.writeInt(DB_FILE_VERSION_MAJ);
-		out.writeInt(DB_FILE_VERSION_MIN);
+		out.writeInt(DiskIO.DB_FILE_TYPE_ID);
+		out.writeInt(DiskIO.DB_FILE_VERSION_MAJ);
+		out.writeInt(DiskIO.DB_FILE_VERSION_MIN);
 		out.writeInt(ZooConfig.getFilePageSize());
 		out.writeInt(rootPage1);
 		out.writeInt(rootPage2);

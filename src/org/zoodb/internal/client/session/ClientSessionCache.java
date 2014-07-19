@@ -37,10 +37,10 @@ import org.zoodb.internal.client.AbstractCache;
 import org.zoodb.internal.util.CloseableIterator;
 import org.zoodb.internal.util.DBLogger;
 import org.zoodb.internal.util.PrimLongMap;
+import org.zoodb.internal.util.PrimLongMap.PLMValueIterator;
 import org.zoodb.internal.util.PrimLongMapLI;
 import org.zoodb.internal.util.PrimLongMapLISoft;
 import org.zoodb.internal.util.PrimLongMapLIWeak;
-import org.zoodb.internal.util.PrimLongMap.PLMValueIterator;
 
 public class ClientSessionCache implements AbstractCache {
 	
@@ -136,6 +136,7 @@ public class ClientSessionCache implements AbstractCache {
 	    		if (co.jdoZooIsNew()) {
 	    			//remove co
 	    			objs.remove(co.jdoZooGetOid());
+	    			co.jdoZooMarkTransient();
 	    		} else {
 	    			co.jdoZooMarkHollow();
 	    		}
@@ -146,6 +147,7 @@ public class ClientSessionCache implements AbstractCache {
 	    		if (co.jdoZooIsNew()) {
 	    			//remove co
 	    			objs.remove(co.jdoZooGetOid());
+	    			co.jdoZooMarkTransient();
 	    		} else {
 	    			co.jdoZooMarkHollow();
 	    		}
@@ -157,15 +159,18 @@ public class ClientSessionCache implements AbstractCache {
 		
         //generic objects
         for (GenericObject go: dirtyGenObjects) {
-        	if (go.isNew()) {
-        		go.setDeleted(true); //prevent further access to it through existing references
+        	if (go.jdoZooIsNew()) {
+        		//TODO really? Make it transient and remove from list?
+        		//     Or rather keep it in list? --> Always persistent?
+        		//go.invalidate(); //prevent further access to it through existing references
         		genericObjects.remove(go.getOid());
+    			go.jdoZooMarkTransient();
         		continue;
         	}
-        	go.setHollow();
+        	go.jdoZooMarkHollow();
         }
         for (GenericObject go: genericObjects.values()) {
-        	go.setHollow();
+        	go.jdoZooMarkHollow();
         }
         dirtyGenObjects.clear();
 	}
@@ -188,8 +193,12 @@ public class ClientSessionCache implements AbstractCache {
 
 	public final void makeTransient(ZooPC pc) {
 		//remove it
-		if (objs.remove(pc.jdoZooGetOid()) == null) {
-			throw DBLogger.newFatal("Object is not in cache.");
+		if (pc.getClass() == GenericObject.class) {
+			if (genericObjects.remove(pc.jdoZooGetOid()) == null) {
+				throw DBLogger.newFatalInternal("Object is not in cache.");
+			}
+		} else if (objs.remove(pc.jdoZooGetOid()) == null) {
+			throw DBLogger.newFatalInternal("Object is not in cache.");
 		}
 		//update
 		pc.jdoZooMarkTransient();
@@ -199,6 +208,10 @@ public class ClientSessionCache implements AbstractCache {
 	@Override
 	public final void addToCache(ZooPC obj, ZooClassDef classDef, long oid, 
 			ObjectState state) {
+		if (obj.getClass() == GenericObject.class) {
+			addGeneric((GenericObject) obj);
+			return;
+		}
     	obj.jdoZooInit(state, classDef.getProvidedContext(), oid);
 		//TODO call newInstance elsewhere
 		//obj.jdoReplaceStateManager(co);
@@ -290,15 +303,15 @@ public class ClientSessionCache implements AbstractCache {
 		
 		//generic objects
         for (GenericObject go: dirtyGenObjects) {
-        	if (go.isDeleted()) {
+        	if (go.jdoZooIsDeleted()) {
         		genericObjects.remove(go.getOid());
         		continue;
         	}
-        	go.setClean();
+        	go.jdoZooMarkClean();
         }
         for (GenericObject go: genericObjects.values()) {
         	if (!retainValues) {
-        		go.setHollow();
+        		go.jdoZooMarkHollow();
         	}
         }
         dirtyGenObjects.clear();
@@ -352,6 +365,10 @@ public class ClientSessionCache implements AbstractCache {
 
 	public Collection<ZooPC> getAllObjects() {
 		return objs.values();
+	}
+
+	public Collection<GenericObject> getAllGenericObjects() {
+		return genericObjects.values();
 	}
 
     public void close() {
@@ -456,6 +473,10 @@ public class ClientSessionCache implements AbstractCache {
 	}
 
 	public void notifyDirty(ZooPC pc) {
+		if (pc.getClass() == GenericObject.class) {
+			dirtyGenObjects.add((GenericObject) pc);
+			return;
+		}
 		dirtyObjects.add(pc);
 	}
 	
@@ -464,6 +485,10 @@ public class ClientSessionCache implements AbstractCache {
 	}
 
 	public void notifyDelete(ZooPC pc) {
+		if (pc.getClass() == GenericObject.class) {
+			dirtyGenObjects.add((GenericObject) pc);
+			return;
+		}
 		deletedObjects.put(pc.jdoZooGetOid(), pc);
 	}
 	
@@ -472,9 +497,6 @@ public class ClientSessionCache implements AbstractCache {
 	}
 
     public void addGeneric(GenericObject genericObject) {
-    	if (genericObject.isDirty()) {
-    		dirtyGenObjects.add(genericObject);
-    	}
     	genericObjects.put(genericObject.getOid(), genericObject);
     }
 

@@ -31,14 +31,24 @@ import org.zoodb.internal.server.index.BitTools;
 /**
  * This class provides a method to backup indexed fields for later removal from the according
  * field index. 
- * 
+ *
  * @author Tilmann Zaeschke
  */
 public final class DataIndexUpdater {
 
-	private final ZooFieldDef[] indFields;
+	private ZooFieldDef[] indFields;
 	
 	public DataIndexUpdater(ZooClassDef def) {
+		refreshWithSchema(def);
+	}
+	
+	/**
+	 * TODO move this whole class into ZooClassDef? It seems bad that we store this information
+	 * twice!
+	 *  
+	 * @param def
+	 */
+	public void refreshWithSchema(ZooClassDef def) {
 		ArrayList<ZooFieldDef> pfl = new ArrayList<ZooFieldDef>();
 		for (ZooFieldDef f: def.getAllFields()) {
 			if (f.isIndexed()) {
@@ -50,6 +60,10 @@ public final class DataIndexUpdater {
 	
 	
     public final long[] getBackup(ZooPC co) {
+    	if (co.getClass() == GenericObject.class) {
+    		GenericObject go = (GenericObject) co;
+    		return getBackup(go, go.getRawFields());
+    	}
     	if (indFields.length == 0) {
     		return null;
     	}
@@ -94,5 +108,9 @@ public final class DataIndexUpdater {
     	}
     	return la;
     }
+
+	public boolean isIndexed() {
+		return indFields.length != 0;
+	}
     
 }

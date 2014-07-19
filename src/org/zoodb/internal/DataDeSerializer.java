@@ -153,6 +153,7 @@ public class DataDeSerializer {
      */
     public ZooPC readObject(int page, int offs, boolean skipIfCached) {
         long clsOid = in.startReading(page, offs);
+        long ts = in.getHeaderTimestamp();
 
         //Read first object:
         long oid = in.readLong();
@@ -172,7 +173,7 @@ public class DataDeSerializer {
         if (clsDef.getNextVersion() != null) {
             isEvolved = true;
             GenericObject go = GenericObject.newInstance(clsDef, oid, false, cache);
-            readGOPrivate(go, oid, clsDef);
+            readGOPrivate(go, clsDef);
             clsDef = go.ensureLatestVersion();
             in = go.toStream();
             if (oid != in.readLong()) {
@@ -182,8 +183,9 @@ public class DataDeSerializer {
         
         
         ZooPC pObj = getInstance(clsDef, oid, pc);
+        pObj.jdoZooSetTimestamp(ts);
 
-        readObjPrivate(pObj, oid, clsDef);
+        readObjPrivate(pObj, clsDef);
         in = or;
         if (isEvolved) {
             //force object to be stored again
@@ -197,6 +199,7 @@ public class DataDeSerializer {
     public GenericObject readGenericObject(int page, int offs) {
     	allowGenericObjects = true;
         long clsOid = in.startReading(page, offs);
+        long ts = in.getHeaderTimestamp();
         //Read oid
         long oid = in.readLong();
         ZooClassDef clsDef = cache.getSchema(clsOid);
@@ -207,18 +210,19 @@ public class DataDeSerializer {
         }
         go.setOid(oid);
         go.setClassDefOriginal(clsDef);
-        readGOPrivate(go, oid, clsDef);
+        go.jdoZooSetTimestamp(ts);
+        readGOPrivate(go, clsDef);
     	allowGenericObjects = false;
-    	go.setClean();
+    	go.jdoZooMarkClean();
     	return go;
     }
     
     
-    private GenericObject readGOPrivate(GenericObject pObj, long oid, ZooClassDef clsDef) {
+    private GenericObject readGOPrivate(GenericObject pObj, ZooClassDef clsDef) {
     	// read first object (FCO)
         deserializeFieldsGO( pObj, clsDef );
         
-        deserializeSpecialGO(pObj);
+        deserializeSpecialGO(pObj, clsDef);
         
         postProcessCollections();
         
@@ -229,7 +233,7 @@ public class DataDeSerializer {
 //        }
 //        pObj.jdoZooGetContext().notifyEvent(pObj, ZooInstanceEvent.LOAD);
         
-        pObj.setClean();
+        pObj.jdoZooMarkClean();
         return pObj;
     }
     
@@ -281,18 +285,23 @@ public class DataDeSerializer {
 
     public ZooPC readObject(ZooPC pc, int page, int offs) {
         long clsOid = in.startReading(page, offs);
+        long ts = in.getHeaderTimestamp();
     	
         //Read first object:
     	long oid = in.readLong();
+    	if (oid != pc.jdoZooGetOid()) {
+    		throw DBLogger.newFatalInternal("OID mismatch: " + oid + " vs " + pc.jdoZooGetOid());
+    	}
     	
     	ZooClassDef clsDef = cache.getSchema(clsOid);
     	pc.jdoZooMarkClean();
+    	pc.jdoZooSetTimestamp(ts);
 
-        return readObjPrivate(pc, oid, clsDef);
+        return readObjPrivate(pc, clsDef);
     }
     
     
-    private ZooPC readObjPrivate(ZooPC pObj, long oid, ZooClassDef clsDef) {
+    private ZooPC readObjPrivate(ZooPC pObj, ZooClassDef clsDef) {
     	// read first object (FCO)
     	//read fixed size part
         deserializeFields1( pObj, clsDef );
@@ -478,18 +487,18 @@ public class DataDeSerializer {
         }
     }
 
-    private final void deserializeSpecialGO(GenericObject obj) {
-    	if (obj.getClassDef().getClassName().equals(DBHashMap.class.getName())) {
+    private final void deserializeSpecialGO(GenericObject obj, ZooClassDef def) {
+    	if (def.getClassName().equals(DBHashMap.class.getName())) {
             //Special treatment for persistent containers.
             //Their data is not stored in (visible) fields.
     		HashMap<Object, Object> m = new HashMap<Object, Object>();
     		obj.setDbCollection(m);
     		deserializeDBHashMap(m);
-    	} else if (obj.getClassDef().getClassName().equals(DBLargeVector.class.getName())) {
+    	} else if (def.getClassName().equals(DBLargeVector.class.getName())) {
     		ArrayList<Object> l = new ArrayList<Object>();
     		obj.setDbCollection(l);
     		deserializeDBList(l);
-    	} else if (obj.getClassDef().getClassName().equals(DBArrayList.class.getName())) {
+    	} else if (def.getClassName().equals(DBArrayList.class.getName())) {
     		ArrayList<Object> l = new ArrayList<Object>();
     		obj.setDbCollection(l);
     		deserializeDBList(l);

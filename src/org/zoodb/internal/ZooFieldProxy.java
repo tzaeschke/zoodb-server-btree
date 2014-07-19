@@ -53,6 +53,9 @@ public class ZooFieldProxy implements ZooField {
 		if (s.isClosed()) {
 			throw new IllegalStateException("This schema belongs to a closed PersistenceManager.");
 		}
+		if (!s.isActive()) {
+			throw new IllegalStateException("The transaction is currently not active.");
+		}
 		if (isInvalid) {
 			throw new IllegalStateException("This schema field object is invalid, for " +
 					"example because it has been deleted.");
@@ -102,7 +105,7 @@ public class ZooFieldProxy implements ZooField {
     public void setValue(ZooHandle hdl, Object val) {
 		checkInvalid();
 		ZooHandleImpl h = checkHandle(hdl);
-        h.getGenericObject().setDirty(true);
+        h.getGenericObject().jdoZooMarkDirty();
         h.getGenericObject().setField(fieldDef, val);
     }
 
@@ -113,7 +116,7 @@ public class ZooFieldProxy implements ZooField {
     		throw new IllegalArgumentException("Field '" + fieldDef.getName() + 
     				"' is not present in " + c.getSchemaDef().getClassName());
     	}
-    	if (hdlI.getGenericObject().isDeleted()) {
+    	if (hdlI.getGenericObject().jdoZooIsDeleted()) {
     		throw new IllegalStateException("The handle has been deleted.");
     	}
     	return hdlI;
@@ -152,5 +155,9 @@ public class ZooFieldProxy implements ZooField {
 	@Override
 	public int getArrayDim() {
 		return fieldDef.getArrayDim();
+	}
+
+	public void invalidate() {
+		isInvalid = true;
 	}
 }

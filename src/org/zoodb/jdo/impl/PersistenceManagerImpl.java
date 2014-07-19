@@ -48,9 +48,11 @@ import javax.jdo.listener.InstanceLifecycleListener;
 import org.zoodb.api.impl.ZooPC;
 import org.zoodb.internal.Session;
 import org.zoodb.internal.SessionConfig;
+import org.zoodb.internal.ZooHandleImpl;
 import org.zoodb.internal.util.DBLogger;
 import org.zoodb.internal.util.TransientField;
 import org.zoodb.internal.util.Util;
+import org.zoodb.schema.ZooHandle;
 
 /**
  * @author Tilmann Zaeschke
@@ -65,8 +67,6 @@ public class PersistenceManagerImpl implements PersistenceManager {
     //The final would possibly avoid garbage collection
     private volatile TransactionImpl transaction = null;
     private final PersistenceManagerFactoryImpl factory;
-    
-    private volatile boolean isClosed = true;
     
     private boolean ignoreCache;
     
@@ -92,7 +92,6 @@ public class PersistenceManagerImpl implements PersistenceManager {
         		factory.getOptimistic(),
         		nativeConnection);
 		DBLogger.debugPrintln(2, "FIXME: PersistenceManagerImpl()");
-        isClosed = false;
         
         ignoreCache = factory.getIgnoreCache(); 
         //FIXME
@@ -120,7 +119,7 @@ public class PersistenceManagerImpl implements PersistenceManager {
      */
     @Override
     public void close() {
-        if (isClosed) {
+        if (isClosed()) {
             throw new JDOUserException("PersistenceManager has already been closed.");
         }
         if (transaction.isActive()) {
@@ -132,7 +131,6 @@ public class PersistenceManagerImpl implements PersistenceManager {
         defaultSession.compareAndSet(this, null);
         nativeConnection.close();
         transaction = null;
-        isClosed = true;
         factory.deRegister(this);
     }
 
@@ -158,7 +156,7 @@ public class PersistenceManagerImpl implements PersistenceManager {
 	}
 
     private void checkOpenIgnoreTx() {
-		if (isClosed) {
+		if (isClosed()) {
 			throw new JDOFatalUserException("PersistenceManager is closed.");
 		}
 	}
@@ -177,7 +175,7 @@ public class PersistenceManagerImpl implements PersistenceManager {
      */
     @Override
     public boolean isClosed() {
-        return isClosed;
+        return nativeConnection.isClosed();
     }
 
     /**
@@ -186,16 +184,20 @@ public class PersistenceManagerImpl implements PersistenceManager {
     @Override
     public <T> T makePersistent(T pc) {
     	checkOpen();
-    	checkPersistence(pc);
-    	nativeConnection.makePersistent((ZooPC) pc);
+    	ZooPC zpc = checkPersistence(pc);
+    	nativeConnection.makePersistent(zpc);
     	return pc;
     }
 
-    private void checkPersistence(Object pc) {
-    	if (!(pc instanceof ZooPC)) {
-    		throw new JDOUserException("The object is not persistence capable: " +
-    				pc.getClass().getName(), pc);
+    private ZooPC checkPersistence(Object pc) {
+    	if (pc instanceof ZooPC) {
+    		return (ZooPC) pc;
     	}
+    	if (pc instanceof ZooHandleImpl) {
+    		return ((ZooHandleImpl)pc).getGenericObject();
+    	}
+   		throw new JDOUserException("The object is not persistence capable: " +
+   				pc.getClass().getName(), pc);
 	}
 
 	/**
@@ -204,8 +206,8 @@ public class PersistenceManagerImpl implements PersistenceManager {
     @Override
     public void makeTransient(Object pc) {
         checkOpen();
-        checkPersistence(pc);
-        nativeConnection.makeTransient((ZooPC) pc);
+        ZooPC zpc = checkPersistence(pc);
+        nativeConnection.makeTransient(zpc);
     }
 
     /**
@@ -301,6 +303,10 @@ public class PersistenceManagerImpl implements PersistenceManager {
         if (pc == null) {
             return null;
         }
+		//Especially for when returning Handles from failed optimistic commit()
+		if (pc instanceof ZooHandle) {
+			return ((ZooHandle)pc).getOid();
+		}
         if (! (pc instanceof ZooPC)) {
             return null;
         }
@@ -379,22 +385,21 @@ public class PersistenceManagerImpl implements PersistenceManager {
 	@Override
 	public void checkConsistency() {
         checkOpen();
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException();
+		nativeConnection.checkConsistency();
 	}
 
 	@Override
 	public void deletePersistentAll(Object... arg0) {
         checkOpen();
-		// TODO Auto-generated method stub
-		throw new UnsupportedOperationException();
+        for (Object o: arg0) {
+            deletePersistent(o);
+        }
 	}
 
 	@SuppressWarnings("rawtypes")
 	@Override
 	public void deletePersistentAll(Collection arg0) {
         checkOpen();
-        // TODO optimize
         for (Object o: arg0) {
             deletePersistent(o);
         }

@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.WeakHashMap;
 
+import javax.jdo.JDOOptimisticVerificationException;
 import javax.jdo.ObjectState;
 import javax.jdo.listener.DeleteCallback;
 import javax.jdo.listener.InstanceLifecycleListener;
@@ -34,6 +35,7 @@ import org.zoodb.api.ZooInstanceEvent;
 import org.zoodb.api.impl.ZooPC;
 import org.zoodb.internal.client.SchemaManager;
 import org.zoodb.internal.client.session.ClientSessionCache;
+import org.zoodb.internal.server.OptimisticTransactionResult;
 import org.zoodb.internal.util.CloseableIterator;
 import org.zoodb.internal.util.DBLogger;
 import org.zoodb.internal.util.IteratorRegistry;
@@ -52,6 +54,7 @@ import org.zoodb.tools.ZooHelper;
 public class Session implements IteratorRegistry {
 
 	public static final long OID_NOT_ASSIGNED = -1;
+	public static final long TIMESTAMP_NOT_ASSIGNED = -1;
 
 	public static final Class<?> PERSISTENT_SUPER = ZooPC.class;
 	
@@ -65,6 +68,8 @@ public class Session implements IteratorRegistry {
 	private boolean isOpen = true;
 	private boolean isActive = false;
 	private final SessionConfig config;
+	
+	private long transactionId = -1;
 	
 	private final WeakHashMap<CloseableIterator<?>, Object> extents = 
 	    new WeakHashMap<CloseableIterator<?>, Object>(); 
@@ -96,65 +101,142 @@ public class Session implements IteratorRegistry {
         }
 		isActive = true;
 		for (Node n: nodes) {
-			//TODO two-phase commit() !!!
-			n.beginTransaction();
+			long txId = n.beginTransaction();
+			if (n == primary) {
+				transactionId = txId;
+			}
 		}
 	}
 	
+	/**
+	 * Verify optimistic consistency of the current transaction.
+	 */
+	public void checkConsistency() {
+		processOptimisticVerification(true);
+	}
+
 	public void commit(boolean retainValues) {
 		checkActive();
+		
 		//pre-commit: traverse object tree for transitive persistence
 		ObjectGraphTraverser ogt = new ObjectGraphTraverser(this, cache);
 		ogt.traverse();
-		
-		schemaManager.commit();
-		
+
+		//commit phase #1: prepare, check conflicts, get optimistic locks
+		//This needs to happen after OGT (we need the OIDs) and before everything else (avoid
+		//any writes in case of conflict AND we need the WLOCK before any updates.
+		processOptimisticVerification(false);
+
 		try {
+			schemaManager.commit();
+
 			commitInternal();
+			//commit phase #2: Updated database properly, release locks
 			for (Node n: nodes) {
-				//TODO two-phase commit() !!!
 				n.commit();
 			}
 			cache.postCommit(retainValues);
+			schemaManager.postCommit();
 		} catch (RuntimeException e) {
 			if (DBLogger.isUser(e)) {
 				//reset sinks
-		        for (ZooClassDef cs: cache.getSchemata()) {
-		            cs.getProvidedContext().getDataSink().reset();
-		            cs.getProvidedContext().getDataDeleteSink().reset();
-		        }		
+				for (ZooClassDef cs: cache.getSchemata()) {
+					cs.getProvidedContext().getDataSink().reset();
+					cs.getProvidedContext().getDataDeleteSink().reset();
+				}		
 				//allow for retry after user exceptions
 				for (Node n: nodes) {
 					n.revert();
 				}
 			}
+			rollback();
 			throw e;
 		}
-        
+
 		for (CloseableIterator<?> ext: extents.keySet().toArray(new CloseableIterator[0])) {
-		    //TODO
-		    //Refresh extents to allow cross-session-border extents.
-		    //As a result, extents may skip objects or return objects twice,
-		    //but at least they return valid object.
-		    //This problem occurs because extents use pos-indices.
-		    //TODO Ideally we should use a OID based class-index. See design.txt.
-		    //ext.refresh();
+			//TODO remove, is this still useful?
 			ext.close();
 		}
-		DBLogger.debugPrintln(2, "FIXME: 2-phase Session.commit()");
 		isActive = false;
 	}
 
+
+	private void getObjectToCommit(ArrayList<Long> updateOids, ArrayList<Long> updateTimstamps) {
+		//TODO use PrimArrayList?
+		for (ZooPC pc: cache.getDeletedObjects()) {
+			updateOids.add(pc.jdoZooGetOid());
+			updateTimstamps.add(pc.jdoZooGetTimestamp());
+		}
+		for (ZooPC pc: cache.getDirtyObjects()) {
+			updateOids.add(pc.jdoZooGetOid());
+			updateTimstamps.add(pc.jdoZooGetTimestamp());
+		}
+		for (GenericObject pc: cache.getDirtyGenericObjects()) {
+			updateOids.add(pc.getOid());
+			updateTimstamps.add(pc.jdoZooGetTimestamp());
+		}
+		for (ZooClassDef cd: cache.getSchemata()) {
+			if (cd.jdoZooIsDeleted() || cd.jdoZooIsNew() || cd.jdoZooIsDirty()) {
+				updateOids.add(cd.jdoZooGetOid());
+				updateTimstamps.add(cd.jdoZooGetTimestamp());
+			}
+		}
+	}
+
+	private void processOptimisticVerification(boolean isTrialRun) {
+		ArrayList<Long> updateOids = new ArrayList<>();
+		ArrayList<Long> updateTimstamps = new ArrayList<>();
+		getObjectToCommit(updateOids, updateTimstamps);
+		OptimisticTransactionResult ovrSummary = new OptimisticTransactionResult();
+		for (Node n: nodes) {
+			ovrSummary.add( n.beginCommit(updateOids, updateTimstamps) );
+		}
+		
+		processOptimisticTransactionResult(ovrSummary);
+		
+		if (!ovrSummary.getConflicts().isEmpty()) {
+			JDOOptimisticVerificationException[] ea = 
+					new JDOOptimisticVerificationException[ovrSummary.getConflicts().size()];
+			int pos = 0;
+			for (Long oid: ovrSummary.getConflicts()) {
+				Object failedObj = cache.findCoByOID(oid); 
+				if (failedObj == null) {
+					//generic object
+					failedObj = cache.getGeneric(oid).getOrCreateHandle();
+				}
+				ea[pos] = new JDOOptimisticVerificationException(Util.oidToString(oid), failedObj);
+				pos++;
+			}
+			if (!isTrialRun) {
+				//perform rollback
+				rollback();
+			}
+			throw new JDOOptimisticVerificationException("Optimistic verification failed", ea);
+		}
+	}
+	
+	private void processOptimisticTransactionResult(OptimisticTransactionResult otr) {
+		if (otr.requiresReset()) {
+			isActive = false;
+			close();
+			throw DBLogger.newFatalDataStore(
+					"Database schema has changed, please reconnect. ", null);
+		}
+		if (otr.requiresRefresh()) {
+			if (schemaManager.hasChanges()) {
+				//remote index update & local schema updates (could be index) --> considered bad!
+				throw new JDOOptimisticVerificationException("Optimistic verification failed "
+						+ "because schema changes occurred in remote concurrent sessions.");
+			}
+
+			// refresh schema, this works only for indexes
+			schemaManager.refreshSchemaAll();
+		}
+	}
 	
 	private void commitInternal() {
 		//create new schemata
 		Collection<ZooClassDef> schemata = cache.getSchemata();
-//		for (ZooClassDef cs: schemata) {
-//			if (cs.jdoZooIsDeleted()) continue;
-//			if (cs.jdoZooIsNew() || cs.jdoZooIsDirty()) {
-//				checkSchemaFields(cs, schemata);
-//			}
-//		}
 		
 		//First delete
 		for (ZooPC co: cache.getDeletedObjects()) {
@@ -182,9 +264,9 @@ public class Session implements IteratorRegistry {
 		//generic objects
 		if (!cache.getDirtyGenericObjects().isEmpty()) {
     		for (GenericObject go: cache.getDirtyGenericObjects()) {
-    			if (go.isDeleted() && !go.isNew()) {
+    			if (go.jdoZooIsDeleted() && !go.jdoZooIsNew()) {
     				if (!go.checkPcDeleted()) {
-    					go.getClassDef().getProvidedContext().getDataDeleteSink().deleteGeneric(go);
+    					go.jdoZooGetContext().getDataDeleteSink().deleteGeneric(go);
     				}
     			}
     		}
@@ -214,10 +296,10 @@ public class Session implements IteratorRegistry {
 		if (!cache.getDirtyGenericObjects().isEmpty()) {
 			//TODO we are iterating twice through dirty/deleted objects... is that necessary?
     		for (GenericObject go: cache.getDirtyGenericObjects()) {
-    			if (!go.isDeleted()) {
+    			if (!go.jdoZooIsDeleted()) {
     				go.verifyPcNotDirty();
 	    		    go.toStream();
-	                go.getClassDef().getProvidedContext().getDataSink().writeGeneric(go);
+	                go.jdoZooGetContext().getDataSink().writeGeneric(go);
     			}
     		}
 		}
@@ -232,12 +314,14 @@ public class Session implements IteratorRegistry {
 		checkActive();
 		schemaManager.rollback();
 		
+		OptimisticTransactionResult otr = new OptimisticTransactionResult();
 		for (Node n: nodes) {
-			n.rollback();
-			//TODO two-phase rollback() ????
+			otr.add( n.rollbackTransaction() );
 		}
 		cache.rollback();
 		isActive = false;
+
+		processOptimisticTransactionResult(otr);
 	}
 	
 	public void makePersistent(ZooPC pc) {
@@ -348,6 +432,27 @@ public class Session implements IteratorRegistry {
         	//ignore, return null
         }
         return null;
+	}
+
+	public ZooHandleImpl getHandle(Object pc) {
+		checkActive();
+		ZooPC pci = checkObject(pc);
+		long oid = pci.jdoZooGetOid();
+		GenericObject gob = cache.getGeneric(oid);
+		if (gob != null) {
+			return gob.getOrCreateHandle();
+		}
+		
+		if (pci.jdoZooIsNew() || pci.jdoZooIsDirty()) {
+			//TODO  the problem here is the initialisation of the GO, which would require
+			//a way to serialize PCs into memory and deserialize them into an GO
+			throw new UnsupportedOperationException("Handles on new or dirty Java PC objects " +
+					"are not allowed. Please call commit() first or create handles with " +
+					"ZooClass.newInstance() instead. OID: " + Util.getOidAsString(pci));
+		}
+		ZooClassDef schema = pci.jdoZooGetClassDef();
+		GenericObject go = pci.jdoZooGetNode().readGenericObject(schema, oid);
+		return go.getOrCreateHandle();
 	}
 
 	public Object refreshObject(Object pc) {
@@ -616,5 +721,9 @@ public class Session implements IteratorRegistry {
 	 */
 	public ZooSchema schema() {
 		return new ZooSchemaImpl(this, schemaManager);
+	}
+	
+	public long getTransactionId() {
+		return transactionId;
 	}
 }

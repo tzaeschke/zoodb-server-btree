@@ -24,6 +24,7 @@ import java.util.Date;
 
 import org.zoodb.api.impl.ZooPC;
 import org.zoodb.internal.util.DBLogger;
+import org.zoodb.internal.util.Util;
 import org.zoodb.schema.ZooClass;
 import org.zoodb.schema.ZooField;
 import org.zoodb.schema.ZooHandle;
@@ -41,6 +42,7 @@ public class ZooHandleImpl implements ZooHandle {
 	private final ZooClassProxy versionProxy;
 	private GenericObject gObj;
 	private ZooPC pcObj;
+	private boolean isInvalid = false;
 	
     public ZooHandleImpl(GenericObject go, ZooClassProxy versionProxy) {
         this(go.getOid(), versionProxy, null, go);
@@ -155,7 +157,7 @@ public class ZooHandleImpl implements ZooHandle {
 	public void remove() {
 		check();
 		if (gObj != null) {
-			getGenericObject().setDeleted(true);
+			getGenericObject().jdoZooMarkDeleted();
 		}
 		if (pcObj != null) {
 			session.deletePersistent(pcObj);
@@ -163,10 +165,14 @@ public class ZooHandleImpl implements ZooHandle {
 	}
 	
 	private void check() {
+		if (isInvalid) {
+			throw new IllegalStateException("This object has been invalidated/deleted.");
+		}
+		versionProxy.checkInvalid();
 		if (session.isClosed()) {
 			throw new IllegalStateException("Session is closed.");
 		}
-		if (gObj != null && gObj.isDeleted()) {
+		if (gObj != null && gObj.jdoZooIsDeleted()) {
 			throw new IllegalStateException("Object is deleted.");
 		}
 	}
@@ -181,7 +187,7 @@ public class ZooHandleImpl implements ZooHandle {
 	public Object getJavaObject() {
 		check();
 		if (pcObj == null) {
-			if (gObj != null && (gObj.isNew() || gObj.isDirty())) {
+			if (gObj != null && (gObj.jdoZooIsNew() || gObj.jdoZooIsDirty())) {
         		//TODO  the problem here is the initialisation of the PC, which would require
         		//a way to serialize GOs into memory and deserialize them into an PC.
 				throw new UnsupportedOperationException("Can not convert new or dirty handles " +
@@ -216,4 +222,13 @@ public class ZooHandleImpl implements ZooHandle {
 		return pcObj;
 	}
 	
+	@Override
+	public String toString() {
+		return Util.oidToString(oid);
+	}
+
+	public void invalidate() {
+		isInvalid = true;
+	}
+
 }

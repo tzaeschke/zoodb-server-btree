@@ -21,19 +21,15 @@
 package org.zoodb.internal.server;
 
 import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.zoodb.internal.Node;
 import org.zoodb.internal.client.AbstractCache;
-import org.zoodb.internal.server.index.FreeSpaceManager;
 import org.zoodb.internal.util.DBLogger;
-import org.zoodb.tools.ZooConfig;
 
 /**
  * 
@@ -41,56 +37,45 @@ import org.zoodb.tools.ZooConfig;
  */
 public class SessionFactory {
 
-	private static Map<Path, FreeSpaceManager> sessions = new HashMap<Path, FreeSpaceManager>();
+	private static List<SessionManager> sessions = new ArrayList<>();
 	
-	public static DiskAccessOneFile getSession(Node node, AbstractCache cache) {
+	public synchronized static DiskAccessOneFile getSession(Node node, AbstractCache cache) {
 		String dbPath = node.getDbPath();
 		DBLogger.debugPrintln(1, "Opening DB file: " + dbPath);
 
 		Path path = FileSystems.getDefault().getPath(dbPath); 
-		
-		FreeSpaceManager fsm = null;
-//		try {
-//			for (Path aPath: sessions.keySet()) {
-//				if (Files.isSameFile(aPath, path)) {
-//					fsm = sessions.get(aPath);
-//					break;
-//				}
-//			}
-//		} catch (IOException e) {
-//			throw DBLogger.newFatal("Failed while acessing path: " + dbPath, e);
-//		}
 
-		if (fsm == null) {
-			//create DB file
-			fsm = new FreeSpaceManager();
-			sessions.put(path, fsm);
-		}
-		
-		StorageChannel file = createPageAccessFile(dbPath, "rw", fsm);
-		
-		return new DiskAccessOneFile(node, cache, fsm, file);
-	}
-	
-	private static StorageChannel createPageAccessFile(String dbPath, String options, 
-			FreeSpaceManager fsm) {
+		SessionManager sm = null;
 		try {
-			Class<?> cls = Class.forName(ZooConfig.getFileProcessor());
-			Constructor<?> con = cls.getConstructor(String.class, String.class, Integer.TYPE, 
-					FreeSpaceManager.class);
-			StorageChannel paf = 
-				(StorageChannel) con.newInstance(dbPath, options, ZooConfig.getFilePageSize(), fsm);
-			return paf;
-		} catch (Exception e) {
-			if (e instanceof InvocationTargetException) {
-				Throwable t2 = e.getCause();
-				if (DBLogger.USER_EXCEPTION.isAssignableFrom(t2.getClass())) {
-					throw (RuntimeException)t2;
+			//TODO this does not scale
+			for (SessionManager smi: sessions) {
+				if (Files.isSameFile(smi.getPath(), path)) {
+					sm = smi;
+					break;
 				}
 			}
-			throw DBLogger.newFatal("path=" + dbPath, e);
+		} catch (IOException e) {
+			throw DBLogger.newFatal("Failed while acessing path: " + dbPath, e);
 		}
+
+		if (sm == null) {
+			//create DB file
+			sm = new SessionManager(path);
+			sessions.add(sm);
+		}
+		
+		
+		return sm.createSession(node, cache);
 	}
 	
+	static synchronized void removeSession(SessionManager sm) {
+		//TODO this does not scale
+		if (!sessions.remove(sm)) {
+			throw DBLogger.newFatalInternal("Server session not found for: " + sm.getPath());
+		}
+	}
 
+	public synchronized static void clear() {
+		sessions.clear();
+	}
 }

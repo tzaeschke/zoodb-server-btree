@@ -194,7 +194,9 @@ public class Test_038_SchemaAutoCreate {
         	assertTrue(e.getMessage().contains(TestClassSmallA.class.getSimpleName()));
         	assertTrue(e.getMessage().contains(TestClassSmallB.class.getSimpleName()));
         }
-        
+
+        pm.currentTransaction().begin();
+        s1.remove();
         s2.remove();
         s.remove();
         
@@ -428,6 +430,26 @@ public class Test_038_SchemaAutoCreate {
 
         Query q2 = pm.newQuery("select from " + TestClassTiny.class.getName());
         assertTrue(((Collection<?>)q2.execute()).isEmpty());
+
+        assertNull(ZooJdoHelper.schema(pm).getClass(TestClassTiny.class));
+        assertNull(ZooJdoHelper.schema(pm).getClass(TestClassTiny2.class));
+        
+        pm.currentTransaction().rollback();
+        TestTools.closePM();
+    }
+
+    /**
+     * Bug #40: NPE in query compile().
+     */
+    @Test
+    public void testQueryCompileWithAutoBug_40() {
+        PersistenceManager pm = TestTools.openPM(props);
+        pm.currentTransaction().begin();
+
+        Query q = pm.newQuery(TestClassTiny.class, "_int == 123");
+        q.compile();
+        
+        assertTrue(((Collection<?>)q.execute()).isEmpty());
 
         assertNull(ZooJdoHelper.schema(pm).getClass(TestClassTiny.class));
         assertNull(ZooJdoHelper.schema(pm).getClass(TestClassTiny2.class));

@@ -81,6 +81,14 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 	private boolean isDirty = false;
 	private final ArrayList<Integer> pageIDs = new ArrayList<Integer>();
 	
+	//updates that require re-opening the database connection
+	private boolean isResetRequired = false;
+	private long txIdOfLastWrite = -1;
+
+	//updates that can be solved with refresh
+	private boolean isRefreshRequired = false;
+	private long txIdOfLastWriteThatRequiresRefresh = -1;
+	
 	private static class FieldIndex {
 	    //This is the unique fieldId which is maintained throughout different versions of the field
 		private long fieldId;
@@ -90,7 +98,7 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 		private LongLongIndex index;
 	}
 
-	private enum FTYPE {
+	public static enum FTYPE {
 		LONG(8, Long.TYPE, "long"),
 		INT(4, Integer.TYPE, "int"),
 		SHORT(2, Short.TYPE, "short"),
@@ -107,7 +115,7 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 //			this.type = type;
 			this.typeName = typeName;
 		}
-		static FTYPE fromType(String typeName) {
+		public static FTYPE fromType(String typeName) {
 			for (FTYPE t: values()) {
 				if (t.typeName.equals(typeName)) {
 					return t;
@@ -133,7 +141,6 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 		private int[] objIndexPages;
 		private transient PagedPosIndex[] objIndex;
 		private ArrayList<FieldIndex> fieldIndices = new ArrayList<FieldIndex>();
-		private transient ZooClassDef classDef;
 		
 		/**
 		 * Constructor for reading index.
@@ -178,7 +185,6 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 			this.objIndex = new PagedPosIndex[1];
 			this.objIndex[0] = PagedPosIndex.newIndex(file);
 			this.objIndexPages = new int[1];
-			this.classDef = def;
 		}
 		
 		private void write(StorageChannelOutput out) {
@@ -230,7 +236,7 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 		public LongLongIndex defineIndex(ZooFieldDef field, boolean isUnique) {
 			//double check
 			if (!field.isPrimitiveType() && !field.isString()) {
-				throw DBLogger.newUser("Type can not be indexed: " + field.getTypeName());
+				throw new IllegalArgumentException("Type can not be indexed: " + field.getTypeName());
 			}
 			for (FieldIndex fi: fieldIndices) {
 				if (fi.fieldId == field.getFieldSchemaId()) {
@@ -250,6 +256,7 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 				fi.index = IndexFactory.createIndex(DATA_TYPE.FIELD_INDEX, file);
 			}
 			fieldIndices.add(fi);
+			markRefreshRequired();
 			return fi.index;
 		}
 
@@ -261,6 +268,7 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 					iter.remove();
 					fi.index.clear();
 					field.setIndexed(false);
+					markRefreshRequired();
 					return true;
 				}
 			}
@@ -354,7 +362,6 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
                     }
                 }
             }
-            classDef = defNew;
         }
         
         public PagedPosIndex getObjectIndexVersion(int version) {
@@ -393,7 +400,7 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 	}
 
 	
-	public int write() {
+	public int write(long txId) {
 		//report free pages from previous read or write
 		for (int pID: pageIDs) {
 			//TODO this will only be used if we have many schemas or many versions.... Hardly tested yet.
@@ -443,6 +450,16 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 		out.flush();
 		markClean();
 
+		if (isResetRequired) {
+			txIdOfLastWrite = txId;
+			isResetRequired = false;
+		}
+		
+		if (isRefreshRequired) {
+			txIdOfLastWriteThatRequiresRefresh = txId;
+			isRefreshRequired = false;
+		}
+		
 		return pageId;
 	}
 
@@ -505,10 +522,6 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 		    for (long schemaOid: se.schemaOids) {
     			ZooClassDef def = (ZooClassDef) dao.readObject(schemaOid);
     			ret.put( def.getOid(), def );
-    			if (se.classDef == null || 
-    			        se.classDef.getSchemaVersion() < def.getSchemaVersion()) {
-    			    se.classDef = def;
-    			}
 		    }
 		}
 		// assign versions
@@ -555,19 +568,11 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 	}
 
 	public void defineSchema(ZooClassDef def) {
-		String clsName = def.getClassName();
-		
-		//search schema in index
-		for (SchemaIndexEntry e: schemaIndex.values()) {
-			if (e.classDef.getClassName().equals(clsName)) {
-	            throw DBLogger.newFatal("Schema is already defined: " + clsName + 
-	                    " oid=" + Util.oidToString(def.getOid()));
-			}
-		}
+		markResetRequired();
 		
         // check if such an entry exists!
         if (getSchema(def) != null) {
-            throw DBLogger.newFatal("Schema is already defined: " + clsName + 
+            throw DBLogger.newFatal("Schema is already defined: " + def.getClassName() + 
                     " oid=" + Util.oidToString(def.getOid()));
         }
         SchemaIndexEntry entry = new SchemaIndexEntry(file, def);
@@ -576,6 +581,7 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 	}
 
 	public void undefineSchema(ZooClassProxy sch) {
+		markResetRequired();
 		//We remove it from known schema list.
 		SchemaIndexEntry entry = schemaIndex.remove(sch.getSchemaId());
 		markDirty();
@@ -598,6 +604,7 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 	}	
 
 	public void newSchemaVersion(ZooClassDef defNew) {
+		markResetRequired();
 	    //add a new version to the existing entry
         SchemaIndexEntry entry = schemaIndex.get(defNew.getSchemaId());
         entry.addVersion(defNew);
@@ -614,10 +621,20 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
         return ret;
 	}
 
-	public void revert(int rootPage) {
+	public void renameSchema(ZooClassDef def, String newName) {
+		//Nothing to do, just rewrite it here.
+		//TODO remove this method, should be automatically rewritten if ClassDef is dirty. 
+		markResetRequired();
+	}
+
+	public void revert(int rootPage, long schemaTxId) {
 		schemaIndex.clear();
 		pageId = rootPage;
 		readIndex();
+		txIdOfLastWrite = schemaTxId;
+		txIdOfLastWriteThatRequiresRefresh = schemaTxId;
+		isResetRequired = false;
+		isRefreshRequired = false;
 	}
 
 	public long countInstances(ZooClassProxy def, boolean subClasses) {
@@ -648,5 +665,29 @@ public class SchemaIndex implements CallbackPageRead, CallbackPageWrite {
 		ret.addAll(pageIDs);
 		ret.add(pageId);
 		return ret;
+	}
+	
+	public long getTxIdOfLastWrite() {
+		return txIdOfLastWrite;
+	}
+	
+	/**
+	 * Mark that a reset of concurring sessions is required, for example if the schema was changed.
+	 */
+	public void markResetRequired() {
+		isResetRequired = true;
+	}
+	
+	/**
+	 * 
+	 * @return Id of the last transaction which requires a refresh for concurrent session,
+	 * for example if an index was added or removed.
+	 */
+	public long getTxIdOfLastWriteThatRequiresRefresh() {
+		return txIdOfLastWriteThatRequiresRefresh;
+	}
+	
+	void markRefreshRequired() {
+		isRefreshRequired = true;
 	}
 }

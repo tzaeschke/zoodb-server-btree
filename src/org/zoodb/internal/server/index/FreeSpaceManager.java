@@ -343,4 +343,8 @@ public class FreeSpaceManager {
 	long getTxId() {
 		return currentTxId;
 	}
+
+	public StorageChannel getFile() {
+		return idx.file;
+	}
 }

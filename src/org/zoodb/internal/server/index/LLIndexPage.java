@@ -196,7 +196,7 @@ class LLIndexPage extends AbstractIndexPage {
 	
 	public LongLongIndex.LLEntry getValueFromLeafUnique(long oid) {
 		if (!isLeaf) {
-			throw DBLogger.newFatal("Leaf inconsistency.");
+			throw DBLogger.newFatalInternal("Leaf inconsistency.");
 		}
 		int pos = binarySearchUnique(0, nEntries, oid);
 		if (pos >= 0) {
@@ -285,7 +285,7 @@ class LLIndexPage extends AbstractIndexPage {
      */
 	public final void put(long key, long value) {
 		if (!isLeaf) {
-			throw DBLogger.newFatal("Tree inconsistency.");
+			throw DBLogger.newFatalInternal("Tree inconsistency.");
 		}
 
 		//in any case, check whether the key(+value) already exists
@@ -430,7 +430,7 @@ class LLIndexPage extends AbstractIndexPage {
 		//-> surely not at the moment, where we only merge with pages that have the same 
 		//   immediate parent...
 		if (isLeaf) {
-			throw DBLogger.newFatal("Tree inconsistency");
+			throw DBLogger.newFatalInternal("Tree inconsistency");
 		}
 		int start = binarySearch(0, nEntries, key, value);
 		if (start < 0) {
@@ -458,13 +458,13 @@ class LLIndexPage extends AbstractIndexPage {
 //		this.printLocal();
 //		System.out.println("leaf: " + indexPage);
 //		indexPage.printLocal();
-		throw DBLogger.newFatal("leaf page not found.");
+		throw DBLogger.newFatalInternal("leaf page not found.");
 		
 	}
 	
 	void addSubPage(LLIndexPage newP, long minKey, long minValue) {
 		if (isLeaf) {
-			throw DBLogger.newFatal("Tree inconsistency");
+			throw DBLogger.newFatalInternal("Tree inconsistency");
 		}
 		
 		markPageDirtyAndClone();
@@ -779,7 +779,7 @@ class LLIndexPage extends AbstractIndexPage {
 //		this.printLocal();
 //		System.out.println("leaf: " + indexPage);
 //		indexPage.printLocal();
-		throw DBLogger.newFatal("leaf page not found.");
+		throw DBLogger.newFatalInternal("leaf page not found.");
 	}
 
 	private void arraysRemoveKey(int pos) {
@@ -841,7 +841,7 @@ class LLIndexPage extends AbstractIndexPage {
 //		this.printLocal();
 //		System.out.println("sub-page:");
 //		indexPage.printLocal();
-		throw DBLogger.newFatal("Sub-page not found.");
+		throw DBLogger.newFatalInternal("Sub-page not found.");
 	}
 
 	@Override

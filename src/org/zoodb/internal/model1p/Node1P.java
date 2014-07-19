@@ -20,6 +20,7 @@
  */
 package org.zoodb.internal.model1p;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
@@ -37,6 +38,7 @@ import org.zoodb.internal.ZooHandleImpl;
 import org.zoodb.internal.client.SchemaManager;
 import org.zoodb.internal.client.session.ClientSessionCache;
 import org.zoodb.internal.server.DiskAccess;
+import org.zoodb.internal.server.OptimisticTransactionResult;
 import org.zoodb.internal.server.SessionFactory;
 import org.zoodb.internal.server.index.PagedOidIndex;
 import org.zoodb.internal.server.index.SchemaIndex.SchemaIndexEntry;
@@ -86,6 +88,9 @@ public class Node1P extends Node {
 				commonCache.addSchema(def, true, this);
 			}
 		}
+		
+		//To drop all locks
+		disk.rollbackTransaction();
 	}
 	
 	@Override
@@ -102,15 +107,25 @@ public class Node1P extends Node {
 	}
 
 	@Override
-	public void beginTransaction() {
-		disk.beginTransaction();
+	public long beginTransaction() {
+		return disk.beginTransaction();
+	}
+	
+	@Override
+	public OptimisticTransactionResult rollbackTransaction() {
+		return disk.rollbackTransaction();
 	}
 	
 	@Override
 	public void commit() {
 		disk.commit();
 	}
-	
+
+	@Override
+	public OptimisticTransactionResult checkTxConsistency(ArrayList<Long> updateOids,
+			ArrayList<Long> updateTimstamps) {
+		return disk.checkTxConsistency(updateOids, updateTimstamps);
+	}
 	
 	@Override
 	public void revert() {
@@ -147,14 +162,19 @@ public class Node1P extends Node {
 	
 	@Override
 	public final void makePersistent(ZooPC obj) {
-	    ZooClassDef cs = commonCache.getSchema(obj.getClass(), this);
-	    if (cs == null || cs.jdoZooIsDeleted()) {
-	    	SchemaManager sm = commonCache.getSession().getSchemaManager();
-	    	if (sm.getAutoCreateSchema()) {
-	    		cs = sm.createSchema(this, obj.getClass()).getSchemaDef();
-	    	} else {
-	    		throw DBLogger.newUser("No schema found for object: " + obj.getClass().getName());
-	    	}
+	    ZooClassDef cs;
+	    if (obj.getClass() != GenericObject.class) {
+		    cs = commonCache.getSchema(obj.getClass(), this);
+		    if (cs == null || cs.jdoZooIsDeleted()) {
+		    	SchemaManager sm = commonCache.getSession().getSchemaManager();
+		    	if (sm.getAutoCreateSchema()) {
+		    		cs = sm.createSchema(this, obj.getClass()).getSchemaDef();
+		    	} else {
+		    		throw DBLogger.newUser("No schema found for object: " + obj.getClass().getName());
+		    	}
+		    }
+	    } else {
+	    	cs = ((GenericObject)obj).jdoZooGetClassDef();
 	    }
 		//allocate OID
 		long oid = getOidBuffer().allocateOid();
@@ -209,6 +229,11 @@ public class Node1P extends Node {
 	}
 
 	@Override
+	public void renameSchema(ZooClassDef def, String newName) {
+		disk.renameSchema(def, newName);
+	}
+
+	@Override
 	public void undefineSchema(ZooClassProxy def) {
 		disk.undefineSchema(def);
 	}
@@ -251,5 +276,11 @@ public class Node1P extends Node {
 	@Override
 	public boolean checkIfObjectExists(long oid) {
 		return disk.checkIfObjectExists(oid);
+	}
+
+	@Override
+	public OptimisticTransactionResult beginCommit(ArrayList<Long> updateOids, 
+			ArrayList<Long> updateTimestamps) {
+		return disk.beginCommit(updateOids, updateTimestamps);
 	}
 }

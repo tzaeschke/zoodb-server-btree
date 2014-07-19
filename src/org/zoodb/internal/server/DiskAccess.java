@@ -20,6 +20,7 @@
  */
 package org.zoodb.internal.server;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 
@@ -84,6 +85,8 @@ public interface DiskAccess {
 
 	public void newSchemaVersion(ZooClassDef defNew);
 
+	public void renameSchema(ZooClassDef def, String newName);
+
 	public void undefineSchema(ZooClassProxy def);
 
 	public void readObject(ZooPC pc);
@@ -108,6 +111,14 @@ public interface DiskAccess {
 
 	boolean checkIfObjectExists(long oid);
 
-	public void beginTransaction();
+	public long beginTransaction();
+
+	public OptimisticTransactionResult rollbackTransaction();
+
+	public OptimisticTransactionResult beginCommit(ArrayList<Long> updateOids, 
+			ArrayList<Long> updateTimestamps);
+
+	public OptimisticTransactionResult checkTxConsistency(ArrayList<Long> updateOids, 
+			ArrayList<Long> updateTimstamps);
 	
 }

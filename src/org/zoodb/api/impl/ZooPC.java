@@ -24,6 +24,7 @@ import javax.jdo.ObjectState;
 import javax.jdo.listener.ClearCallback;
 
 import org.zoodb.api.ZooInstanceEvent;
+import org.zoodb.internal.GenericObject;
 import org.zoodb.internal.Node;
 import org.zoodb.internal.Session;
 import org.zoodb.internal.ZooClassDef;
@@ -77,6 +78,8 @@ public abstract class ZooPC {
 	
 	private transient long[] prevValues = null;
 	
+	private transient long txTimestamp = Session.TIMESTAMP_NOT_ASSIGNED;
+	
 	public final boolean jdoZooIsDirty() {
 		return (stateFlags & PS_DIRTY) != 0;
 	}
@@ -90,13 +93,6 @@ public abstract class ZooPC {
 		return (stateFlags & PS_TRANSACTIONAL) != 0;
 	}
 	public final boolean jdoZooIsPersistent() {
-		return (stateFlags & PS_PERSISTENT) != 0;
-	}
-	/**
-	 * Not part of the JDO state API. This can also return true if the instance is pers-deleted.
-	 * @return  if instance is hollow.
-	 */
-	public final boolean zooIsHollow() {
 		return (stateFlags & PS_PERSISTENT) != 0;
 	}
 	public final Node jdoZooGetNode() {
@@ -168,41 +164,59 @@ public abstract class ZooPC {
 //		}
 //	}
 	public final void jdoZooMarkDirty() {
-		ObjectState statusO = status;
 		context.notifyEvent(this, ZooInstanceEvent.PRE_DIRTY);
-		if (statusO == ObjectState.PERSISTENT_CLEAN) {
+		switch (status) {
+		case PERSISTENT_CLEAN:
 			setPersDirty();
 			getPrevValues();
-		} else if (statusO == ObjectState.PERSISTENT_NEW) {
+			break;
+		case PERSISTENT_NEW:
 			//is already dirty
 			//status = ObjectState.PERSISTENT_DIRTY;
-		} else if (statusO == ObjectState.PERSISTENT_DIRTY) {
+			break;
+		case PERSISTENT_DIRTY:
 			//is already dirty
 			//status = ObjectState.PERSISTENT_DIRTY;
-		} else if (statusO == ObjectState.HOLLOW_PERSISTENT_NONTRANSACTIONAL) {
+			break;
+		case HOLLOW_PERSISTENT_NONTRANSACTIONAL:
 			//refresh first, then make dirty
-			zooActivateRead();
+			if (getClass() == GenericObject.class) {
+				((GenericObject)this).activateRead();
+			} else {
+				zooActivateRead();
+			}
 			jdoZooMarkDirty();
-		} else {
+			break;
+		default:
 			throw new IllegalStateException("Illegal state transition: " + status + "->Dirty: " + 
 					Util.oidToString(jdoZooOid));
 		}
 		context.notifyEvent(this, ZooInstanceEvent.POST_DIRTY);
 	}
 	public final void jdoZooMarkDeleted() {
-		ObjectState statusO = status;
-		if (statusO == ObjectState.PERSISTENT_CLEAN ||
-				statusO == ObjectState.PERSISTENT_DIRTY) {
-			setPersDeleted();
-		} else if (statusO == ObjectState.PERSISTENT_NEW) {
-			setPersNewDeleted();
-		} else if (statusO == ObjectState.HOLLOW_PERSISTENT_NONTRANSACTIONAL) {
-			setPersDeleted();
-		} else if (statusO == ObjectState.PERSISTENT_DELETED 
-				|| statusO == ObjectState.PERSISTENT_NEW_DELETED) {
+		switch (status) {
+		case PERSISTENT_CLEAN:
+		case PERSISTENT_DIRTY:
+			setPersDeleted(); break;
+		case PERSISTENT_NEW:
+			setPersNewDeleted(); break;
+		case HOLLOW_PERSISTENT_NONTRANSACTIONAL:
+			//make a backup! This is a bit of a hack:
+			//When deleting an object, we have to remove it from the attr-indexes.
+			//However, during removal, the object is marked as PERSISTENT_DELETED,
+			//independent of whether it was previously hollow or not. 
+			//If it is hollow, we have to refresh() it, otherwise not.
+			//So we do the refresh here, where we still know whether it was hollow.
+			if (context.getIndexer().isIndexed()) {
+				//refresh + createBackup
+				context.getNode().refreshObject(this);
+			}
+			setPersDeleted(); break;
+		case PERSISTENT_DELETED:
+		case PERSISTENT_NEW_DELETED: 
 			throw DBLogger.newUser("The object has already been deleted: " + 
 					Util.oidToString(jdoZooOid));
-		} else {
+		default: 
 			throw new IllegalStateException("Illegal state transition(" + 
 					Util.oidToString(jdoZooGetOid()) + "): " + status + "->Deleted");
 		}
@@ -214,21 +228,23 @@ public abstract class ZooPC {
 	}
 
 	public final void jdoZooMarkTransient() {
-		ObjectState statusO = status;
-		if (statusO == ObjectState.TRANSIENT) {
+		switch (status) {
+		case TRANSIENT: 
 			//nothing to do 
-		} else if (statusO == ObjectState.PERSISTENT_CLEAN ||
-				statusO == ObjectState.HOLLOW_PERSISTENT_NONTRANSACTIONAL) {
-			setTransient();
-		} else if (statusO == ObjectState.PERSISTENT_NEW) {
-			throw DBLogger.newUser("The object is new.");
-		} else if (statusO == ObjectState.PERSISTENT_DIRTY) {
+			break;
+		case PERSISTENT_CLEAN:
+		case HOLLOW_PERSISTENT_NONTRANSACTIONAL: 
+			setTransient(); break;
+		case PERSISTENT_NEW :
+			setTransient(); break;
+		case PERSISTENT_DIRTY:
 			throw DBLogger.newUser("The object is dirty.");
-		} else if (statusO == ObjectState.PERSISTENT_DELETED 
-				|| statusO == ObjectState.PERSISTENT_NEW_DELETED) {
+		case PERSISTENT_DELETED: 
 			throw DBLogger.newUser("The object has already been deleted: " + 
 					Util.oidToString(jdoZooOid));
-		} else {
+		case PERSISTENT_NEW_DELETED :
+			setTransient(); break;
+		default:
 			throw new IllegalStateException("Illegal state transition: " + status + "->Deleted");
 		}
 	}
@@ -266,6 +282,7 @@ public abstract class ZooPC {
 		switch (state) {
 		case PERSISTENT_NEW: { 
 			setPersNew();
+			jdoZooSetTimestamp(bundle.getSession().getTransactionId());
 			jdoZooGetContext().notifyEvent(this, ZooInstanceEvent.CREATE);
 			break;
 		}
@@ -291,7 +308,6 @@ public abstract class ZooPC {
 			throw new IllegalStateException();
 		}
 		prevValues = context.getIndexer().getBackup(this);
-		
 	}
 	
 	public long[] jdoZooGetBackup() {
@@ -440,6 +456,14 @@ public abstract class ZooPC {
 	@Override
 	public String toString() {
 		return super.toString() + " oid=" + Util.oidToString(jdoZooOid) + " state=" + status; 
+	}
+	
+	public void jdoZooSetTimestamp(long ts) {
+		txTimestamp = ts;
+	}
+	
+	public long jdoZooGetTimestamp() {
+		return txTimestamp;
 	}
 } // end class definition
 

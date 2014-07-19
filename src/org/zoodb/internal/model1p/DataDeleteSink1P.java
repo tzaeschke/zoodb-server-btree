@@ -75,6 +75,12 @@ public class DataDeleteSink1P implements DataDeleteSink {
      */
     @Override
     public void delete(ZooPC obj) {
+    	if (obj.getClass() == GenericObject.class) {
+    		throw new IllegalArgumentException();
+//    		deleteGeneric((GenericObject) obj);
+//    		return;
+    	}
+    	
         if (!isStarted) {
             this.sie = node.getSchemaIE(cls);
             isStarted = true;
@@ -90,6 +96,9 @@ public class DataDeleteSink1P implements DataDeleteSink {
 
     @Override
     public void deleteGeneric(GenericObject obj) {
+		if (obj.checkPcDeleted()) {
+			return;
+		}
         if (!isStarted) {
             this.sie = node.getSchemaIE(cls);
             isStarted = true;
@@ -151,7 +160,6 @@ public class DataDeleteSink1P implements DataDeleteSink {
             }
             iInd++;
 
-            //TODO?
             //For now we define that an index is shared by all classes and sub-classes that have
             //a matching field. So there is only one index which is defined in the top-most class
             SchemaIndexEntry schemaTop = node.getSchemaIE(field.getDeclaringType()); 
@@ -160,25 +168,17 @@ public class DataDeleteSink1P implements DataDeleteSink {
                 Field jField = field.getJavaField();
                 for (int i = 0; i < bufferCnt; i++) {
                     ZooPC co = buffer[i];
-                    //new and clean objects do not have a backup
-                    if (!co.jdoZooIsNew()) {
-                        //this can be null for objects that get deleted.
-                        //These are still dirty, because of the deletion
-                        if (co.jdoZooGetBackup()!=null) {
-                            //TODO It is bad that we update ALL indices here, even if the value didn't
-                            //change... -> Field-wise dirty!
-                            long l = co.jdoZooGetBackup()[iInd];
-                            fieldInd.removeLong(l, co.jdoZooGetOid());
-                            continue;
-                        }
+                    //This can be null for objects that have not been modified.
+                    //These are still dirty, because of the deletion
+                    if (co.jdoZooGetBackup() != null) {
+                    	long l = co.jdoZooGetBackup()[iInd];
+                    	fieldInd.removeLong(l, co.jdoZooGetOid());
+                    	continue;
                     }
                     long l;
                     if (field.isString()) {
-                        if (co.zooIsHollow()) {
-                        	//We need to activate it to get the values!
-                        	//But only for String, the primitives should be fine.
-                        	co.jdoZooGetContext().getNode().refreshObject(co);
-                        }
+                    	//No need to check for hollow objects here.
+                    	//If a hollow object gets deleted, it is automatically refreshed, zee ZooPC
                     	String str = (String)jField.get(co);
                         l = BitTools.toSortableLong(str);
                     } else {
@@ -217,7 +217,6 @@ public class DataDeleteSink1P implements DataDeleteSink {
             }
             iInd++;
 
-            //TODO?
             //For now we define that an index is shared by all classes and sub-classes that have
             //a matching field. So there is only one index which is defined in the top-most class
             SchemaIndexEntry schemaTop = node.getSchemaIE(field.getDeclaringType()); 
@@ -225,21 +224,16 @@ public class DataDeleteSink1P implements DataDeleteSink {
             try {
                 for (int i = 0; i < bufferCnt; i++) {
                     GenericObject co = buffer[i];
-                    //new and clean objects do not have a backup
-                    if (!co.isNew()) {
-                        //this can be null for objects that get deleted.
-                        //These are still dirty, because of the deletion
-                        if (co.jdoZooGetBackup()!=null) {
-                            //TODO It is bad that we update ALL indices here, even if the value didn't
-                            //change... -> Field-wise dirty!
-                            long l = co.jdoZooGetBackup()[iInd];
-                            fieldInd.removeLong(l, co.getOid());
-                            continue;
-                        }
+                    //This can be null for objects that have not been modified.
+                    //These are still dirty, because of the deletion
+                    if (co.jdoZooGetBackup() != null) {
+                    	long l = co.jdoZooGetBackup()[iInd];
+                    	fieldInd.removeLong(l, co.getOid());
+                    	continue;
                     }
                 	long l;
                     if (field.isString()) {
-                        if (co.isHollow()) {
+                        if (co.jdoZooIsStateHollow()) {
                         	//We need to activate it to get the values!
                         	//But only for String, the primitives should be fine.
                         	throw new UnsupportedOperationException();

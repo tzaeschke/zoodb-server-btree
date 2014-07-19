@@ -176,7 +176,6 @@ public class PagedOidIndex {
 	 * @param file
 	 */
 	public PagedOidIndex(StorageChannel file) {
-		//idx = new PagedUniqueLongLong(DATA_TYPE.OID_INDEX, file);
 		idx = IndexFactory.createUniqueIndex(DATA_TYPE.OID_INDEX, file);
 	}
 
@@ -187,11 +186,9 @@ public class PagedOidIndex {
 	 * deleted. This might cause a problem if references to the deleted objects still exist.
 	 */
 	public PagedOidIndex(StorageChannel file, int pageId, long lastUsedOid) {
-		//idx = new PagedUniqueLongLong(DATA_TYPE.OID_INDEX, file, pageId);
 		idx = IndexFactory.loadUniqueIndex(DATA_TYPE.OID_INDEX, file, pageId);
-		lastAllocatedInMemory = lastUsedOid;
-		if (lastAllocatedInMemory < MIN_OID) {
-			lastAllocatedInMemory = MIN_OID;
+		if (lastUsedOid > lastAllocatedInMemory) {
+			lastAllocatedInMemory = lastUsedOid;
 		}
 	}
 
@@ -246,7 +243,7 @@ public class PagedOidIndex {
 		
 		lastAllocatedInMemory += oidAllocSize;
 		if (lastAllocatedInMemory < 0) {
-			throw DBLogger.newFatal("OID overflow after alloc: " + oidAllocSize +
+			throw DBLogger.newFatalInternal("OID overflow after alloc: " + oidAllocSize +
 					" / " + lastAllocatedInMemory);
 		}
 		//do not set dirty here!
