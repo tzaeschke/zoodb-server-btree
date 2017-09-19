@@ -5,48 +5,44 @@ import java.util.List;
 import java.util.Observable;
 
 import org.zoodb.internal.server.DiskIO;
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageChannelInput;
 import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.util.DBLogger;
-import org.zoodb.internal.util.PrimLongMapLI;
+import org.zoodb.internal.util.PrimLongMapZ;
 
 public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 	private final int leafOrder;
 	private final int innerNodeOrder;
 	
-	private PrimLongMapLI<PagedBTreeNode> dirtyBuffer;
-	private PrimLongMapLI<PagedBTreeNode> cleanBuffer;
+	private PrimLongMapZ<PagedBTreeNode> dirtyBuffer;
+	private PrimLongMapZ<PagedBTreeNode> cleanBuffer;
 	private final int maxCleanBufferElements = -1;
 
 	private int pageIdCounter;
 	private final boolean isUnique;
 
-	private final StorageChannel storageFile;
-	private final StorageChannelInput storageIn;
-	private final StorageChannelOutput storageOut;
-	private DATA_TYPE dataType = DATA_TYPE.GENERIC_INDEX;;
+	private final IOResourceProvider storageFile;
+	private PAGE_TYPE dataType = PAGE_TYPE.GENERIC_INDEX;;
 	
 	private int statNWrittenPages = 0;
 	private int statNReadPages = 0;
 
-	public BTreeStorageBufferManager(StorageChannel storage, boolean isUnique) {
-		this.dirtyBuffer = new PrimLongMapLI<>();
-		this.cleanBuffer = new PrimLongMapLI<>();
+	public BTreeStorageBufferManager(IOResourceProvider storage, boolean isUnique) {
+		this.dirtyBuffer = new PrimLongMapZ<>();
+		this.cleanBuffer = new PrimLongMapZ<>();
 		this.pageIdCounter = 0;
 		this.isUnique = isUnique;
 		this.storageFile = storage;
-		this.storageIn = storage.getReader(false);
-		this.storageOut = storage.getWriter(false);
 		
     	int pageSize = this.storageFile.getPageSize();
     	this.leafOrder = computeLeafOrder(pageSize);
     	this.innerNodeOrder = computeInnerNodeOrder(pageSize, isUnique);
 	}
 
-	public BTreeStorageBufferManager(StorageChannel storage, boolean isUnique, DATA_TYPE dataType) {
+	public BTreeStorageBufferManager(IOResourceProvider storage, boolean isUnique, PAGE_TYPE dataType) {
 		this(storage, isUnique);
 		this.dataType = dataType;
 	}
@@ -77,7 +73,8 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	}
 
 	public PagedBTreeNode readNodeFromStorage(int pageId) {
-        storageIn.seekPageForRead(dataType, pageId);
+		StorageChannelInput storageIn = getIO().getInputChannel();
+		storageIn.seekPageForRead(dataType, pageId);
 
 		PagedBTreeNode node;
 
@@ -118,6 +115,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 								order, pageId, numKeys, keys, values,
 								childrenPageIds);
 		}
+		getIO().returnInputChannel(storageIn);
 
 		// node in memory == node in storage
 		node.markClean();
@@ -130,7 +128,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 
 
 	@Override
-	public int write(PagedBTreeNode node) {
+	public int write(PagedBTreeNode node, StorageChannelOutput out) {
 		if (!node.isDirty()) {
 			return node.getPageId();
 		}
@@ -141,7 +139,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 				PagedBTreeNode child = readNodeFromMemory(childPageId);
                 //if child is not in memory, then it can not be dirty
 				if(child != null && child.isDirty()) {
-                    int newChildPageId = write(child);
+                    int newChildPageId = write(child, out);
                     node.setChildPageId(childIndex, newChildPageId);
 				}
 
@@ -149,7 +147,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			}
 		}
 		// write data to storage and obtain new pageId
-		int newPageId = writeNodeDataToStorage(node);
+		int newPageId = writeNodeDataToStorage(node, out);
 
 		// update pageId in memory
 		dirtyBuffer.remove(node.getPageId());
@@ -184,7 +182,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 	 * 4 byte * order childrenPageIds 
 	 */
 
-	int writeNodeDataToStorage(PagedBTreeNode node) {
+	int writeNodeDataToStorage(PagedBTreeNode node, StorageChannelOutput storageOut) {
 
 		int previousPageId = node.getPageId() < 0 ? 0 : node.getPageId();
 		// if node was not written before (negative "page id") use 0
@@ -207,6 +205,7 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 			storageOut.noCheckWrite(childrenPageIds);
 		}
 
+		//TODO flush??? Is that necessary??
 		storageOut.flush();
 		return pageId;
 	}
@@ -305,8 +304,8 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		cleanBuffer.clear();
 	}
 
-	public PrimLongMapLI<PagedBTreeNode> getMemoryBuffer() {
-        PrimLongMapLI<PagedBTreeNode> ret = new PrimLongMapLI<PagedBTreeNode>();
+	public PrimLongMapZ<PagedBTreeNode> getMemoryBuffer() {
+        PrimLongMapZ<PagedBTreeNode> ret = new PrimLongMapZ<PagedBTreeNode>();
         ret.putAll(cleanBuffer);
         ret.putAll(dirtyBuffer);
 
@@ -334,11 +333,11 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return innerNodeOrder;
 	}
 
-	public PrimLongMapLI<PagedBTreeNode> getDirtyBuffer() {
+	public PrimLongMapZ<PagedBTreeNode> getDirtyBuffer() {
 		return dirtyBuffer;
 	}
 
-	public PrimLongMapLI<PagedBTreeNode> getCleanBuffer() {
+	public PrimLongMapZ<PagedBTreeNode> getCleanBuffer() {
 		return cleanBuffer;
 	}
 	
@@ -369,7 +368,8 @@ public class BTreeStorageBufferManager implements BTreeBufferManager {
 		return pageIds;
 	}
 
-	public StorageChannel getStorageFile() {
+	@Override
+	public IOResourceProvider getIO() {
 		return this.storageFile;
 	}
 }

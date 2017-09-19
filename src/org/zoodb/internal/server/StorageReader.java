@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -37,7 +37,8 @@ public class StorageReader implements StorageChannelInput {
 	//indicate whether to automatically allocate and move to next page when page end is reached.
 	private final boolean isAutoPaging;
 	//The header is only written in auto-paging mode
-	private long pageHeader = -1;
+	private long headerClassOID = -1;
+	private long txTimeStamp = -1;
 	
 	private final int MAX_POS;
 	
@@ -46,7 +47,7 @@ public class StorageReader implements StorageChannelInput {
 	private final int[] intArray;
 	
 	private CallbackPageRead overflowCallback = null;
-	private DATA_TYPE currentType;
+	private PAGE_TYPE currentType;
 
 	/**
 	 * Use for creating an additional view on a given file.
@@ -75,20 +76,20 @@ public class StorageReader implements StorageChannelInput {
 	}
 	
 	@Override
-	public void seekPageForRead(DATA_TYPE type, int pageId) {
+	public void seekPageForRead(PAGE_TYPE type, int pageId) {
 	    seekPage(type, pageId, 0);
 	}
 	
 	
 	@Override
-	public void seekPosAP(DATA_TYPE type, long pageAndOffs) {
+	public void seekPosAP(PAGE_TYPE type, long pageAndOffs) {
 		int page = BitTools.getPage(pageAndOffs);
 		int offs = BitTools.getOffs(pageAndOffs);
 		seekPage(type, page, offs);
 	}
 
 	@Override
-	public void seekPage(DATA_TYPE type, int pageId, int pageOffset) {
+	public void seekPage(PAGE_TYPE type, int pageId, int pageOffset) {
 		//isAutoPaging = autoPaging;
 
 		if (pageId != currentPage) {
@@ -98,7 +99,7 @@ public class StorageReader implements StorageChannelInput {
 		}
 
 		currentType = type;
-		if (type != DATA_TYPE.DB_HEADER) {
+		if (type != PAGE_TYPE.DB_HEADER) {
 			buf.clear();
 			readHeader();
 		}
@@ -107,7 +108,7 @@ public class StorageReader implements StorageChannelInput {
 			if (isAutoPaging) {
 				pageOffset = PAGE_HEADER_SIZE_DATA; //TODO this is dirty...
 			} else {
-				if (type != DATA_TYPE.DB_HEADER) {
+				if (type != PAGE_TYPE.DB_HEADER) {
 					pageOffset = PAGE_HEADER_SIZE;
 				}
 			}
@@ -220,6 +221,25 @@ public class StorageReader implements StorageChannelInput {
 	}
 	
 	@Override
+	public void noCheckRead(long[] array, int len) {
+		LongBuffer lb = buf.asLongBuffer();
+		lb.get(array, 0, len);
+	    buf.position(buf.position() + S_LONG * len);
+	}
+	
+	@Override
+	public void noCheckRead(int[] array, int len) {
+		IntBuffer lb = buf.asIntBuffer();
+		lb.get(array, 0, len);
+	    buf.position(buf.position() + S_INT * len);
+	}
+	
+	@Override
+	public void noCheckRead(byte[] array, int len) {
+		buf.get(array, 0, len);
+	}
+	
+	@Override
 	public void noCheckReadAsInt(long[] array, int nElements) {
 		int pos = buf.position();
 		if ((pos >> 2) << 2 == pos) {
@@ -272,7 +292,12 @@ public class StorageReader implements StorageChannelInput {
 	
     @Override
     public long getHeaderClassOID() {
-    	return pageHeader;
+    	return headerClassOID;
+    }
+	
+    @Override
+    public long getHeaderTimestamp() {
+    	return txTimeStamp;
     }
 	
 	private boolean checkPos(int delta) {
@@ -302,20 +327,17 @@ public class StorageReader implements StorageChannelInput {
 
 	private void readHeader() {
 		byte pageType = buf.get();
-//		byte dummy = buf.get();
-//		short pageVersion = buf.getShort();
-//		long txId = buf.getLong();
+		buf.get(); //dummy
+		buf.getShort(); //pageVersion
+		txTimeStamp = buf.getLong();
 		if (pageType != currentType.getId()) {
-			buf.get(); //dummy
-			buf.getShort(); //pageVersion
-			long txId = buf.getLong();
-			throw DBLogger.newFatal("Page type mismatch, expected " + 
+			throw DBLogger.newFatalInternal("Page type mismatch, expected " + 
 					currentType.getId() + "/" + currentType + " (tx=" + root.getTxId() +
-					") but got " + pageType + " (tx=" + txId + "). PageId=" + currentPage);
+					") but got " + pageType + " (tx=" + txTimeStamp + "). PageId=" + currentPage);
 		}
 		buf.position(PAGE_HEADER_SIZE);
 		if (isAutoPaging) {
-			pageHeader = buf.getLong();
+			headerClassOID = buf.getLong();
 		}
 	}
 	

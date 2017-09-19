@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -24,6 +24,7 @@ import java.util.Date;
 
 import org.zoodb.api.impl.ZooPC;
 import org.zoodb.internal.util.DBLogger;
+import org.zoodb.internal.util.Util;
 import org.zoodb.schema.ZooClass;
 import org.zoodb.schema.ZooField;
 import org.zoodb.schema.ZooHandle;
@@ -41,6 +42,7 @@ public class ZooHandleImpl implements ZooHandle {
 	private final ZooClassProxy versionProxy;
 	private GenericObject gObj;
 	private ZooPC pcObj;
+	private boolean isInvalid = false;
 	
     public ZooHandleImpl(GenericObject go, ZooClassProxy versionProxy) {
         this(go.getOid(), versionProxy, null, go);
@@ -153,38 +155,50 @@ public class ZooHandleImpl implements ZooHandle {
 
 	@Override
 	public void remove() {
-		check();
+		checkWrite();
 		if (gObj != null) {
-			getGenericObject().setDeleted(true);
+			getGenericObject().jdoZooMarkDeleted();
 		}
 		if (pcObj != null) {
 			session.deletePersistent(pcObj);
 		}
 	}
 	
-	private void check() {
+	private void checkRead() {
+		check(false);
+	}
+
+	private void checkWrite() {
+		check(true);
+	}
+
+	private void check(boolean write) {
+		if (isInvalid) {
+			throw new IllegalStateException("This object has been invalidated/deleted.");
+		}
+		versionProxy.checkInvalid(write);
 		if (session.isClosed()) {
 			throw new IllegalStateException("Session is closed.");
 		}
-		if (gObj != null && gObj.isDeleted()) {
+		if (gObj != null && gObj.jdoZooIsDeleted()) {
 			throw new IllegalStateException("Object is deleted.");
 		}
 	}
 
 	@Override
 	public ZooClass getType() {
-		check();
+		checkRead();
 		return versionProxy;
 	}
 
 	@Override
 	public Object getJavaObject() {
-		check();
+		checkRead();
 		if (pcObj == null) {
-			if (gObj != null && (gObj.isNew() || gObj.isDirty())) {
+			if (gObj != null && (gObj.jdoZooIsNew() || gObj.jdoZooIsDirty())) {
         		//TODO  the problem here is the initialisation of the PC, which would require
         		//a way to serialize GOs into memory and deserialize them into an PC.
-				throw new UnsupportedOperationException("Can not convert new or dirty handles " +
+				throw new UnsupportedOperationException("Cannot convert new or dirty handles " +
 						"into Java objects. Please commit() first or create Java object directly.");
 			}
 			pcObj = (ZooPC) session.getObjectById(oid);
@@ -194,7 +208,7 @@ public class ZooHandleImpl implements ZooHandle {
 
 	@Override
 	public Object getValue(String attrName) {
-		check();
+		checkRead();
 		return versionProxy.getField(attrName).getValue(this);
 	}
 
@@ -204,7 +218,7 @@ public class ZooHandleImpl implements ZooHandle {
 	}
 
 	private ZooField findField(String attrName) {
-		check();
+		checkRead();
 		ZooField f = versionProxy.getField(attrName);
 		if (f == null) {
 			throw DBLogger.newUser("Field not found: " + attrName);
@@ -216,4 +230,13 @@ public class ZooHandleImpl implements ZooHandle {
 		return pcObj;
 	}
 	
+	@Override
+	public String toString() {
+		return Util.oidToString(oid);
+	}
+
+	public void invalidate() {
+		isInvalid = true;
+	}
+
 }

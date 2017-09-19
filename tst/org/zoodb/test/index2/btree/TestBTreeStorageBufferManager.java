@@ -11,6 +11,8 @@ import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.zoodb.internal.server.IOResourceProvider;
+import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.btree.BTree;
@@ -28,14 +30,16 @@ import org.zoodb.tools.ZooConfig;
 
 public class TestBTreeStorageBufferManager {
 
-	StorageRootInMemory storage;
+	IOResourceProvider storage;
 	BTreeStorageBufferManager bufferManager;
+	StorageChannelOutput out;
 
 	@Before
 	public void resetStorage() {
-		this.storage = new StorageRootInMemory(ZooConfig.getFilePageSize());
+		this.storage = new StorageRootInMemory(ZooConfig.getFilePageSize()).createChannel();
 		boolean isUnique = true;
 		this.bufferManager = new BTreeStorageBufferManager(storage, isUnique);
+		this.out = bufferManager.getIO() == null ? null : bufferManager.getIO().createWriter(false);
 	}
 
 	@Test
@@ -65,7 +69,7 @@ public class TestBTreeStorageBufferManager {
 	public void testWriteLeaf() {
 		PagedBTreeNode leafNode = getTestLeaf(bufferManager);
 		assertEquals(0, storage.statsGetPageCount());
-		int pageId = bufferManager.write(leafNode);
+		int pageId = bufferManager.write(leafNode, out);
 
 		assertEquals(2, storage.statsGetPageCount());
 		assertEquals(leafNode, bufferManager.read(pageId));
@@ -81,7 +85,7 @@ public class TestBTreeStorageBufferManager {
 		int order = bufferManager.getInnerNodeOrder();
 
 		PagedBTreeNode innerNode = getTestInnerNode(bufferManager, order);
-		int pageId = bufferManager.write(innerNode);
+		int pageId = bufferManager.write(innerNode, out);
 
 		assertEquals(2, storage.statsGetPageCount());
 		assertEquals(innerNode, bufferManager.read(pageId));
@@ -95,7 +99,7 @@ public class TestBTreeStorageBufferManager {
 	@Test
 	public void testWriteTree() {
 		BTree tree = getTestTree(bufferManager);
-		int pageId = bufferManager.write((PagedBTreeNode) tree.getRoot());
+		int pageId = bufferManager.write((PagedBTreeNode) tree.getRoot(), out);
 
 		assertEquals(10, storage.statsGetPageCount());
 		assertEquals(tree.getRoot(), bufferManager.read(pageId));
@@ -111,12 +115,12 @@ public class TestBTreeStorageBufferManager {
 	public void testDelete() {
 		assertEquals(0, storage.statsGetPageCount());
 		PagedBTreeNode leafNode = getTestLeaf(bufferManager);
-		int pageId = bufferManager.write(leafNode);
+		int pageId = bufferManager.write(leafNode, out);
 		assertEquals(2, storage.statsGetPageCount());
 
 		bufferManager.remove(pageId);
 		assertEquals(2, storage.statsGetPageCount());
-		assertTrue(storage.getFsm().debugIsPageIdInFreeList(pageId));
+		assertTrue(storage.debugIsPageIdInFreeList(pageId));
 	}
 	
 	@Test
@@ -132,7 +136,7 @@ public class TestBTreeStorageBufferManager {
 		for (LLEntry entry : entries) {
 			tree.insert(entry.getKey(), entry.getValue());
 		}
-		tree.write();
+		tree.write(out);
 		
 		// collect all page ids
 		List<Integer> pageIds = new ArrayList<Integer>();
@@ -144,11 +148,11 @@ public class TestBTreeStorageBufferManager {
 		for (LLEntry entry : entries) {
 			tree.delete(entry.getKey());
 		}
-		tree.write();
+		tree.write(out);
 		
 		// check whether pages are freed
 		for(Integer pageId : pageIds) {
-			assertTrue(storage.getFsm().debugIsPageIdInFreeList(pageId));
+			assertTrue(storage.debugIsPageIdInFreeList(pageId));
 		}
 	}
 
@@ -160,7 +164,7 @@ public class TestBTreeStorageBufferManager {
 		assertTrue(bufferManager.getDirtyBuffer().containsKey(
 				leafNode.getPageId()));
 
-		bufferManager.write(leafNode);
+		bufferManager.write(leafNode, out);
 		assertTrue(bufferManager.getCleanBuffer().containsKey(
 				leafNode.getPageId()));
 		assertFalse(bufferManager.getDirtyBuffer().containsKey(
@@ -172,7 +176,7 @@ public class TestBTreeStorageBufferManager {
 		assertTrue(bufferManager.getDirtyBuffer().containsKey(
 				leafNode.getPageId()));
 
-		int pageId = bufferManager.write(leafNode);
+		int pageId = bufferManager.write(leafNode, out);
 
 		BTreeStorageBufferManager bufferManager2 = new BTreeStorageBufferManager(
 				storage, true);
@@ -196,7 +200,7 @@ public class TestBTreeStorageBufferManager {
 				leafNode.getPageId()));
 
 		leafNode = getTestLeaf(bufferManager);
-		bufferManager.write(leafNode);
+		bufferManager.write(leafNode, out);
 		leafNode.close();
 		assertFalse(bufferManager.getCleanBuffer().containsKey(
 				leafNode.getPageId()));
@@ -210,19 +214,19 @@ public class TestBTreeStorageBufferManager {
 		UniquePagedBTree tree = (UniquePagedBTree) TestBTree
 				.getTestTree(bufferManager);
 		PagedBTreeNode root = tree.getRoot();
-		bufferManager.write(tree.getRoot());
+		bufferManager.write(tree.getRoot(), out);
 		
 		tree.delete(8);
 		assertEquals(3, bufferManager.getDirtyBuffer().size());
 		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
 		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root.getChild(0)).getPageId()));
 		assertTrue(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root.getChild(0).getChild(1)).getPageId()));
-		bufferManager.write(tree.getRoot());
+		bufferManager.write(tree.getRoot(), out);
 		
 		tree.delete(3);
 		assertFalse(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
 		assertFalse(bufferManager.getCleanBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
-		bufferManager.write(tree.getRoot());
+		bufferManager.write(tree.getRoot(), out);
 		assertFalse(bufferManager.getDirtyBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
 		assertFalse(bufferManager.getCleanBuffer().containsKey(((PagedBTreeNode)root).getPageId()));
 	}
@@ -235,31 +239,31 @@ public class TestBTreeStorageBufferManager {
 		PagedBTreeNode root = tree.getRoot();
 		assertEquals(expectedNumWrites, bufferManager.getStatNWrittenPages());
 
-		bufferManager.write(tree.getRoot());
+		bufferManager.write(tree.getRoot(), out);
 		assertEquals(0, bufferManager.getDirtyBuffer().size());
 		assertEquals(expectedNumWrites += 9,
 				bufferManager.getStatNWrittenPages());
 
 		tree.insert(4, 4);
-		bufferManager.write(root);
+		bufferManager.write(root, out);
 		assertEquals(0, bufferManager.getDirtyBuffer().size());
 		assertEquals(expectedNumWrites += 3,
 				bufferManager.getStatNWrittenPages());
 
 		tree.insert(32, 32);
-		bufferManager.write(root);
+		bufferManager.write(root, out);
 		assertEquals(0, bufferManager.getDirtyBuffer().size());
 		assertEquals(expectedNumWrites += 4,
 				bufferManager.getStatNWrittenPages());
 
 		tree.delete(16);
-		bufferManager.write(root);
+		bufferManager.write(root, out);
 		assertEquals(0, bufferManager.getDirtyBuffer().size());
 		assertEquals(expectedNumWrites += 4,
 				bufferManager.getStatNWrittenPages());
 
 		tree.delete(14);
-		bufferManager.write(root);
+		bufferManager.write(root, out);
 		assertEquals(0, bufferManager.getDirtyBuffer().size());
 		assertEquals(expectedNumWrites += 4,
 				bufferManager.getStatNWrittenPages());
@@ -298,7 +302,7 @@ public class TestBTreeStorageBufferManager {
 			tree.insert(entry.getKey(), entry.getValue());
 		}
 
-		tree.write();
+		tree.write(out);
 		assertEquals(0, bufferManager2.getDirtyBuffer().size());
 		
 		UniquePagedBTree tree2 = new UniquePagedBTree(tree.getRoot(), tree.getInnerNodeOrder(), tree.getLeafOrder(),
@@ -316,7 +320,7 @@ public class TestBTreeStorageBufferManager {
 			tree.delete(entry.getKey());
 		}
 
-		tree.write();
+		tree.write(out);
 		tree2 = new UniquePagedBTree(tree.getRoot(), tree.getInnerNodeOrder(), tree.getLeafOrder(),
 				bufferManager2);
 
@@ -353,7 +357,7 @@ public class TestBTreeStorageBufferManager {
 			i++;
 		}
 
-		tree.write();
+		tree.write(out);
 		UniquePagedBTree tree2 = new UniquePagedBTree(tree.getRoot(), tree.getInnerNodeOrder(), tree.getLeafOrder(),
 				bufferManager2);
 
@@ -385,7 +389,7 @@ public class TestBTreeStorageBufferManager {
             tree.insert(i, 32+i);
         }
 
-        tree.write();
+        tree.write(out);
         
         bufferManager.clear();
         for (int i = 1000; i < 1000+MAX; i++) {

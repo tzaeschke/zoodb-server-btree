@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -47,11 +47,8 @@ import org.zoodb.api.impl.ZooPC;
 import org.zoodb.internal.SerializerTools.PRIMITIVE;
 import org.zoodb.internal.client.AbstractCache;
 import org.zoodb.internal.server.ObjectReader;
-import org.zoodb.internal.util.ClassCreator;
 import org.zoodb.internal.util.DBLogger;
 import org.zoodb.internal.util.Util;
-import org.zoodb.jdo.spi.PersistenceCapableImpl;
-import org.zoodb.tools.internal.ObjectCache.GOProxy;
 
 
 /**
@@ -136,7 +133,7 @@ public class DataDeSerializer {
     /**
      * Create a new DataDeserializer.
      * @param in Stream to read the data from.
-     * persistent.
+     * @param cache The object cache
      */
     public DataDeSerializer(ObjectReader in, AbstractCache cache) {
         this.in = in;
@@ -147,12 +144,14 @@ public class DataDeSerializer {
 	/**
      * This method returns an object that is read from the input 
      * stream.
-     * @param page 
-     * @param offs 
+     * @param page page id
+     * @param offs offset in page
+     * @param skipIfCached Set 'true' to skip objects that are already in the cache
      * @return The read object.
      */
     public ZooPC readObject(int page, int offs, boolean skipIfCached) {
         long clsOid = in.startReading(page, offs);
+        long ts = in.getHeaderTimestamp();
 
         //Read first object:
         long oid = in.readLong();
@@ -172,7 +171,7 @@ public class DataDeSerializer {
         if (clsDef.getNextVersion() != null) {
             isEvolved = true;
             GenericObject go = GenericObject.newInstance(clsDef, oid, false, cache);
-            readGOPrivate(go, oid, clsDef);
+            readGOPrivate(go, clsDef);
             clsDef = go.ensureLatestVersion();
             in = go.toStream();
             if (oid != in.readLong()) {
@@ -182,8 +181,9 @@ public class DataDeSerializer {
         
         
         ZooPC pObj = getInstance(clsDef, oid, pc);
+        pObj.jdoZooSetTimestamp(ts);
 
-        readObjPrivate(pObj, oid, clsDef);
+        readObjPrivate(pObj, clsDef);
         in = or;
         if (isEvolved) {
             //force object to be stored again
@@ -197,6 +197,7 @@ public class DataDeSerializer {
     public GenericObject readGenericObject(int page, int offs) {
     	allowGenericObjects = true;
         long clsOid = in.startReading(page, offs);
+        long ts = in.getHeaderTimestamp();
         //Read oid
         long oid = in.readLong();
         ZooClassDef clsDef = cache.getSchema(clsOid);
@@ -207,18 +208,19 @@ public class DataDeSerializer {
         }
         go.setOid(oid);
         go.setClassDefOriginal(clsDef);
-        readGOPrivate(go, oid, clsDef);
+        go.jdoZooSetTimestamp(ts);
+        readGOPrivate(go, clsDef);
     	allowGenericObjects = false;
-    	go.setClean();
+    	go.jdoZooMarkClean();
     	return go;
     }
     
     
-    private GenericObject readGOPrivate(GenericObject pObj, long oid, ZooClassDef clsDef) {
+    private GenericObject readGOPrivate(GenericObject pObj, ZooClassDef clsDef) {
     	// read first object (FCO)
         deserializeFieldsGO( pObj, clsDef );
         
-        deserializeSpecialGO(pObj);
+        deserializeSpecialGO(pObj, clsDef);
         
         postProcessCollections();
         
@@ -229,7 +231,7 @@ public class DataDeSerializer {
 //        }
 //        pObj.jdoZooGetContext().notifyEvent(pObj, ZooInstanceEvent.LOAD);
         
-        pObj.setClean();
+        pObj.jdoZooMarkClean();
         return pObj;
     }
     
@@ -281,18 +283,28 @@ public class DataDeSerializer {
 
     public ZooPC readObject(ZooPC pc, int page, int offs) {
         long clsOid = in.startReading(page, offs);
+        long ts = in.getHeaderTimestamp();
     	
         //Read first object:
     	long oid = in.readLong();
+    	if (oid != pc.jdoZooGetOid()) {
+    		throw DBLogger.newFatalInternal("OID mismatch: " + oid + " vs " + pc.jdoZooGetOid());
+    	}
     	
     	ZooClassDef clsDef = cache.getSchema(clsOid);
     	pc.jdoZooMarkClean();
+    	pc.jdoZooSetTimestamp(ts);
 
-        return readObjPrivate(pc, oid, clsDef);
+    	if (clsDef.getNextVersion() != null) {
+    		throw DBLogger.newUser("Objecty has not been evolved to the latest schema version: " + 
+    				Util.oidToString(oid));
+    	}
+    	
+        return readObjPrivate(pc, clsDef);
     }
     
     
-    private ZooPC readObjPrivate(ZooPC pObj, long oid, ZooClassDef clsDef) {
+    private ZooPC readObjPrivate(ZooPC pObj, ZooClassDef clsDef) {
     	// read first object (FCO)
     	//read fixed size part
         deserializeFields1( pObj, clsDef );
@@ -381,9 +393,15 @@ public class DataDeSerializer {
             throw new RuntimeException(e);
         } catch (SecurityException e) {
             throw new RuntimeException(e);
+        } catch (ArrayIndexOutOfBoundsException e) {
+        	//TODO remove me: This was introduced to catch issue #91
+        	throw new BinaryDataCorruptedException("Unexpected class ID(?): oid=" +
+                    Util.getOidAsString(obj) + 
+                    " " + clsDef + " F:" + 
+                    f1 + " DO: " + (deObj != null ? deObj.getClass() : null), e);
         } catch (BinaryDataCorruptedException e) {
-            throw new BinaryDataCorruptedException("Corrupted Object: " +
-                    //Util.getOidAsString(obj) + 
+            throw new BinaryDataCorruptedException("Corrupted Object: oid=" +
+                    Util.getOidAsString(obj) + 
                     " " + clsDef + " F:" + 
                     f1 + " DO: " + (deObj != null ? deObj.getClass() : null), e);
         } catch (UnsupportedOperationException e) {
@@ -409,9 +427,7 @@ public class DataDeSerializer {
             return obj;
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Field: " + f1.getType() + " " + f1.getName(), e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        } catch (SecurityException e) {
+        } catch (IllegalAccessException | SecurityException e) {
             throw new RuntimeException(e);
         } catch (BinaryDataCorruptedException e) {
             throw new BinaryDataCorruptedException("Corrupted Object: " +
@@ -478,18 +494,18 @@ public class DataDeSerializer {
         }
     }
 
-    private final void deserializeSpecialGO(GenericObject obj) {
-    	if (obj.getClassDef().getClassName().equals(DBHashMap.class.getName())) {
+    private final void deserializeSpecialGO(GenericObject obj, ZooClassDef def) {
+    	if (def.getClassName().equals(DBHashMap.class.getName())) {
             //Special treatment for persistent containers.
             //Their data is not stored in (visible) fields.
     		HashMap<Object, Object> m = new HashMap<Object, Object>();
     		obj.setDbCollection(m);
     		deserializeDBHashMap(m);
-    	} else if (obj.getClassDef().getClassName().equals(DBLargeVector.class.getName())) {
+    	} else if (def.getClassName().equals(DBLargeVector.class.getName())) {
     		ArrayList<Object> l = new ArrayList<Object>();
     		obj.setDbCollection(l);
     		deserializeDBList(l);
-    	} else if (obj.getClassDef().getClassName().equals(DBArrayList.class.getName())) {
+    	} else if (def.getClassName().equals(DBArrayList.class.getName())) {
     		ArrayList<Object> l = new ArrayList<Object>();
     		obj.setDbCollection(l);
     		deserializeDBList(l);
@@ -677,10 +693,6 @@ public class DataDeSerializer {
             return deserializeString();
         } else if (Date.class == cls) {
             return new Date(in.readLong());
-        } else if (GOProxy.class.isAssignableFrom(cls)) {
-            long oid = in.readLong();
-            ZooClassDef def = cache.getSchema(cls.getName());
-        	return GenericObject.newInstance(def, oid, false, cache);
         }
         
         if (Map.class.isAssignableFrom(cls)) {
@@ -749,9 +761,11 @@ public class DataDeSerializer {
     }
 
    private final Object deserializeArray() {
-        
         // read meta data
 	   	Object innerType = readClassInfo();
+	   	if (innerType == null) {
+	   		return null;
+	   	}
 	   	if (ZooClassDef.class.isAssignableFrom(innerType.getClass())) {
 		   	if (allowGenericObjects) {
 		   		//innerType = GenericObject.class;
@@ -895,8 +909,11 @@ public class DataDeSerializer {
     }
 
 	private Class<?> findOrCreateGoClass(ZooClassDef def) {
-		Class<?> goCls;
-   		try {
+		if (def.jdoZooIsDirty()) {
+			return GenericObject.class;
+		}
+
+		try {
 			return Class.forName(def.getClassName());
 		} catch (ClassNotFoundException e) {
 			if (!allowGenericObjects) {
@@ -904,15 +921,7 @@ public class DataDeSerializer {
 						"Class not found: " + def.getClassName(), e);
 			}
 		}
-   		Class<?> sup;
-   		if (def.getSuperDef().getClassName().equals(PersistenceCapableImpl.class.getName()) || 
-   				def.getSuperDef().getClassName().equals(ZooPC.class.getName())) {
-   			sup = GOProxy.class;
-   		} else {
-   			sup = findOrCreateGoClass(def.getSuperDef());
-   		}
-   		goCls = ClassCreator.createClass(def.getClassName(), sup.getName());
-		return goCls;
+		return GenericObject.class;
 	}
 	
     private final Object readClassInfo() {
@@ -961,7 +970,7 @@ public class DataDeSerializer {
     			}
     			//Do not embed 'e' to avoid problems with excessively long class names.
     			throw new BinaryDataCorruptedException(
-    					"Class not found: \"" + cName + "\" (" + id + ")");
+    					"Class not found (" + id + "): \"" + cName + "\"");
     		}
     	}
     	default: {
@@ -987,14 +996,14 @@ public class DataDeSerializer {
                 }
                 c = cls.getDeclaredConstructor((Class[])null);
                 c.setAccessible(true);
-                DEFAULT_CONSTRUCTORS.put(cls, c);
+                DEFAULT_CONSTRUCTORS.putIfAbsent(cls, c);
             }
             //use the constructor
             return c.newInstance();
         } catch (SecurityException e1) {
             throw new RuntimeException(e1);
         } catch (NoSuchMethodException e1) {
-            throw new RuntimeException("Class requires default constructor (can be private): " + 
+            throw DBLogger.newFatal("Class requires default constructor (can be private): " + 
             		cls.getName(), e1);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException(e);
@@ -1035,21 +1044,24 @@ public class DataDeSerializer {
         if (allowGenericObjects) {
         	//this instance is only used to return the OID (what about when deserializing arrays?)
         	Class<?> c = findOrCreateGoClass(clsDef);
-        	if (GOProxy.class.isAssignableFrom(c)) {
-	        	try {
-					obj = c.newInstance();
-				} catch (InstantiationException e) {
-					throw new RuntimeException(e);
-				} catch (IllegalAccessException e) {
-					throw new RuntimeException(e);
-				}
-				((GOProxy)obj).go = GenericObject.newInstance(clsDef, oid, false, cache);
+        	if (c == null || GenericObject.class.isAssignableFrom(c)) {
+				obj = GenericObject.newInstance(clsDef, oid, false, cache);
         	} else {
     	        obj = createInstance(clsDef.getJavaClass());
     	        prepareObject((ZooPC) obj, oid, true, clsDef);
         	}
         } else {
-	        obj = createInstance(clsDef.getJavaClass());
+        	//ensure latest version, otherwise there is no Class
+        	//TODO instead we should store the schema ID, so that we automatically get the 
+        	//     latest version...
+           	while (clsDef.getNextVersion() != null) {
+        		clsDef = clsDef.getNextVersion();
+        	}
+           	if (clsDef.getJavaClass() == null) {
+				throw DBLogger.newUser("Class has not been fully evolved (" + 
+						Util.oidToString(oid) + "): " + clsDef);
+			} 
+ 	        obj = createInstance(clsDef.getJavaClass());
 	        prepareObject((ZooPC) obj, oid, true, clsDef);
         }
         return obj;

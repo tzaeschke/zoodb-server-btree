@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -24,6 +24,8 @@ import org.zoodb.jdo.spi.PersistenceCapableImpl;
 
 public class TestClassTiny extends PersistenceCapableImpl {
 
+	public static final String INT = "_int";
+	
 	private int _int;
 	private long _long;
 	

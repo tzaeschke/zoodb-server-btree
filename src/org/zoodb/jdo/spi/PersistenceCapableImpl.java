@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -103,11 +103,7 @@ public class PersistenceCapableImpl extends ZooPC implements PersistenceCapable 
 	}
 	@Override
 	public final boolean jdoIsDetached(){
-//		System.out.println("STUB: PersistenceCapableImpl.jdoIsDetached()"); //TODO
-//		return jdoStateManager==null?false:
-//			jdoStateManager.isDetached(this);
-		//TODO
-		return false;
+		return jdoZooIsDetached();
 	}
 	@Override
 	public final void jdoMakeDirty (String fieldName){
@@ -204,6 +200,7 @@ public class PersistenceCapableImpl extends ZooPC implements PersistenceCapable 
 	/** 
 	 * The generated method returns the number of managed fields in this class plus the number of inherited
 	 * managed fields. This method is expected to be executed only during class loading of the subclasses.
+	 * @return The number of managed fields
 	 */	
 	//		The implementation for topmost classes in the hierarchy:
 	protected static int jdoGetManagedFieldCount () {
@@ -515,6 +512,7 @@ public class PersistenceCapableImpl extends ZooPC implements PersistenceCapable 
 	/**
 	 * This method is part of the PersistenceCapable contract. It copies key fields from the object id instance
 	 * to the ObjectIdFieldConsumer.
+	 * @param oid The OID
 	 */
 	protected void jdoCopyKeyFieldsFromObjectId (Object oid) {
         throw new UnsupportedOperationException("Needs to be generated.");

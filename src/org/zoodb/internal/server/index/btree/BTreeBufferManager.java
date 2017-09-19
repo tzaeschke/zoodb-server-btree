@@ -2,6 +2,9 @@ package org.zoodb.internal.server.index.btree;
 
 import java.util.Observer;
 
+import org.zoodb.internal.server.IOResourceProvider;
+import org.zoodb.internal.server.StorageChannelOutput;
+
 public interface BTreeBufferManager extends Observer {
 
 	/*
@@ -22,11 +25,13 @@ public interface BTreeBufferManager extends Observer {
     /*
 	 * writes the node to the storage channel
 	 */
-	public int write(PagedBTreeNode node);
+	public int write(PagedBTreeNode node, StorageChannelOutput out);
 	
     /*
 	 * writes the node to the storage channel
 	 */
 	public void clear();
+
+	public IOResourceProvider getIO();
 
 }

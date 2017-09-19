@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -47,9 +47,11 @@ import java.util.RandomAccess;
  */
 
 public class BucketTreeStack<E> 
-implements RandomAccess, java.io.Serializable, Iterable<E>
+implements RandomAccess, 
+//java.io.Serializable, 
+Iterable<E>
 {
-	private static final long serialVersionUID = 8683452581122892189L;
+//	private static final long serialVersionUID = 8683452581122892189L;
 
 	private transient Object[] bucket;
 
@@ -135,7 +137,7 @@ implements RandomAccess, java.io.Serializable, Iterable<E>
 	 *
 	 * @param  index index of the element to return
 	 * @return the element at the specified position in this list
-	 * @throws IndexOutOfBoundsException
+	 * @throws IndexOutOfBoundsException If the index exceed the index size
 	 */
 	public E get(int index) {
 		rangeCheck(index);
@@ -160,7 +162,7 @@ implements RandomAccess, java.io.Serializable, Iterable<E>
 	 * @param index index of the element to replace
 	 * @param e element to be stored at the specified position
 	 * @return the element previously at the specified position
-	 * @throws IndexOutOfBoundsException
+	 * @throws IndexOutOfBoundsException If the index exceed the index size
 	 */
 	public E set(int index, E e) {
 		rangeCheck(index);
@@ -200,7 +202,6 @@ implements RandomAccess, java.io.Serializable, Iterable<E>
 	 * Only the last element in the list can be removed.
 	 *
 	 * @return the element that was removed from the list
-	 * @throws IndexOutOfBoundsException
 	 */
 	public E removeLast() {
 		modCount++;

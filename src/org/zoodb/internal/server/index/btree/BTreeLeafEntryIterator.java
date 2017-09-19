@@ -1,13 +1,12 @@
 package org.zoodb.internal.server.index.btree;
 
+import java.util.ConcurrentModificationException;
+import java.util.LinkedList;
+import java.util.NoSuchElementException;
+
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.util.DBLogger;
-
-import java.util.ConcurrentModificationException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.NoSuchElementException;
 
 public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 		LongLongIndex.LLEntryIterator {
@@ -135,7 +134,7 @@ public abstract class BTreeLeafEntryIterator<T extends BTreeNode> implements
 			PagedBTree<?> tree = (PagedBTree<?>) this.tree;
             if(tree.getBufferManager() instanceof BTreeStorageBufferManager) {
                 BTreeStorageBufferManager bm = (BTreeStorageBufferManager) tree.getBufferManager();
-                return bm.getStorageFile().getTxId();
+                return bm.getIO().getTxId();
             }
 		}
         return null;

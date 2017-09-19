@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -130,6 +130,7 @@ public class DataDeSerializer {
     /**
      * Create a new DataDeserializer.
      * @param in Stream to read the data from.
+     * @param cache The object cache
      * persistent.
      */
     public DataDeSerializer(XmlReader in, ObjectCache cache) {
@@ -138,7 +139,7 @@ public class DataDeSerializer {
     }
 
 
-    public void readGenericObject(long oid, long clsOid, GOProxy hdl) {
+    public void readGenericObject(long clsOid, GOProxy hdl) {
         ZooClassDef clsDef = cache.getSchema(clsOid);
 
     	// read object
@@ -249,7 +250,8 @@ public class DataDeSerializer {
     }
 
     private final void deserializeSpecialGO(GenericObject obj) {
-    	if (obj.getClassDef().getClassName().equals(DBHashMap.class.getName())) {
+    	String cName = obj.jdoZooGetClassDef().getClassName();
+    	if (cName.equals(DBHashMap.class.getName())) {
     		in.startReadingField(-1);
             //Special treatment for persistent containers.
             //Their data is not stored in (visible) fields.
@@ -257,13 +259,13 @@ public class DataDeSerializer {
     		obj.setDbCollection(m);
     		deserializeDBHashMap(m);
     		in.stopReadingField();
-    	} else if (obj.getClassDef().getClassName().equals(DBLargeVector.class.getName())) {
+    	} else if (cName.equals(DBLargeVector.class.getName())) {
     		in.startReadingField(-1);
     		ArrayList<Object> l = new ArrayList<Object>();
     		obj.setDbCollection(l);
     		deserializeDBList(l);
     		in.stopReadingField();
-    	} else if (obj.getClassDef().getClassName().equals(DBArrayList.class.getName())) {
+    	} else if (cName.equals(DBArrayList.class.getName())) {
     		in.startReadingField(-1);
     		ArrayList<Object> l = new ArrayList<Object>();
     		obj.setDbCollection(l);
@@ -706,7 +708,7 @@ public class DataDeSerializer {
                 }
                 c = cls.getDeclaredConstructor((Class[])null);
                 c.setAccessible(true);
-                DEFAULT_CONSTRUCTORS.put(cls, c);
+                DEFAULT_CONSTRUCTORS.putIfAbsent(cls, c);
             }
             //use the constructor
             return c.newInstance();

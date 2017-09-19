@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -29,7 +29,6 @@ import org.zoodb.internal.GenericObject;
 import org.zoodb.internal.SerializerTools;
 import org.zoodb.internal.ZooClassDef;
 import org.zoodb.internal.ZooFieldDef;
-import org.zoodb.internal.client.AbstractCache;
 import org.zoodb.internal.server.index.BitTools;
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.PagedOidIndex;
@@ -62,8 +61,7 @@ public class DataDeleteSink1P implements DataDeleteSink {
     private int bufferGOCnt = 0;
     private boolean isStarted = false;
 
-    public DataDeleteSink1P(Node1P node, AbstractCache cache, ZooClassDef cls,
-            PagedOidIndex oidIndex) {
+    public DataDeleteSink1P(Node1P node, ZooClassDef cls, PagedOidIndex oidIndex) {
         this.node = node;
         this.cls = cls;
         this.oidIndex = oidIndex;
@@ -75,6 +73,12 @@ public class DataDeleteSink1P implements DataDeleteSink {
      */
     @Override
     public void delete(ZooPC obj) {
+    	if (obj.getClass() == GenericObject.class) {
+    		throw new IllegalArgumentException();
+//    		deleteGeneric((GenericObject) obj);
+//    		return;
+    	}
+    	
         if (!isStarted) {
             this.sie = node.getSchemaIE(cls);
             isStarted = true;
@@ -90,6 +94,9 @@ public class DataDeleteSink1P implements DataDeleteSink {
 
     @Override
     public void deleteGeneric(GenericObject obj) {
+		if (obj.checkPcDeleted()) {
+			return;
+		}
         if (!isStarted) {
             this.sie = node.getSchemaIE(cls);
             isStarted = true;
@@ -151,7 +158,6 @@ public class DataDeleteSink1P implements DataDeleteSink {
             }
             iInd++;
 
-            //TODO?
             //For now we define that an index is shared by all classes and sub-classes that have
             //a matching field. So there is only one index which is defined in the top-most class
             SchemaIndexEntry schemaTop = node.getSchemaIE(field.getDeclaringType()); 
@@ -160,27 +166,22 @@ public class DataDeleteSink1P implements DataDeleteSink {
                 Field jField = field.getJavaField();
                 for (int i = 0; i < bufferCnt; i++) {
                     ZooPC co = buffer[i];
-                    //new and clean objects do not have a backup
-                    if (!co.jdoZooIsNew()) {
-                        //this can be null for objects that get deleted.
-                        //These are still dirty, because of the deletion
-                        if (co.jdoZooGetBackup()!=null) {
-                            //TODO It is bad that we update ALL indices here, even if the value didn't
-                            //change... -> Field-wise dirty!
-                            long l = co.jdoZooGetBackup()[iInd];
-                            fieldInd.removeLong(l, co.jdoZooGetOid());
-                            continue;
-                        }
+                    //This can be null for objects that have not been modified.
+                    //These are still dirty, because of the deletion
+                    if (co.jdoZooGetBackup() != null) {
+                    	long l = co.jdoZooGetBackup().getA()[iInd];
+                    	fieldInd.removeLong(l, co.jdoZooGetOid());
+                    	continue;
                     }
                     long l;
                     if (field.isString()) {
-                        if (co.zooIsHollow()) {
-                        	//We need to activate it to get the values!
-                        	//But only for String, the primitives should be fine.
-                        	co.jdoZooGetContext().getNode().refreshObject(co);
-                        }
+                    	//No need to check for hollow objects here.
+                    	//If a hollow object gets deleted, it is automatically refreshed, zee ZooPC
                     	String str = (String)jField.get(co);
                         l = BitTools.toSortableLong(str);
+                    } else if (field.isPersistentType()) {
+                    	ZooPC pc = (ZooPC)jField.get(co);
+                    	l = BitTools.toSortableLong(pc);
                     } else {
                     	l = SerializerTools.primitiveFieldToLong(co, jField, 
                     			field.getPrimitiveType());
@@ -202,7 +203,6 @@ public class DataDeleteSink1P implements DataDeleteSink {
             long oid = buffer[i].jdoZooGetOid();
             delete(oid, ois);
         }
-
     }
     
     private void updateFieldIndicesGO() {
@@ -217,7 +217,6 @@ public class DataDeleteSink1P implements DataDeleteSink {
             }
             iInd++;
 
-            //TODO?
             //For now we define that an index is shared by all classes and sub-classes that have
             //a matching field. So there is only one index which is defined in the top-most class
             SchemaIndexEntry schemaTop = node.getSchemaIE(field.getDeclaringType()); 
@@ -225,21 +224,16 @@ public class DataDeleteSink1P implements DataDeleteSink {
             try {
                 for (int i = 0; i < bufferCnt; i++) {
                     GenericObject co = buffer[i];
-                    //new and clean objects do not have a backup
-                    if (!co.isNew()) {
-                        //this can be null for objects that get deleted.
-                        //These are still dirty, because of the deletion
-                        if (co.jdoZooGetBackup()!=null) {
-                            //TODO It is bad that we update ALL indices here, even if the value didn't
-                            //change... -> Field-wise dirty!
-                            long l = co.jdoZooGetBackup()[iInd];
-                            fieldInd.removeLong(l, co.getOid());
-                            continue;
-                        }
+                    //This can be null for objects that have not been modified.
+                    //These are still dirty, because of the deletion
+                    if (co.jdoZooGetBackup() != null) {
+                    	long l = co.jdoZooGetBackup().getA()[iInd];
+                    	fieldInd.removeLong(l, co.getOid());
+                    	continue;
                     }
                 	long l;
                     if (field.isString()) {
-                        if (co.isHollow()) {
+                        if (co.jdoZooIsStateHollow()) {
                         	//We need to activate it to get the values!
                         	//But only for String, the primitives should be fine.
                         	throw new UnsupportedOperationException();
@@ -247,6 +241,11 @@ public class DataDeleteSink1P implements DataDeleteSink {
                         	//co.getContext().getNode().refreshObject(co);
                         }
                     	l = (Long)co.getFieldRaw(field.getFieldPos());
+                    } else if (field.isPersistentType()) {
+                    	throw new UnsupportedOperationException();
+                    	//TODO the following needs a test!
+                    	//Object oid = co.getFieldRaw(field.getFieldPos());
+                    	//l = oid == null ? BitTools.NULL : (long)oid;
                     } else {
                     	Object primO = co.getFieldRaw(field.getFieldPos());
                     	l = SerializerTools.primitiveToLong(primO, field.getPrimitiveType());
@@ -265,7 +264,6 @@ public class DataDeleteSink1P implements DataDeleteSink {
             long oid = buffer[i].getOid();
             delete(oid, ois);
         }
-
     }
     
     private void delete(long oid, PagedPosIndex ois) {

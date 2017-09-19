@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -34,7 +34,7 @@ import org.zoodb.internal.client.session.ClientSessionCache;
  * messages that can be sent to the storage engine.
  * To get this working even if the schema itself is not committed yet, schema creation and deletion
  * has to become an operation as well. 
- * These messages also need to be ordered, which is another reason why they can not be treated
+ * These messages also need to be ordered, which is another reason why they cannot be treated
  * as normal objects.
  * 
  * However schemata are objects, so they get also treated by the normal commit procedure, so we
@@ -80,6 +80,8 @@ public abstract class SchemaOperation {
 		void initial() {
 			field.setIndexed(true);
 			field.setUnique(isUnique);
+			ZooClassDef def = field.getDeclaringType(); 
+			def.getProvidedContext().getIndexer().refreshWithSchema(def);
 		}
 		
 		@Override
@@ -90,6 +92,8 @@ public abstract class SchemaOperation {
 		@Override
 		void rollback() {
 			field.setIndexed(false);
+			ZooClassDef def = field.getDeclaringType(); 
+			def.getProvidedContext().getIndexer().refreshWithSchema(def);
 		}
 	}
 	
@@ -110,6 +114,8 @@ public abstract class SchemaOperation {
 		@Override
 		void initial() {
 			field.setIndexed(false);
+			ZooClassDef def = field.getDeclaringType(); 
+			def.getProvidedContext().getIndexer().refreshWithSchema(def);
 		}
 		
 		@Override
@@ -121,6 +127,8 @@ public abstract class SchemaOperation {
 		void rollback() {
 			field.setIndexed(true);
 			field.setUnique(isUnique);
+			ZooClassDef def = field.getDeclaringType(); 
+			def.getProvidedContext().getIndexer().refreshWithSchema(def);
 		}
 	}
 
@@ -172,7 +180,8 @@ public abstract class SchemaOperation {
 
 		@Override
 		void rollback() {
-			def.getVersionProxy().socRemoveDef();		
+			def.getVersionProxy().socRemoveDef();
+			def.getVersionProxy().invalidate();
 		}
 	}
 
@@ -201,7 +210,7 @@ public abstract class SchemaOperation {
 
 		@Override
 		void commit() {
-			node.renameSchema(def, newName);
+			def.getProvidedContext().getNode().renameSchema(def, newName);
 		}
 
 		@Override
@@ -262,7 +271,12 @@ public abstract class SchemaOperation {
 
 		@Override
 		void rollback() {
-			cls.removeField(field);		
+			cls.removeField(field);
+			field.getProxy().invalidate();
+		}
+
+		public ZooFieldDef getField() {
+			return field;
 		}
 	}
 
@@ -323,6 +337,10 @@ public abstract class SchemaOperation {
 			//TODO roll back to old version???
 		    cls.addField(field);
 		}
+		
+		public ZooFieldDef getField() {
+			return field;
+		}
 	}
 
 	
@@ -350,7 +368,7 @@ public abstract class SchemaOperation {
 
 		@Override
 		void commit() {
-			node.newSchemaVersion(defOld, defNew);
+			node.newSchemaVersion(defNew);
 		}
 
 		@Override

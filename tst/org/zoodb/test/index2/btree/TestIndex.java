@@ -9,8 +9,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.junit.Test;
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageRootFile;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.BTreeIndexNonUnique;
@@ -27,24 +27,24 @@ import org.zoodb.tools.ZooConfig;
 
 public class TestIndex {
 
-	private StorageChannel createPageAccessFile() {
-		StorageChannel paf = new StorageRootInMemory(
-				ZooConfig.getFilePageSize());
+	private IOResourceProvider createPageAccessFile() {
+		IOResourceProvider paf = new StorageRootInMemory(
+				ZooConfig.getFilePageSize()).createChannel();
 		return paf;
 	}
 
 	@Test
 	public void testWriteRead() {
-		StorageChannel file = createPageAccessFile();
-		BTreeIndexUnique ind1 = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX,
+		IOResourceProvider file = createPageAccessFile();
+		BTreeIndexUnique ind1 = new BTreeIndexUnique(PAGE_TYPE.GENERIC_INDEX,
 				file);
 
 		ArrayList<LLEntry> entries = PerformanceTest.randomEntriesUnique(1000,
 				42);
 		PerformanceTest.insertList(ind1, entries);
-		int rootPageId = ind1.write();
+		int rootPageId = file.writeIndex(ind1::write);
 
-		BTreeIndexUnique ind2 = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX,
+		BTreeIndexUnique ind2 = new BTreeIndexUnique(PAGE_TYPE.GENERIC_INDEX,
 				file, rootPageId);
 		findAll(ind2, entries);
 	}
@@ -52,13 +52,13 @@ public class TestIndex {
 	@Test
 	public void testWriteReadEmptyUnique() {
 		/* Unique */
-		StorageChannel file = createPageAccessFile();
-		BTreeIndexUnique ind1 = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX,
+		IOResourceProvider file = createPageAccessFile();
+		BTreeIndexUnique ind1 = new BTreeIndexUnique(PAGE_TYPE.GENERIC_INDEX,
 				file);
 
-		int rootPageId = ind1.write();
+		int rootPageId = file.writeIndex(ind1::write);
 
-		BTreeIndexUnique ind2 = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX,
+		BTreeIndexUnique ind2 = new BTreeIndexUnique(PAGE_TYPE.GENERIC_INDEX,
 				file, rootPageId);
 		assertEquals(0, ind2.getTree().getRoot().getNumKeys());
 	}
@@ -67,13 +67,13 @@ public class TestIndex {
 	public void testWriteReadEmptyNonUnique() {
 		
 		/* Non-Unique */
-		StorageChannel file = createPageAccessFile();
-		BTreeIndexNonUnique ind1 = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX,
+		IOResourceProvider file = createPageAccessFile();
+		BTreeIndexNonUnique ind1 = new BTreeIndexNonUnique(PAGE_TYPE.GENERIC_INDEX,
 				file);
 
-		int rootPageId = ind1.write();
+		int rootPageId = file.writeIndex(ind1::write);
 
-		BTreeIndexNonUnique ind2 = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX,
+		BTreeIndexNonUnique ind2 = new BTreeIndexNonUnique(PAGE_TYPE.GENERIC_INDEX,
 				file, rootPageId);
 		assertEquals(0, ind2.getTree().getRoot().getNumKeys());
 	}
@@ -81,15 +81,15 @@ public class TestIndex {
     @Test
     public void testLoadedPagesNotDirty() {
         final int MAX = 1000000;
-        StorageChannel paf = createPageAccessFile();
-        LongLongUIndex ind = IndexFactory.createUniqueIndex(DATA_TYPE.GENERIC_INDEX, paf);
+        IOResourceProvider paf = createPageAccessFile();
+        LongLongUIndex ind = IndexFactory.createUniqueIndex(PAGE_TYPE.GENERIC_INDEX, paf);
         for (int i = 1000; i < 1000+MAX; i++) {
             ind.insertLong(i, 32+i);
         }
-        int root = ind.write();
+        int root = paf.writeIndex(ind::write);
 
         //now read it
-        LongLongUIndex ind2 = IndexFactory.loadUniqueIndex(DATA_TYPE.GENERIC_INDEX, paf, root);
+        LongLongUIndex ind2 = IndexFactory.loadUniqueIndex(PAGE_TYPE.GENERIC_INDEX, paf, root);
         int w1 = ind2.statsGetWrittenPagesN();
         Iterator<LongLongIndex.LLEntry> i = ind2.iterator(Long.MIN_VALUE, Long.MAX_VALUE);
         int n = 0;
@@ -97,7 +97,7 @@ public class TestIndex {
         	n++;
         	i.next();
         }
-        ind2.write();
+        paf.writeIndex(ind2::write);
         int w2 = ind2.statsGetWrittenPagesN();
         //no pages written on freshly read root
         assertEquals("w1=" + w1, 0, w1);
@@ -123,25 +123,25 @@ public class TestIndex {
 		final int MAX_ITER = 50;
 		
 		String dbName = "TestIndex.zdb";
-		StorageChannel paf = newDiskStorage(dbName); 
+		IOResourceProvider paf = newDiskStorage(dbName); 
 		File f = new File(toPath(dbName));
 		System.out.println(f.length());
 
 		long len1 = -1;
 		
 		for (int j = 0; j < MAX_ITER; j++) {
-			BTreeIndexNonUnique ind = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX,paf);
+			BTreeIndexNonUnique ind = new BTreeIndexNonUnique(PAGE_TYPE.GENERIC_INDEX,paf);
 			
 			//First, create objects
 			for (int i = 0; i < MAX; i++) {
 				ind.insertLong(i, i+32);
 			}
-			ind.write();
+			paf.writeIndex(ind::write);
 			//now delete them
 			for (int i = 0; i < MAX; i++) {
 				ind.removeLong(i, i+32);
 			}
-			ind.write();
+			paf.writeIndex(ind::write);
 	
 			//check length only from 3rd iteration on...
 			if (j == 3) {
@@ -155,7 +155,7 @@ public class TestIndex {
 				(len1*1.1 > f.length()) || (f.length()/ps - len1/ps < 20));
 	}
 	
-    public static StorageChannel newDiskStorage(String filename) {
+    public static IOResourceProvider newDiskStorage(String filename) {
 	    String dbPath = toPath(filename);
         String folderPath = dbPath.substring(0, dbPath.lastIndexOf(File.separator));
         File dbDir = new File(folderPath);
@@ -175,16 +175,16 @@ public class TestIndex {
 		}
 		
 		FreeSpaceManager fsm = new FreeSpaceManager();
-		StorageChannel file = new StorageRootFile(filename, "rw",
-					ZooConfig.getFilePageSize(), fsm);
+		IOResourceProvider file = new StorageRootFile(filename, "rw",
+					ZooConfig.getFilePageSize(), fsm).createChannel();
         fsm.initBackingIndexNew(file);
 		
 		return file;
 	}
 
-    public static StorageChannel newMemoryStorage() {
+    public static IOResourceProvider newMemoryStorage() {
         return new StorageRootInMemory(
-                            ZooConfig.getFilePageSize());
+                            ZooConfig.getFilePageSize()).createChannel();
     }
 
     public static void createDbFolder(File dbDir) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -37,7 +37,6 @@ public class XmlWriter {
 		for (int i = 0; i < s.length(); i++) {
 			writeChar(s.charAt(i));
 		}
-		s.toCharArray();
 	}
 
 	public void writeBoolean(boolean b) {

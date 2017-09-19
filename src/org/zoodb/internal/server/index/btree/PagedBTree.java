@@ -1,5 +1,7 @@
 package org.zoodb.internal.server.index.btree;
 
+import org.zoodb.internal.server.StorageChannelOutput;
+
 public abstract class PagedBTree<T extends PagedBTreeNode> extends BTree<T> {
 
     private BTreeBufferManager bufferManager;
@@ -25,12 +27,13 @@ public abstract class PagedBTree<T extends PagedBTreeNode> extends BTree<T> {
         return bufferManager;
     }
     
-    public void write() {
-    	bufferManager.write(getRoot());
+    public void write(StorageChannelOutput out) {
+    	bufferManager.write(getRoot(), out);
     }
     
+    @Override
     public T getRoot() {
-    	return (T) root;
+    	return root;
     }
 
 }

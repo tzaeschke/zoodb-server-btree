@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -30,7 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.PagedLongLong;
@@ -39,14 +39,15 @@ import org.zoodb.internal.util.BucketStack;
 import org.zoodb.internal.util.BucketTreeStack;
 import org.zoodb.internal.util.CritBit64;
 import org.zoodb.internal.util.CritBit64.CBIterator;
+import org.zoodb.internal.util.PrimLongArrayList;
 import org.zoodb.internal.util.PrimLongMap;
 import org.zoodb.internal.util.PrimLongMap.PrimLongEntry;
-import org.zoodb.internal.util.PrimLongMapLI;
+import org.zoodb.internal.util.PrimLongMapZ;
 import org.zoodb.tools.ZooConfig;
 
 
 /**
- * Testing collection performace.
+ * Testing collection performance.
  * 
  * ArrayList vs BucketStack:
  * 100.000 entries: ArrayList is twice as fast for insert/remove
@@ -69,14 +70,17 @@ public class PerfIterator {
 	public void run() {
 		ArrayList<Long> aList = new ArrayList<Long>();//MAX_I);
 		LinkedList<Long> lList = new LinkedList<Long>();//MAX_I);
+		PrimLongArrayList plList = new PrimLongArrayList();
 		Map<Long, Long> map = new HashMap<Long, Long>(MAX_I);
 		Map<Long, Long> mapId = new IdentityHashMap<Long, Long>(MAX_I);
 		//Map<Long, Long> mapId = new TreeMap<Long, Long>();
-		PrimLongMapLI<Long> lMap = new PrimLongMapLI<Long>(MAX_I);
-		PagedUniqueLongLong ull = new PagedUniqueLongLong(DATA_TYPE.GENERIC_INDEX, 
-					new StorageRootInMemory(ZooConfig.getFilePageSize()));
-		PagedLongLong ll = new PagedLongLong(DATA_TYPE.GENERIC_INDEX, 
-					new StorageRootInMemory(ZooConfig.getFilePageSize()));
+		//PrimLongMapLI<Long> lMap = new PrimLongMapLI<Long>(MAX_I);
+		PrimLongMap<Long> lMap = new PrimLongMapZ<Long>(MAX_I);
+		PrimLongMapZ<Long> lMapZ = new PrimLongMapZ<Long>(MAX_I);
+		PagedUniqueLongLong ull = new PagedUniqueLongLong(PAGE_TYPE.GENERIC_INDEX, 
+					new StorageRootInMemory(ZooConfig.getFilePageSize()).createChannel());
+		PagedLongLong ll = new PagedLongLong(PAGE_TYPE.GENERIC_INDEX, 
+					new StorageRootInMemory(ZooConfig.getFilePageSize()).createChannel());
 		BucketTreeStack<Long> bal = new BucketTreeStack<Long>((byte) 10);
 		BucketStack<Long> bs = new BucketStack<Long>(1000);
 		long[] array = new long[MAX_I];
@@ -87,6 +91,7 @@ public class PerfIterator {
 			map.put((long)i, 0L);
 			mapId.put((long)i, 0L);
 			lMap.put((long)i, 0L);
+			lMapZ.put((long)i, 0L);
 			ull.insertLong(i, 0);
 			ll.insertLong(i, 0);
 			//            bal.add(0L);
@@ -102,9 +107,9 @@ public class PerfIterator {
 //		HashMap<Long, Long> hMap = new HashMap<Long, Long>(map);
 
 				_useTimer = true;
-				compareInsert(aList, lList, array, Array, bal, bs);
-//				compareRemove(aList, lList, array, Array, bal, bs);
-//				compareInsert(aList, lList, array, Array, bal, bs);
+				compareInsert(aList, lList, array, Array, bal, bs, plList);
+				compareRemove(aList, lList, array, Array, bal, bs, plList);
+				compareInsert(aList, lList, array, Array, bal, bs, plList);
 		
 		
 //				//call sub-method, so hopefully the compiler does not recognize that these are all ArrayLists
@@ -119,10 +124,14 @@ public class PerfIterator {
 
 		_useTimer = false;
 		for (int i = 0; i < 3; i++) {
-			compare(map, mapId, (HashMap<Long, Long>)map, lMap, ull, ll, cb);
+			compare(map, mapId, (HashMap<Long, Long>)map, lMap, lMapZ, ull, ll, cb);
 		}
 		_useTimer = true;
-		compare(map, mapId, (HashMap<Long, Long>)map, lMap, ull, ll, cb);
+		System.gc();
+		System.gc();
+		System.gc();
+		compare(map, mapId, (HashMap<Long, Long>)map, lMap, lMapZ, ull, ll, cb);
+		compare(map, mapId, (HashMap<Long, Long>)map, lMap, lMapZ, ull, ll, cb);
 
 		System.out.println("Done!");
 	}
@@ -130,7 +139,7 @@ public class PerfIterator {
 
 	private void compareInsert(ArrayList<Long> aList,
 			List<Long> lList, long[] array, Long[] Array, BucketTreeStack<Long> bal, 
-			BucketStack<Long> bs) {
+			BucketStack<Long> bs, PrimLongArrayList plList) {
 
 		startTime("array-i");
 		for (int x = 0; x < N; x++) 
@@ -173,12 +182,19 @@ public class PerfIterator {
 				bs.push(1L);
 			}
 		stopTime("BS-i");
+
+		startTime("PL-i");
+		for (int x = 0; x < N; x++) 
+			for (int i = 0; i < MAX_I; i++) {
+				plList.add(1L);
+			}
+		stopTime("PL-i");
 	}
 
 
 	private void compareRemove(ArrayList<Long> aList,
 			List<Long> lList, long[] array, Long[] Array, BucketTreeStack<Long> bal, 
-			BucketStack<Long> bs) {
+			BucketStack<Long> bs, PrimLongArrayList plList) {
 
 		startTime("array-r");
 		for (int x = 0; x < N; x++) 
@@ -221,6 +237,13 @@ public class PerfIterator {
 				bs.pop();
 			}
 		stopTime("BS-r");
+
+		startTime("PL-r");
+		for (int x = 0; x < N; x++) 
+			for (int i = MAX_I - 1; i >= 0; i--) {
+				plList.removePos(plList.size()-1);
+			}
+		stopTime("PL-r");
 	}
 
 
@@ -326,7 +349,8 @@ public class PerfIterator {
 	}
 
 	private void compare(Map<Long, Long> map, Map<Long, Long> mapId, HashMap<Long, Long> hMap, 
-			PrimLongMapLI<Long> lMap, PagedUniqueLongLong ull, PagedLongLong ll,
+			PrimLongMap<Long> lMap, PrimLongMapZ<Long> lMapZ, 
+			PagedUniqueLongLong ull, PagedLongLong ll,
 			CritBit64<Long> cb) {
 		int n = 0;
 		startTime("map-keyset-f");
@@ -352,6 +376,40 @@ public class PerfIterator {
 			}
 		}
 		stopTime("hMap-keyset-f");
+
+		startTime("lMapZ-keyset-f");
+		for (int x = 0; x < NM; x++) {
+			for (Long b: lMapZ.keySet()) {
+				n += b;
+			}
+		}
+		stopTime("lMapZ-keyset-f");
+
+		startTime("lMapZ-keyset-it");
+		for (int x = 0; x < NM; x++) {
+			Iterator<Long> aIt = lMapZ.keySet().iterator(); 
+			while (aIt.hasNext()) {
+				n += aIt.next();
+			}
+		}
+		stopTime("lMapZ-keyset-it");
+
+		startTime("lMapZ-entry-f");
+		for (int x = 0; x < NM; x++) {
+			for (PrimLongEntry<Long> e: lMapZ.entrySet()) {
+				n += e.getKey();
+			}
+		}
+		stopTime("lMapZ-entry-f");
+
+		startTime("lMapZ-entry-it");
+		for (int x = 0; x < NM; x++) {
+			Iterator<PrimLongMap.PrimLongEntry<Long>> aIt = lMapZ.entrySet().iterator(); 
+			while (aIt.hasNext()) {
+				n += aIt.next().getKey();
+			}
+		}
+		stopTime("lMapZ-entry-it");
 
 		startTime("lMap-keyset-f");
 		for (int x = 0; x < NM; x++) {

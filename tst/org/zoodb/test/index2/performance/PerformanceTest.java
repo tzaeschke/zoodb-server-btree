@@ -13,7 +13,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
@@ -33,8 +33,8 @@ public class PerformanceTest {
 		ZooConfig.setFilePageSize(PAGE_SIZE);
 		
 		PagedUniqueLongLong index = new PagedUniqueLongLong(
-				DATA_TYPE.GENERIC_INDEX, new StorageRootInMemory(
-						ZooConfig.getFilePageSize()));
+				PAGE_TYPE.GENERIC_INDEX, new StorageRootInMemory(
+						ZooConfig.getFilePageSize()).createChannel());
 		new PerformanceTest(index);
 		
 		ZooConfig.setFilePageSize(ZooConfig.FILE_PAGE_SIZE_DEFAULT);

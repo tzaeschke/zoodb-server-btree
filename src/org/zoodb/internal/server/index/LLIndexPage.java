@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -23,6 +23,8 @@ package org.zoodb.internal.server.index;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
+import org.zoodb.internal.server.StorageChannelInput;
+import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntryIterator;
 import org.zoodb.internal.util.DBLogger;
 
@@ -35,7 +37,7 @@ class LLIndexPage extends AbstractIndexPage {
 	
 	
 	public LLIndexPage(AbstractPagedIndex ind, LLIndexPage parent, boolean isLeaf) {
-		super(ind, parent, isLeaf);
+		super(ind, isLeaf);
 		this.parent = parent;
 		if (isLeaf) {
 			nEntries = 0;
@@ -69,43 +71,43 @@ class LLIndexPage extends AbstractIndexPage {
 	}
 	
 	@Override
-	void readData() {
-		nEntries = ind.in.readShort();
-		readArrayFromRaf(ind.keySize, keys, nEntries);
-		readArrayFromRaf(ind.valSize, values, nEntries);
+	void readData(StorageChannelInput in) {
+		nEntries = in.readShort();
+		readArrayFromRaf(in, ind.keySize, keys, nEntries);
+		readArrayFromRaf(in, ind.valSize, values, nEntries);
 	}
 	
 	@Override
-	void writeData() {
-		ind.out.writeShort(nEntries);
-		writeArrayToRaf(ind.keySize, keys, nEntries);
-		writeArrayToRaf(ind.valSize, values, nEntries);
+	void writeData(StorageChannelOutput out) {
+		out.writeShort(nEntries);
+		writeArrayToRaf(out, ind.keySize, keys, nEntries);
+		writeArrayToRaf(out, ind.valSize, values, nEntries);
 	}
 
 	@Override
-	void writeKeys() {
-		ind.out.writeShort(nEntries);
-		writeArrayToRaf(ind.keySize, keys, nEntries);
+	void writeKeys(StorageChannelOutput out) {
+		out.writeShort(nEntries);
+		writeArrayToRaf(out, ind.keySize, keys, nEntries);
 		if (!ind.isUnique()) {
-			writeArrayToRaf(ind.valSize, values, nEntries);
+			writeArrayToRaf(out, ind.valSize, values, nEntries);
 		}
 	}
 
 	@Override
-	void readKeys() {
-		nEntries = ind.in.readShort();
-		readArrayFromRaf(ind.keySize, keys, nEntries);
+	void readKeys(StorageChannelInput in) {
+		nEntries = in.readShort();
+		readArrayFromRaf(in, ind.keySize, keys, nEntries);
 		if (!ind.isUnique()) {
-			readArrayFromRaf(ind.valSize, values, nEntries);
+			readArrayFromRaf(in, ind.valSize, values, nEntries);
 		}
 	}
 	
-	private void writeArrayToRaf(int bitWidth, long[] array, int nEntries) {
+	private static void writeArrayToRaf(StorageChannelOutput out, int bitWidth, long[] array, int nEntries) {
 		if (nEntries <= 0) {
 			return;
 		}
 		switch (bitWidth) {
-		case 8: ind.out.noCheckWrite(array); break;
+		case 8: out.noCheckWrite(array); break;
 //		case 8:
 //			//writing ints using a normal loop
 //			for (int i = 0; i < nEntries; i++) {
@@ -113,26 +115,26 @@ class LLIndexPage extends AbstractIndexPage {
 //			}
 //			break;
 		case 4:
-			ind.out.noCheckWriteAsInt(array, nEntries); break;
+			out.noCheckWriteAsInt(array, nEntries); break;
 		case 1:
 			//writing bytes using an array (different to int-write, see PerfByteArrayRW)
 			byte[] ba = new byte[nEntries];
 			for (int i = 0; i < ba.length; i++) {
 				ba[i] = (byte) array[i];
 			}
-			ind.out.noCheckWrite(ba); 
+			out.noCheckWrite(ba); 
 			break;
 		case 0: break;
 		default : throw new IllegalStateException("bit-width=" + bitWidth);
 		}
 	}
 
-	private void readArrayFromRaf(int bitWidth, long[] array, int nEntries) {
+	private static void readArrayFromRaf(StorageChannelInput in, int bitWidth, long[] array, int nEntries) {
 		if (nEntries <= 0) {
 			return;
 		}
 		switch (bitWidth) {
-		case 8: ind.in.noCheckRead(array); break;
+		case 8: in.noCheckRead(array); break;
 //		case 8:
 //			//reading ints using a normal loop
 //			for (int i = 0; i < nEntries; i++) {
@@ -140,11 +142,11 @@ class LLIndexPage extends AbstractIndexPage {
 //			}
 //			break;
 		case 4:
-			ind.in.noCheckReadAsInt(array, nEntries); break;
+			in.noCheckReadAsInt(array, nEntries); break;
 		case 1:
 			//reading bytes using an array (different to int-write, see PerfByteArrayRW)
 			byte[] ba = new byte[nEntries];
-			ind.in.noCheckRead(ba); 
+			in.noCheckRead(ba); 
 			for (int i = 0; i < ba.length; i++) {
 				array[i] = ba[i];
 			}
@@ -196,7 +198,7 @@ class LLIndexPage extends AbstractIndexPage {
 	
 	public LongLongIndex.LLEntry getValueFromLeafUnique(long oid) {
 		if (!isLeaf) {
-			throw DBLogger.newFatal("Leaf inconsistency.");
+			throw DBLogger.newFatalInternal("Leaf inconsistency.");
 		}
 		int pos = binarySearchUnique(0, nEntries, oid);
 		if (pos >= 0) {
@@ -285,7 +287,7 @@ class LLIndexPage extends AbstractIndexPage {
      */
 	public final void put(long key, long value) {
 		if (!isLeaf) {
-			throw DBLogger.newFatal("Tree inconsistency.");
+			throw DBLogger.newFatalInternal("Tree inconsistency.");
 		}
 
 		//in any case, check whether the key(+value) already exists
@@ -430,7 +432,7 @@ class LLIndexPage extends AbstractIndexPage {
 		//-> surely not at the moment, where we only merge with pages that have the same 
 		//   immediate parent...
 		if (isLeaf) {
-			throw DBLogger.newFatal("Tree inconsistency");
+			throw DBLogger.newFatalInternal("Tree inconsistency");
 		}
 		int start = binarySearch(0, nEntries, key, value);
 		if (start < 0) {
@@ -458,13 +460,13 @@ class LLIndexPage extends AbstractIndexPage {
 //		this.printLocal();
 //		System.out.println("leaf: " + indexPage);
 //		indexPage.printLocal();
-		throw DBLogger.newFatal("leaf page not found.");
+		throw DBLogger.newFatalInternal("leaf page not found.");
 		
 	}
 	
 	void addSubPage(LLIndexPage newP, long minKey, long minValue) {
 		if (isLeaf) {
-			throw DBLogger.newFatal("Tree inconsistency");
+			throw DBLogger.newFatalInternal("Tree inconsistency");
 		}
 		
 		markPageDirtyAndClone();
@@ -779,7 +781,7 @@ class LLIndexPage extends AbstractIndexPage {
 //		this.printLocal();
 //		System.out.println("leaf: " + indexPage);
 //		indexPage.printLocal();
-		throw DBLogger.newFatal("leaf page not found.");
+		throw DBLogger.newFatalInternal("leaf page not found.");
 	}
 
 	private void arraysRemoveKey(int pos) {
@@ -841,7 +843,7 @@ class LLIndexPage extends AbstractIndexPage {
 //		this.printLocal();
 //		System.out.println("sub-page:");
 //		indexPage.printLocal();
-		throw DBLogger.newFatal("Sub-page not found.");
+		throw DBLogger.newFatalInternal("Sub-page not found.");
 	}
 
 	@Override

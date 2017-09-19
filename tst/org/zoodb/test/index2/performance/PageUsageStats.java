@@ -1,23 +1,19 @@
 package org.zoodb.test.index2.performance;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.StorageRootFile;
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.BTreeIndexUnique;
-import org.zoodb.internal.server.index.FreeSpaceManager;
 import org.zoodb.internal.server.index.LongLongIndex;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongIterator;
 import org.zoodb.internal.server.index.PagedUniqueLongLong;
 import org.zoodb.internal.server.index.btree.BTreeIterator;
-import org.zoodb.internal.util.DBLogger;
 import org.zoodb.test.index2.btree.TestIndex;
 import org.zoodb.tools.DBStatistics;
 import org.zoodb.tools.ZooConfig;
@@ -39,9 +35,9 @@ public class PageUsageStats {
 	}
 	
     PagedUniqueLongLong oldIndex;
-    StorageChannel oldStorage; 
+    IOResourceProvider oldStorage; 
     BTreeIndexUnique newIndex;
-    StorageChannel newStorage;
+    IOResourceProvider newStorage;
 
 	public PageUsageStats() {
 		this.clear();
@@ -51,10 +47,10 @@ public class PageUsageStats {
     public void clear() {
 		oldStorage = TestIndex.newDiskStorage("old_storage.db");
 		oldIndex = new PagedUniqueLongLong(
-				DATA_TYPE.GENERIC_INDEX, oldStorage);
+				PAGE_TYPE.GENERIC_INDEX, oldStorage);
 
 		newStorage = TestIndex.newDiskStorage("new_storage.db");
-		newIndex = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX, newStorage);
+		newIndex = new BTreeIndexUnique(PAGE_TYPE.GENERIC_INDEX, newStorage);
 	}
 			
 	public void insertAndDelete() {
@@ -78,8 +74,8 @@ public class PageUsageStats {
 		System.gc();
 		System.out.println("mseconds new: " + PerformanceTest.insertList(newIndex, entries));
 		System.out.println("Write");
-		System.out.println("mseconds old: " + write(oldIndex));
-		System.out.println("mseconds new: " + write(newIndex));
+		System.out.println("mseconds old: " + write(oldIndex, oldStorage));
+		System.out.println("mseconds new: " + write(newIndex, newStorage));
 		
 		BTreeIterator it = new BTreeIterator(newIndex.getTree());
 		int height = 1;
@@ -126,8 +122,8 @@ public class PageUsageStats {
 		System.gc();
 		System.out.println("mseconds new: " + PerformanceTest.removeList(newIndex, deleteEntries));
 		System.out.println("Write");
-		System.out.println("mseconds old: " + write(oldIndex));
-		System.out.println("mseconds new: " + write(newIndex));
+		System.out.println("mseconds old: " + write(oldIndex, oldStorage));
+		System.out.println("mseconds new: " + write(newIndex, newStorage));
 		
 		printStats();
 
@@ -136,9 +132,9 @@ public class PageUsageStats {
 	/*
 	 * writes and returns the time it took
 	 */
-	public long write(LongLongIndex index) {
+	public long write(LongLongIndex index, IOResourceProvider io) {
         long startTime = System.nanoTime();
-        index.write();
+        io.writeIndex(index::write);
 		return (System.nanoTime() - startTime) / 1000000;
 	}
 	
@@ -179,17 +175,17 @@ public class PageUsageStats {
             ArrayList<LLEntry> entries = PerformanceTest
                                     .randomEntriesUnique(numElements, 42+i);
             PerformanceTest.insertList(oldIndex, entries);
-            oldIndex.write();
+            oldStorage.writeIndex(oldIndex::write);
             PerformanceTest.insertList(newIndex, entries);
-            newIndex.write();
+            newStorage.writeIndex(newIndex::write);
 
             Collections.shuffle(entries, new Random(43+i));
             List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
 
             PerformanceTest.removeList(oldIndex, deleteEntries);
-            oldIndex.write();
+            oldStorage.writeIndex(oldIndex::write);
             PerformanceTest.removeList(newIndex, deleteEntries);
-            newIndex.write();
+            newStorage.writeIndex(newIndex::write);
         }
         printStats();
 		
@@ -204,9 +200,9 @@ public class PageUsageStats {
 				);
 		System.out.println("Page writes "
 				+ "(Old Index, "
-				+ String.valueOf(oldIndex.getStorageChannel().statsGetWriteCount())
+				+ String.valueOf(oldIndex.getIO().statsGetWriteCount())
 				+ "), (New Index, "
-				+ String.valueOf(newIndex.getBufferManager().getStorageFile().statsGetWriteCount()
+				+ String.valueOf(newIndex.getBufferManager().getIO().statsGetWriteCount()
 						+ ")"));
 		System.out.println("Page reads "
 				+ "(Old Index, "
@@ -215,9 +211,9 @@ public class PageUsageStats {
 				+ String.valueOf(newStorage.statsGetReadCount() + ")"));
 	}
 	
-    public static StorageChannel newMemoryStorage() {
+    public static IOResourceProvider newMemoryStorage() {
         return new StorageRootInMemory(
-                            ZooConfig.getFilePageSize());
+                            ZooConfig.getFilePageSize()).createChannel();
     }
 	
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -26,19 +26,30 @@ import java.util.ArrayList;
 import org.zoodb.api.impl.ZooPC;
 import org.zoodb.internal.SerializerTools.PRIMITIVE;
 import org.zoodb.internal.server.index.BitTools;
+import org.zoodb.internal.util.Pair;
 
 
 /**
  * This class provides a method to backup indexed fields for later removal from the according
  * field index. 
- * 
+ *
  * @author Tilmann Zaeschke
  */
 public final class DataIndexUpdater {
 
-	private final ZooFieldDef[] indFields;
+	private ZooFieldDef[] indFields;
 	
 	public DataIndexUpdater(ZooClassDef def) {
+		refreshWithSchema(def);
+	}
+	
+	/**
+	 * TODO move this whole class into ZooClassDef? It seems bad that we store this information
+	 * twice!
+	 *  
+	 * @param def Class definition
+	 */
+	public void refreshWithSchema(ZooClassDef def) {
 		ArrayList<ZooFieldDef> pfl = new ArrayList<ZooFieldDef>();
 		for (ZooFieldDef f: def.getAllFields()) {
 			if (f.isIndexed()) {
@@ -49,26 +60,36 @@ public final class DataIndexUpdater {
 	}
 	
 	
-    public final long[] getBackup(ZooPC co) {
+    public final Pair<long[], Object[]> getBackup(ZooPC co) {
+    	if (co.getClass() == GenericObject.class) {
+    		GenericObject go = (GenericObject) co;
+    		return getBackup(go, go.getRawFields());
+    	}
     	if (indFields.length == 0) {
     		return null;
     	}
         try {
-        	long[] la = new long[indFields.length];
+        	Pair<long[], Object[]> ret = new Pair<long[], Object[]>(
+        			new long[indFields.length], new Object[indFields.length]);
             //set primitive fields
             for (int i = 0; i < indFields.length; i++) {
             	ZooFieldDef fd = indFields[i];
                 Field f = fd.getJavaField();
                 PRIMITIVE p = fd.getPrimitiveType();
                 if (p != null) {
-                	la[i] = SerializerTools.primitiveFieldToLong(co, f, p);
+                	ret.getA()[i] = SerializerTools.primitiveFieldToLong(co, f, p);
+                } else if (fd.isPersistentType()){
+                	ZooPC pc = (ZooPC)f.get(co);
+                	ret.getA()[i] = BitTools.toSortableLong(pc);
+                	ret.getB()[i] = pc;
                 } else {
                 	//must be String
                 	String str = (String)f.get(co);
-                	la[i] = BitTools.toSortableLong(str);
+                	ret.getA()[i] = BitTools.toSortableLong(str);
+                	ret.getB()[i] = str;
                 }
             }
-            return la;
+            return ret;
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         } catch (SecurityException e) {
@@ -76,23 +97,33 @@ public final class DataIndexUpdater {
         }
     }
     
-    public final long[] getBackup(GenericObject co, Object[] raw) {
+    public final Pair<long[], Object[]> getBackup(GenericObject co, Object[] raw) {
     	if (indFields.length == 0) {
     		return null;
     	}
-    	long[] la = new long[indFields.length];
+    	Pair<long[], Object[]> ret = new Pair<long[], Object[]>(
+    			new long[indFields.length], new Object[indFields.length]);
     	//set primitive fields
     	for (int i = 0; i < indFields.length; i++) {
     		ZooFieldDef fd = indFields[i];
     		PRIMITIVE p = fd.getPrimitiveType();
     		if (p != null) {
-    			la[i] = SerializerTools.primitiveToLong(raw[fd.getFieldPos()], p);
+    			ret.getA()[i] = SerializerTools.primitiveToLong(raw[fd.getFieldPos()], p);
+            } else if (fd.isPersistentType()){
+            	Object oid = raw[fd.getFieldPos()];
+            	ret.getA()[i] = oid == null ? BitTools.NULL : (long)oid;
+            	ret.getB()[i] = co.getField(fd);
     		} else {
     			//must be String (already hashed)
-    			la[i] = (Long)raw[fd.getFieldPos()];
+    			ret.getA()[i] = (Long)raw[fd.getFieldPos()];
+    			ret.getB()[i] = co.getField(fd);
     		}
     	}
-    	return la;
+    	return ret;
     }
+
+	public boolean isIndexed() {
+		return indFields.length != 0;
+	}
     
 }

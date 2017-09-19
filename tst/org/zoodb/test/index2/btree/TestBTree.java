@@ -1,7 +1,9 @@
 package org.zoodb.test.index2.btree;
 
 import org.junit.Test;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.StorageChannelOutput;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.btree.*;
@@ -538,10 +540,12 @@ public class TestBTree {
 	@Test
 	public void markDirtyTest() {
 		BTreeBufferManager bufferManager = newBufferManager();
+		
 		UniquePagedBTree tree = (UniquePagedBTree) getTestTree(bufferManager);
 		PagedBTreeNode root = tree.getRoot();
+		StorageChannelOutput out = bufferManager.getIO() == null ? null : bufferManager.getIO().createWriter(false);
 		assertTrue(root.isDirty());
-		bufferManager.write( tree.getRoot());
+		bufferManager.write( tree.getRoot(), out);
 		assertFalse(root.isDirty());
 
 		tree.insert(4, 4);
@@ -565,7 +569,7 @@ public class TestBTree {
 		assertFalse(lvl2child5.isDirty());
 		assertFalse(lvl2child6.isDirty());
 
-		bufferManager.write(root);
+		bufferManager.write(root, out);
 
 		tree.insert(32, 32);
 		PagedBTreeNode lvl2child7 = (PagedBTreeNode) lvl1child2.getChild(3);
@@ -580,7 +584,7 @@ public class TestBTree {
 		assertFalse(lvl2child4.isDirty());
 		assertFalse(lvl2child5.isDirty());
 
-		bufferManager.write(root);
+		bufferManager.write(root, out);
 		tree.delete(16);
 		assertTrue(root.isDirty());
 		assertTrue(lvl1child1.isDirty());
@@ -593,7 +597,7 @@ public class TestBTree {
 		assertFalse(lvl2child6.isDirty());
 		assertFalse(lvl2child7.isDirty());
 
-		bufferManager.write(root);
+		bufferManager.write(root, out);
 		tree.delete(14);
 		assertTrue(root.isDirty());
 		assertTrue(lvl1child1.isDirty());
@@ -688,7 +692,7 @@ public class TestBTree {
     }
     
     public static BTreeBufferManager newBufferManager() { 
-    	StorageChannel storage = new StorageRootInMemory(ZooConfig.getFilePageSize());
+    	IOResourceProvider storage = new StorageRootInMemory(ZooConfig.getFilePageSize()).createChannel();
     	boolean isUnique = true;
 		return new BTreeStorageBufferManager(storage, isUnique);
     }

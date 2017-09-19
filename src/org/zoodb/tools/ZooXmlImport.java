@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -237,7 +237,7 @@ public class ZooXmlImport {
 
 				GOProxy hdl = cache.findOrCreateGo(oid, cls);
 				
-				ser.readGenericObject(oid, sOid, hdl);
+				ser.readGenericObject(sOid, hdl);
 				readln1("</object>");
 			}
 			//readln("</class>");

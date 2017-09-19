@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -22,11 +22,11 @@ package org.zoodb.jdo.impl;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Iterator;
 
+import org.zoodb.internal.SerializerTools.PRIMITIVE;
 import org.zoodb.internal.ZooClassDef;
 import org.zoodb.internal.ZooFieldDef;
-import org.zoodb.internal.SerializerTools.PRIMITIVE;
 import org.zoodb.internal.util.DBLogger;
 
 /**
@@ -332,54 +332,56 @@ class QueryResultProcessor {
 		}
 	}
 	
-	Object processResult(Collection<Object> in, boolean unique) {
-		if (unique && isProjection && in.size() > 1) {
+	ArrayList<Object> processResultProjection(Iterator<Object> in, boolean unique) {
+		//projections
+		ArrayList<Object> r = new ArrayList<Object>();
+		if (items.size() == 1) {
+			Item it = items.get(0);
+			while (in.hasNext()) {
+				it.add(in.next());
+				r.add( it.result() );
+			}
+		} else {
+			while (in.hasNext()) {
+				Object o = in.next();
+				Object[] oa = new Object[items.size()];
+				r.add(oa);
+				int i = 0;
+				for (Item it: items) {
+					it.add(o);
+					oa[i++] = it.result();
+				}
+			}
+		}
+		
+		if (unique && r.size() > 1) {
 			throw DBLogger.newUser("Non-unique result encountered.");
 		}
-		
-		//calculate results
-		Object ret;
-		if (isProjection) {
-			//projections
-			ArrayList<Object> r = new ArrayList<Object>();
-			if (items.size() == 1) {
-				Item it = items.get(0);
-				for (Object o: in) {
-					it.add(o);
-					r.add( it.result() );
-				}
-			} else {
-				for (Object o: in) {
-					Object[] oa = new Object[items.size()];
-					r.add(oa);
-					int i = 0;
-					for (Item it: items) {
-						it.add(o);
-						oa[i++] = it.result();
-					}
-				}
-			}
-			ret = r;
-		} else {
-			//aggregations
-			for (Object o: in) {
-				//TODO do this only if UNIQUE is set??? --> check jdo-spec.
-				for (Item i: items) {
-					i.add(o);
-				}
-			}
-			//prepare returning results
-			if (items.size() == 1) {
-				ret = items.get(0).result();
-			} else {
-				Object[] oa = new Object[items.size()]; 
-				for (int i = 0; i < items.size(); i++) {
-					oa[i] = items.get(i).result(); 
-				}
-				ret = oa;
+		return r;
+	} 
+
+	Object processResultAggregation(Iterator<Object> in) {
+		//aggregations
+		while (in.hasNext()) {
+			Object o = in.next();
+			//TODO do this only if UNIQUE is set??? --> check jdo-spec.
+			for (Item i: items) {
+				i.add(o);
 			}
 		}
-		
-		return ret;
+		//prepare returning results
+		if (items.size() == 1) {
+			return items.get(0).result();
+		} else {
+			Object[] oa = new Object[items.size()]; 
+			for (int i = 0; i < items.size(); i++) {
+				oa[i] = items.get(i).result(); 
+			}
+			return oa;
+		}
+	}
+
+	boolean isProjection() {
+		return isProjection;
 	}
 }

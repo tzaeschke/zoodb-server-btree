@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -20,11 +20,13 @@
  */
 package org.zoodb.internal;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.zoodb.api.impl.ZooPC;
+import org.zoodb.internal.server.OptimisticTransactionResult;
+import org.zoodb.internal.server.TxObjInfo;
 import org.zoodb.internal.util.CloseableIterator;
-import org.zoodb.internal.util.DBLogger;
 import org.zoodb.tools.DBStatistics.STATS;
 
 public abstract class Node {
@@ -40,12 +42,6 @@ public abstract class Node {
 	}
 
 	public abstract OidBuffer getOidBuffer();
-
-	public void rollback() {
-		//TODO
-		DBLogger.debugPrintln(2, "STUB: Node.rollback()");
-		//System.err.println("STUB: Node.rollback()");
-	}
 
 	public abstract void makePersistent(ZooPC obj);
 
@@ -71,7 +67,7 @@ public abstract class Node {
 	public abstract Iterator<ZooPC> readObjectFromIndex(ZooFieldDef field, 
 			long minValue, long maxValue, boolean loadFromCache);
 
-	public abstract int getStats(STATS stats);
+	public abstract long getStats(STATS stats);
 
     public abstract String checkDb();
 
@@ -79,15 +75,15 @@ public abstract class Node {
 
 	public abstract void defineSchema(ZooClassDef def);
 
-	public abstract void newSchemaVersion(ZooClassDef defOld, ZooClassDef defNew);
+	public abstract void renameSchema(ZooClassDef def, String newName);
+
+	public abstract void newSchemaVersion(ZooClassDef defNew);
 
 	public abstract void undefineSchema(ZooClassProxy def);
 
 	public abstract void refreshObject(ZooPC pc);
 
 	public abstract void refreshSchema(ZooClassDef def);
-
-	public abstract void renameSchema(ZooClassDef def, String newName);
 
 	public abstract long getSchemaForObject(long oid);
 
@@ -105,12 +101,16 @@ public abstract class Node {
 	public abstract long countInstances(ZooClassProxy clsDef, boolean subClasses);
 
 	public abstract GenericObject readGenericObject(ZooClassDef def, long oid);
-
-	public abstract void deleteSchema(ZooClassDef cs);
 	
 	public abstract boolean checkIfObjectExists(long oid);
 
-	public abstract void beginTransaction();
-    
+	public abstract long beginTransaction();
+
+	public abstract OptimisticTransactionResult rollbackTransaction();
+
+	public abstract OptimisticTransactionResult beginCommit(ArrayList<TxObjInfo> updates);
+
+	public abstract OptimisticTransactionResult checkTxConsistency(ArrayList<TxObjInfo> updates);
+
 }
    

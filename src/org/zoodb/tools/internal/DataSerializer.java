@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -94,7 +94,8 @@ public final class DataSerializer {
 
     /**
      * Instantiate a new DataSerializer.
-     * @param out
+     * @param out The output stream
+     * @param cache The object cache
      */
     public DataSerializer(XmlWriter out, ObjectCache cache) {
         this.out = out;
@@ -519,7 +520,7 @@ public final class DataSerializer {
         if (GenericObject.class == cls) {
             out.writeByte(SerializerTools.REF_PERS_ID);
             if (val != null) {
-            	long soid = ((GenericObject)val).getClassDef().getOid();
+            	long soid = ((GenericObject)val).jdoZooGetClassDef().getOid();
             	out.writeLong(soid);
             } else {
             	long soid = cache.getSchema(cls).getOid();
@@ -549,7 +550,7 @@ public final class DataSerializer {
         int idInt = (usedClasses.size() + 1 + SerializerTools.REF_CLS_OFS);
         if (idInt > 125) {
         	//TODO improve encoding to allow 250 classes. Maybe allow negative IDs (-127<id<-1)?
-        	throw DBLogger.newFatal("Too many SCO type: " + idInt);
+        	throw DBLogger.newFatalInternal("Too many SCO types: " + idInt);
         }
         usedClasses.put(cls, (byte)idInt); 
     }

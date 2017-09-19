@@ -1,24 +1,29 @@
 package org.zoodb.test.index2.btree;
 
-import org.junit.Test;
-import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.StorageRootInMemory;
-import org.zoodb.internal.server.index.btree.*;
-import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
-import org.zoodb.internal.util.Pair;
-import org.zoodb.tools.ZooConfig;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+import org.zoodb.internal.server.IOResourceProvider;
+import org.zoodb.internal.server.StorageRootInMemory;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeMemoryBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.PagedBTreeNodeFactory;
+import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
+import org.zoodb.internal.util.Pair;
+import org.zoodb.tools.ZooConfig;
 
 public class TestNode {
 
     private static final int NO_VALUE = -1;
 
-	StorageChannel storage = new StorageRootInMemory(
-			ZooConfig.getFilePageSize());
+    IOResourceProvider storage = new StorageRootInMemory(
+			ZooConfig.getFilePageSize()).createChannel();
 	private BTreeNodeFactory nodeFactory = new PagedBTreeNodeFactory(
 			new BTreeStorageBufferManager(storage, true));
 

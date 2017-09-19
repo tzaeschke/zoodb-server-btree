@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -43,15 +43,16 @@ import org.zoodb.api.DBLargeVector;
 import org.zoodb.api.impl.ZooPC;
 import org.zoodb.jdo.ZooJdoHelper;
 import org.zoodb.schema.ZooClass;
+import org.zoodb.schema.ZooField;
 import org.zoodb.test.api.TestSerializer;
 import org.zoodb.test.api.TestSuper;
-import org.zoodb.test.jdo.pole.JB0;
-import org.zoodb.test.jdo.pole.JB1;
-import org.zoodb.test.jdo.pole.JB2;
-import org.zoodb.test.jdo.pole.JB3;
-import org.zoodb.test.jdo.pole.JB4;
-import org.zoodb.test.jdo.pole.JdoIndexedPilot;
-import org.zoodb.test.jdo.pole.JdoPilot;
+import org.zoodb.test.jdo.classes.Data;
+import org.zoodb.test.jdo.classes.IndexedData;
+import org.zoodb.test.jdo.classes.TC0;
+import org.zoodb.test.jdo.classes.TC1;
+import org.zoodb.test.jdo.classes.TC2;
+import org.zoodb.test.jdo.classes.TC3;
+import org.zoodb.test.jdo.classes.TC4;
 import org.zoodb.test.testutil.TestTools;
 import org.zoodb.tools.DBStatistics.STATS;
 import org.zoodb.tools.ZooConfig;
@@ -147,6 +148,12 @@ public class Test_030_Schema {
         } catch (JDOUserException e) {
         	//good, can't commit because A depends on B
         }
+        
+        //try again
+        pm.currentTransaction().begin();
+        ZooJdoHelper.schema(pm).addClass(TestClassTiny.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassSmall.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassSmallA.class);
         ZooJdoHelper.schema(pm).addClass(TestClassSmallB.class);
 
         pm.currentTransaction().commit();
@@ -172,10 +179,258 @@ public class Test_030_Schema {
         	assertTrue(e.getMessage().contains(TestClassSmallA.class.getSimpleName()));
         	assertTrue(e.getMessage().contains(TestClassSmallB.class.getSimpleName()));
         }
-        
+
+        //try again 
+        pm.currentTransaction().begin();
+        s1.remove();
         s2.remove();
         s.remove();
         
+        pm.currentTransaction().commit();
+        TestTools.closePM();
+    }
+
+    @Test
+    public void testSchemaInvalidOutsideCommit() {
+        PersistenceManager pm = TestTools.openPM();
+        pm.currentTransaction().begin();
+
+        ZooClass st = ZooJdoHelper.schema(pm).addClass(TestClassTiny.class);
+        ZooField f = st.getField(TestClassTiny.INT);
+
+        pm.currentTransaction().commit();
+        try {
+        	st.dropInstances();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	st.addField("ac", Integer.TYPE);
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	st.getAllFields();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	st.getHandleIterator(false);
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	st.getInstanceIterator();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	st.getName();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	st.dropInstances();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	st.createIndex(TestClassTiny.INT, false);
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	st.remove();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+
+        
+        //test field
+        
+        try {
+        	f.createIndex(true);
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	f.getName();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	f.hasIndex();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	f.rename("1234");
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	f.remove();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        TestTools.closePM();
+    }
+
+    /**
+     * Test that persisting class A with a reference to an SCO B <b>fails</b> if the according 
+     * setting is enabled in ZooDB.
+     */
+    @Test
+    public void testSchemaInvalidatedClass() {
+        PersistenceManager pm = TestTools.openPM();
+        pm.currentTransaction().begin();
+
+        ZooClass invalid = ZooJdoHelper.schema(pm).addClass(TestClassTiny.class);
+        ZooField f = invalid.getField(TestClassTiny.INT);
+        //The following two classes are interdependent, but missing TestClassSmallB. This causes
+        //the commit() to fail, which is what we need.
+        ZooJdoHelper.schema(pm).addClass(TestClassSmall.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassSmallA.class);
+        try {
+            pm.currentTransaction().commit();
+            fail();
+        } catch (JDOUserException e) {
+        	//good, can't commit because A depends on B
+        }
+        
+        //try again
+        pm.currentTransaction().begin();
+        
+        //now the class should be invalid!
+
+        try {
+        	invalid.dropInstances();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	invalid.addField("ac", Integer.TYPE);
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	invalid.getAllFields();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	invalid.getHandleIterator(false);
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	invalid.getInstanceIterator();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	invalid.getName();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	invalid.dropInstances();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	invalid.createIndex(TestClassTiny.INT, false);
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	invalid.remove();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        
+        //test field
+        
+        try {
+        	f.createIndex(true);
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	f.getName();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	f.hasIndex();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	f.rename("1234");
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+        
+        try {
+        	f.remove();
+        	fail();
+        } catch (IllegalStateException e) {
+        	//good
+        }
+
         pm.currentTransaction().commit();
         TestTools.closePM();
     }
@@ -496,13 +751,78 @@ public class Test_030_Schema {
 
         PersistenceManager pm = TestTools.openPM();
         pm.currentTransaction().begin();
-        ZooJdoHelper.schema(pm).addClass(JdoPilot.class);
-        ZooJdoHelper.schema(pm).addClass(JB0.class);
-        ZooJdoHelper.schema(pm).addClass(JB1.class);
-        ZooJdoHelper.schema(pm).addClass(JB2.class);
-        ZooJdoHelper.schema(pm).addClass(JB3.class);
-        ZooJdoHelper.schema(pm).addClass(JB4.class);
-        ZooJdoHelper.schema(pm).addClass(JdoIndexedPilot.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassTiny.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassTiny2.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassTinyClone.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassTinyClone2.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassSmall.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassSmallA.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassSmallB.class);
+        pm.currentTransaction().commit();
+        TestTools.closePM();
+        long len2 = file.length();
+        int newPages = (int) ((len2-len1)/PAGE_SIZE);
+        //Allow 10 new pages max:
+        //- 7*2 for each object index
+        //- +3 for random stuff??
+        assertTrue("new pages: " + newPages, newPages <= 12);
+    }
+
+    @Test
+    public void testPageAllocationWithData() {
+        //test that allocating 6 schemas does not require too many pages 
+        File file = new File(TestTools.getDbFileName());
+        assertTrue(file.exists());
+        assertTrue(file.isFile());
+
+        PersistenceManager pm = TestTools.openPM();
+        pm.currentTransaction().begin();
+        ZooJdoHelper.schema(pm).addClass(TestClassTiny.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassTiny2.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassTinyClone.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassTinyClone2.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassSmall.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassSmallA.class);
+        ZooJdoHelper.schema(pm).addClass(TestClassSmallB.class);
+        pm.currentTransaction().commit();
+        
+        long len1 = file.length();
+
+        pm.currentTransaction().begin();
+        pm.makePersistent(new TestClassTiny());
+        pm.makePersistent(new TestClassTiny2());
+        pm.makePersistent(new TestClassTinyClone());
+        pm.makePersistent(new TestClassTinyClone2());
+        pm.makePersistent(new TestClassSmall());
+        pm.makePersistent(new TestClassSmallA());
+        pm.makePersistent(new TestClassSmallB());
+        pm.currentTransaction().commit();
+        TestTools.closePM();
+        long len2 = file.length();
+        int newPages = (int) ((len2-len1)/PAGE_SIZE);
+        //Allow 10 new pages max:
+        //- 7*2 for each object index
+        //- +3 for random stuff??
+        assertTrue("new pages: " + newPages, newPages <= 19);
+    }
+
+    @Test
+    public void testPageAllocationPole() {
+        //test that allocating 6 schemas does not require too many pages 
+        File file = new File(TestTools.getDbFileName());
+        assertTrue(file.exists());
+        assertTrue(file.isFile());
+        long len1 = file.length();
+
+        PersistenceManager pm = TestTools.openPM();
+        pm.currentTransaction().begin();
+        ZooJdoHelper.schema(pm).addClass(Data.class);
+        ZooJdoHelper.schema(pm).addClass(TC0.class);
+        ZooJdoHelper.schema(pm).addClass(TC1.class);
+        ZooJdoHelper.schema(pm).addClass(TC2.class);
+        ZooJdoHelper.schema(pm).addClass(TC3.class);
+        ZooJdoHelper.schema(pm).addClass(TC4.class);
+        ZooJdoHelper.schema(pm).addClass(IndexedData.class);
         pm.currentTransaction().commit();
         TestTools.closePM();
         long len2 = file.length();
@@ -519,25 +839,25 @@ public class Test_030_Schema {
 
         PersistenceManager pm = TestTools.openPM();
         pm.currentTransaction().begin();
-        ZooJdoHelper.schema(pm).addClass(JB0.class);
-        ZooJdoHelper.schema(pm).addClass(JB1.class);
-        ZooJdoHelper.schema(pm).addClass(JB2.class);
-        ZooJdoHelper.schema(pm).addClass(JB3.class);
-        ZooJdoHelper.schema(pm).addClass(JB4.class);
+        ZooJdoHelper.schema(pm).addClass(TC0.class);
+        ZooJdoHelper.schema(pm).addClass(TC1.class);
+        ZooJdoHelper.schema(pm).addClass(TC2.class);
+        ZooJdoHelper.schema(pm).addClass(TC3.class);
+        ZooJdoHelper.schema(pm).addClass(TC4.class);
         pm.currentTransaction().commit();
         TestTools.closePM();
 
         pm = TestTools.openPM();
         pm.currentTransaction().begin();
-        assertNotNull( ZooJdoHelper.schema(pm).getClass(JB0.class) );
-        assertNotNull( ZooJdoHelper.schema(pm).getClass(JB1.class) );
-        assertNotNull( ZooJdoHelper.schema(pm).getClass(JB2.class) );
-        assertNotNull( ZooJdoHelper.schema(pm).getClass(JB3.class) );
-        assertNotNull( ZooJdoHelper.schema(pm).getClass(JB4.class) );
+        assertNotNull( ZooJdoHelper.schema(pm).getClass(TC0.class) );
+        assertNotNull( ZooJdoHelper.schema(pm).getClass(TC1.class) );
+        assertNotNull( ZooJdoHelper.schema(pm).getClass(TC2.class) );
+        assertNotNull( ZooJdoHelper.schema(pm).getClass(TC3.class) );
+        assertNotNull( ZooJdoHelper.schema(pm).getClass(TC4.class) );
 
-        JB4 jb4 = new JB4();
+        TC4 jb4 = new TC4();
         pm.makePersistent(jb4);
-        JB0 jb0 = new JB0();
+        TC0 jb0 = new TC0();
         pm.makePersistent(jb0);
 
         pm.currentTransaction().commit();
@@ -550,11 +870,11 @@ public class Test_030_Schema {
 
         PersistenceManager pm = TestTools.openPM();
         pm.currentTransaction().begin();
-        ZooJdoHelper.schema(pm).addClass(JB0.class);
-        ZooJdoHelper.schema(pm).addClass(JB1.class);
-        ZooJdoHelper.schema(pm).addClass(JB2.class);
-        ZooJdoHelper.schema(pm).addClass(JB3.class);
-        ZooJdoHelper.schema(pm).addClass(JB4.class);
+        ZooJdoHelper.schema(pm).addClass(TC0.class);
+        ZooJdoHelper.schema(pm).addClass(TC1.class);
+        ZooJdoHelper.schema(pm).addClass(TC2.class);
+        ZooJdoHelper.schema(pm).addClass(TC3.class);
+        ZooJdoHelper.schema(pm).addClass(TC4.class);
         ZooJdoHelper.schema(pm).addClass(TestSerializer.class);
         ZooJdoHelper.schema(pm).addClass(TestSuper.class);
         ZooJdoHelper.schema(pm).addClass(DBLargeVector.class);
@@ -563,18 +883,18 @@ public class Test_030_Schema {
 
         pm = TestTools.openPM();
         pm.currentTransaction().begin();
-        assertNotNull( ZooJdoHelper.schema(pm).getClass(JB0.class) );
-        assertNotNull( ZooJdoHelper.schema(pm).getClass(JB1.class) );
-        assertNotNull( ZooJdoHelper.schema(pm).getClass(JB2.class) );
-        assertNotNull( ZooJdoHelper.schema(pm).getClass(JB3.class) );
-        assertNotNull( ZooJdoHelper.schema(pm).getClass(JB4.class) );
+        assertNotNull( ZooJdoHelper.schema(pm).getClass(TC0.class) );
+        assertNotNull( ZooJdoHelper.schema(pm).getClass(TC1.class) );
+        assertNotNull( ZooJdoHelper.schema(pm).getClass(TC2.class) );
+        assertNotNull( ZooJdoHelper.schema(pm).getClass(TC3.class) );
+        assertNotNull( ZooJdoHelper.schema(pm).getClass(TC4.class) );
         assertNotNull( ZooJdoHelper.schema(pm).getClass(TestSerializer.class) );
         assertNotNull( ZooJdoHelper.schema(pm).getClass(TestSuper.class) );
         assertNotNull( ZooJdoHelper.schema(pm).getClass(DBLargeVector.class) );
 
-        JB4 jb4 = new JB4();
+        TC4 jb4 = new TC4();
         pm.makePersistent(jb4);
-        JB0 jb0 = new JB0();
+        TC0 jb0 = new TC0();
         pm.makePersistent(jb0);
 
         pm.currentTransaction().commit();
@@ -685,7 +1005,7 @@ public class Test_030_Schema {
 
         pm.currentTransaction().commit();
         pm.currentTransaction().begin();
-        int p1 = ZooJdoHelper.getStatistics(pm).getStat(STATS.DB_PAGE_CNT_DATA);
+        long p1 = ZooJdoHelper.getStatistics(pm).getStat(STATS.DB_PAGE_CNT_DATA);
 
         //delete instances
         s01.dropInstances();
@@ -694,7 +1014,7 @@ public class Test_030_Schema {
         pm.currentTransaction().begin();
 
         //test that pages are freed up.
-        int p2 = ZooJdoHelper.getStatistics(pm).getStat(STATS.DB_PAGE_CNT_DATA);
+        long p2 = ZooJdoHelper.getStatistics(pm).getStat(STATS.DB_PAGE_CNT_DATA);
         assertTrue(p2 < p1);
 
         Collection<?> c = (Collection<?>) pm.newQuery(TestClass.class).execute();

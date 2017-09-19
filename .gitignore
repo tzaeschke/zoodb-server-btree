@@ -30,6 +30,13 @@ local.properties
 .buildpath
 
 
+################
+## Intellij Idea
+################
+
+*.iml
+.idea
+
 #################
 ## Visual Studio
 #################
@@ -162,3 +169,5 @@ pip-log.txt
 
 # Mac crap
 .DS_Store
+/zoodb.tgz
+/cov-int

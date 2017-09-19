@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -23,6 +23,7 @@ package org.zoodb.test.jdo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import javax.jdo.JDOHelper;
 import javax.jdo.ObjectState;
@@ -34,6 +35,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.zoodb.internal.server.SessionFactory;
 import org.zoodb.jdo.ZooJdoProperties;
 import org.zoodb.test.testutil.TestTools;
 
@@ -53,11 +55,15 @@ public class Test_048_TransactionsOptions {
 	@After
 	public void after() {
 		TestTools.closePM();
+		SessionFactory.FAIL_BECAUSE_OF_ACTIVE_NON_TX_READ = false;
+		SessionFactory.MULTIPLE_SESSIONS_ARE_OPEN = false;
 	}
 	
 	@AfterClass
 	public static void afterClass() {
 		TestTools.removeDb();
+		assertFalse(SessionFactory.FAIL_BECAUSE_OF_ACTIVE_NON_TX_READ);
+		assertFalse(SessionFactory.MULTIPLE_SESSIONS_ARE_OPEN);
 	}
 	
     @Test
@@ -126,5 +132,60 @@ public class Test_048_TransactionsOptions {
         pm.close();
         pmf.close();
     }
+
+	@Test(expected=UnsupportedOperationException.class)
+	public void testOptimistic() {
+		PersistenceManager pm = TestTools.openPM();
+		pm.currentTransaction().begin();
+		
+		//default
+		assertFalse(pm.currentTransaction().getOptimistic());
+		
+		//should work fine
+		pm.currentTransaction().setOptimistic(true);
+		
+		pm.currentTransaction().setOptimistic(false);
+		
+		pm.currentTransaction().rollback();
+		TestTools.closePM();
+	}
+	
+	@Test
+	public void testTxFeatures() {
+		SessionFactory.FAIL_BECAUSE_OF_ACTIVE_NON_TX_READ = false;
+		SessionFactory.MULTIPLE_SESSIONS_ARE_OPEN = false;
+		PersistenceManager pm = TestTools.openPM();
+		pm.currentTransaction().begin();
+		
+		assertFalse(pm.currentTransaction().getNontransactionalRead());
+		//should work fine
+		pm.currentTransaction().setNontransactionalRead(false);
+		pm.currentTransaction().setNontransactionalRead(true);
+		
+		assertFalse(pm.currentTransaction().getNontransactionalWrite());
+		//should work fine
+		pm.currentTransaction().setNontransactionalWrite(false);
+		//should fail
+		try {
+			pm.currentTransaction().setNontransactionalWrite(true);
+			fail();
+		} catch (UnsupportedOperationException e) {
+			//good
+		}
+		
+		assertFalse(pm.currentTransaction().getRestoreValues());
+		//should work fine
+		pm.currentTransaction().setRestoreValues(false);
+		//should fail
+		try {
+			pm.currentTransaction().setRestoreValues(true);
+			fail();
+		} catch (UnsupportedOperationException e) {
+			//good
+		}
+		
+		pm.currentTransaction().rollback();
+		TestTools.closePM();
+	}
 
 }

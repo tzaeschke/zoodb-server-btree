@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -25,7 +25,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -40,6 +39,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.zoodb.jdo.ZooJdoProperties;
 import org.zoodb.test.testutil.TestTools;
 
 public class Test_070_Query {
@@ -97,7 +97,7 @@ public class Test_070_Query {
         
         try {
             //non persistent class
-            pm.newQuery(TestClassTiny.class);
+            pm.newQuery(TestClassSmall.class);
             fail();
         } catch (JDOUserException e) {
             //bound to fail...
@@ -361,11 +361,11 @@ public class Test_070_Query {
         assertEquals(pm, q.getPersistenceManager());
         assertFalse(q.isUnmodifiable());
 
-        Collection<TestClass> r;
+        List<TestClass> r;
         
         // OR
         q.setFilter("_int < 12345 && (_short == 32000 || _string == 'xyz') && _int >= 123");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(2, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() >= 123);
@@ -373,7 +373,7 @@ public class Test_070_Query {
 
         //again with ""
         q.setFilter("_int < 12345 && (_short == 32000 || _string == \"xyz\") && _int >= 123");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(2, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() >= 123);
@@ -393,11 +393,11 @@ public class Test_070_Query {
         assertEquals(pm, q.getPersistenceManager());
         assertFalse(q.isUnmodifiable());
 
-        Collection<TestClass> r;
+        List<TestClass> r;
         
         //no spaces
         q.setFilter("_int<12345&&(_short==32000||_string=='xyz')&&_int>=123");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(2, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() >= 123);
@@ -406,7 +406,7 @@ public class Test_070_Query {
         //tabs i.o. spaces
         q.setFilter("	_int	<	12345	&&	(	_short	==	32000	||	_string	==	'xyz'	)" +
         		"	&&	_int	>=	123");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(2, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() >= 123);
@@ -415,7 +415,7 @@ public class Test_070_Query {
         //cr/lf (nl) \r \f \n \t
         q.setFilter("	_int\r<\f12345\n&&\t(	_short	==	32000	||	_string	==	'xyz'	)" +
         		"	&&	_int	>=	123");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(2, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() >= 123);
@@ -450,7 +450,7 @@ public class Test_070_Query {
 
 		Extent<?> ext = pm.getExtent(TestClass.class);
 		Query q = pm.newQuery(ext, "_int >= 123");
-		Collection<?> c = (Collection<?>) q.execute();
+		List<?> c = (List<?>) q.execute();
 		assertEquals(3, c.size());
 		
         TestTools.closePM(pm);
@@ -464,24 +464,24 @@ public class Test_070_Query {
 
         Query q = pm.newQuery("SELECT FROM " + TestClass.class.getName());
 
-        Collection<TestClass> r;
+        List<TestClass> r;
         
         q.setFilter("_int != 123");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(4, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() != 123);
         }
 
         q.setFilter("_int < 12345 && (_int != 123)");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(3, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() != 123);
         }
 
         q.setFilter("_int < 12345 && !(_int == 123)");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() < 12345);
             assertTrue("int="+tc.getInt(), tc.getInt() != 123);
@@ -490,7 +490,7 @@ public class Test_070_Query {
 
 
         q.setFilter("_int < 12345 && !(_int != 123)");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(1, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() == 123);
@@ -498,15 +498,17 @@ public class Test_070_Query {
 
          //negation on dual-term &&
         q.setFilter("!(_int > 123 && !(_int >= 12345))");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
+        int  n = 0;
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() != 1234);
+            n++;
         }
-        assertEquals(4, r.size());
+        assertEquals(4, n);
 
         //negation on dual-term ||
         q.setFilter("!(_int < 123 || _int >= 1234)");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(1, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() == 123);
@@ -514,7 +516,7 @@ public class Test_070_Query {
 
         //test with brackets
         q.setFilter("(!!(_int < 12345)) && !(!!(_int == 123))");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(3, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() < 12345);
@@ -523,7 +525,7 @@ public class Test_070_Query {
 
         //test with spaces
         q.setFilter("( ! ! (_int < 12345)) && ! ( ! ! (_int == 123))");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(3, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() < 12345);
@@ -545,26 +547,30 @@ public class Test_070_Query {
 
         Query q = pm.newQuery("SELECT FROM " + TestClass.class.getName());
 
-        Collection<TestClass> r;
+        List<TestClass> r;
         
         q.setFilter("(_int <= 123 || (_int >= 12345))");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
+        int n = 0;
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() != 1234);
+            n++;
         }
-        assertEquals(4, r.size());
+        assertEquals(4, n);
         
         //negation on dual-term &&
         q.setFilter("!(_int > 123 && !(_int >= 12345))");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
+        n = 0;
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() != 1234);
+            n++;
         }
-        assertEquals(4, r.size());
+        assertEquals(4, n);
 
         //negation on dual-term ||
         q.setFilter("!(_int < 123 || _int >= 1234)");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(1, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() == 123);
@@ -587,59 +593,71 @@ public class Test_070_Query {
 
         Query q = pm.newQuery("SELECT FROM " + TestClass.class.getName());
 
-        Collection<TestClass> r;
+        List<TestClass> r;
+        int n = 0;
         
         q.setFilter("_int < 123 || _int >= 1234");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         assertEquals(4, r.size());
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() != 123);
         }
 
         q.setFilter("(_int <= 123 || (_int >= 12345))");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() != 1234);
+            n++;
         }
-        assertEquals(4, r.size());
+        assertEquals(4, n);
         
         q.setFilter("(_int == 123 || _int == 1234) && (_int > 12345 || _int <= 123))");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
+        n = 0;
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() == 123);
+            n++;
         }
-        assertEquals(1, r.size());
+        assertEquals(1, n);
 
         q.setFilter("_int == 123 || _int == 123");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
+        n = 0;
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() == 123);
+            n++;
         }
-        assertEquals(1, r.size());
+        assertEquals(1, n);
 
         q.setFilter("(_int == 123 || _int == 123) || (_int == 123)");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
+        n = 0;
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() == 123);
+            n++;
         }
-        assertEquals(1, r.size());
+        assertEquals(1, n);
 
         q.setFilter("(_int == 123 || _int == 1234) || (_int > 12345)");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
+        n = 0;
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() != 1);
             assertTrue("int="+tc.getInt(), tc.getInt() != 12);
             assertTrue("int="+tc.getInt(), tc.getInt() != 12345);
+            n++;
         }
-        assertEquals(2, r.size());
+        assertEquals(2, n);
 
         q.setFilter("(_int == 123 || _int == 1234) || (_int > 12345 || _int <= 1))");
-        r = (Collection<TestClass>) q.execute();
+        r = (List<TestClass>) q.execute();
+        n = 0;
         for (TestClass tc: r) {
             assertTrue("int="+tc.getInt(), tc.getInt() != 12);
             assertTrue("int="+tc.getInt(), tc.getInt() != 12345);
+            n++;
         }
-        assertEquals(3, r.size());
+        assertEquals(3, n);
 
         TestTools.closePM(pm);
 	}
@@ -675,12 +693,16 @@ public class Test_070_Query {
         //bad trailing slashes
         checkFilterFail(q, "_string == 'C:\\\\Windows\\'");
 
+        //single =
+        checkFilterFail(q, "_int = 1");
+
         TestTools.closePM(pm);
 	}
 	
 	private void checkFilterFail(Query q, String filter) {
 		try {
 			q.setFilter(filter);
+			q.execute();
 			fail();
 		} catch (JDOUserException e) {
 			//good
@@ -693,15 +715,259 @@ public class Test_070_Query {
 		pm.currentTransaction().begin();
 
 		Query q = pm.newQuery("SELECT FROM " + TestClass.class.getName());
-		Collection<?> c;
+		List<?> c;
 		
 		q.setFilter("_int == 0x1 && _short == 0x7D00 && _long == 0x499602D2 && _byte == 0x7F");
-		c = (Collection<?>) q.execute();
+		c = (List<?>) q.execute();
 		assertEquals(1, c.size());
 
 		TestTools.closePM(pm);
 	}
 	
+
+	/**
+	 * This used to fail, but only when using indices.
+	 */
+	@SuppressWarnings("unchecked")
+    @Test
+	public void testNegativeValues() {
+        PersistenceManager pm = TestTools.openPM();
+        pm.currentTransaction().begin();
+
+        Query q = pm.newQuery(TestClass.class);
+
+        List<TestClass> r;
+        
+        q.setFilter("_double == -35f");
+        r = (List<TestClass>) q.execute();
+        for (TestClass tc: r) {
+            assertTrue("int = " + tc.getInt(), tc.getDouble() == -35);
+        }
+        assertEquals(1, r.size());
+        
+        q.setFilter("_double != -35f");
+        r = (List<TestClass>) q.execute();
+        for (TestClass tc: r) {
+            assertTrue("int = " + tc.getInt(), tc.getDouble() != -35);
+        }
+        assertEquals(4, r.size());
+        
+        TestTools.closePM(pm);
+	}
+
+	/**
+	 * In issue #91, a query would not check if the PM is still
+	 * open if the query was executed on an indexed attribute.
+	 */
+	@Test
+	public void testQueryOnClosedPM_Issue91_92() {
+		TestTools.defineSchema(TestClassTiny.class, TestClassTiny2.class);
+		PersistenceManager pm = TestTools.openPM();
+		pm.currentTransaction().begin();
+
+		TestClassTiny t11 = new TestClassTiny(11, 11);
+		pm.makePersistent(t11);
+		TestClassTiny t12 = new TestClassTiny(12, 12);
+		pm.makePersistent(t12);
+		TestClassTiny2 t22 = new TestClassTiny2(21, 21, 21, 21);
+		pm.makePersistent(t22);
+		pm.currentTransaction().commit();
+
+		TestTools.closePM(pm);
+
+		testExtentOnClosedPM_Issue91(TestClassTiny.class, "", false);
+		testExtentOnClosedPM_Issue91(TestClassTiny2.class, "", false);
+		testExtentOnClosedPM_Issue91(TestClass.class, "_double == -35f", false);
+		
+		testExtentOnClosedPM_Issue91(TestClassTiny.class, "", true);
+		testExtentOnClosedPM_Issue91(TestClassTiny2.class, "", true);
+		testExtentOnClosedPM_Issue91(TestClass.class, "_double == -35f", true);
+	}
+
+
+	/**
+	 * 
+	 * @param cls
+	 * @param filter
+	 * @param alwaysFail JDO specifies that calling hasNext()/next on
+	 * a closed query should behave as if the end of the result has been
+	 * reached. This can be emulated by setting 'alwaysFails' to 'false'.
+	 * ZooDB also support a mode where accessing a query outside of a transaction 
+	 * always fails with a JDOUserException. This can be emulated with
+	 * 'alwaysFails' to 'false'.
+	 */
+	@SuppressWarnings("unchecked")
+	private <T> void testExtentOnClosedPM_Issue91(Class<T> cls,	String filter, 
+			boolean alwaysFail) {
+		ZooJdoProperties props = TestTools.getProps();
+		props.setZooFailOnEmptyQueries(alwaysFail);
+        PersistenceManager pm = TestTools.openPM(props);
+        pm.currentTransaction().begin();
+
+        Query q1 = pm.newQuery(cls);
+        Query q2 = pm.newQuery(cls, filter);
+        Query q3 = pm.newQuery(cls, filter);
+        List<T> c3 = (List<T>) q3.execute();
+        Iterator<T> i3 = c3.iterator();
+
+        pm.currentTransaction().commit();
+        
+        try {
+        	q1.execute();
+        	fail();
+        } catch (JDOUserException e) {
+        	assertTrue(e.getMessage(), e.getMessage().contains("not active"));
+        }
+
+        try {
+        	q2.execute();
+        	fail();
+        } catch (JDOUserException e) {
+        	assertTrue(e.getMessage(), e.getMessage().contains("not active"));
+        }
+
+        //iterator()
+        if (alwaysFail) {
+	        try {
+	        	c3.iterator();
+	        	fail();
+	        } catch (JDOUserException e) {
+	        	assertTrue(e.getMessage(), e.getMessage().contains("not active"));
+	        }
+        } else {
+        	//TODO see outcome of https://issues.apache.org/jira/browse/JDO-735
+        	System.err.println("FIXME: Test_070_Query.testQueryOnClosedPM_Issue91();");
+        	assertFalse(c3.iterator().hasNext());
+        }
+
+        //isEmpty()
+        if (alwaysFail) {
+	        try {
+	        	c3.isEmpty();
+	        	fail();
+	        } catch (JDOUserException e) {
+	        	assertTrue(e.getMessage(), e.getMessage().contains("not active"));
+	        }
+        } else {
+        	assertTrue(c3.isEmpty());
+        }
+
+        //hasNext()
+        if (alwaysFail) {
+	        try {
+	        	i3.hasNext();
+	        	fail();
+	        } catch (JDOUserException e) {
+	        	assertTrue(e.getMessage(), e.getMessage().contains("closed"));
+	//        	assertTrue(e.getMessage(), e.getMessage().contains("not active"));
+	        }
+		} else {
+			assertFalse(i3.hasNext());
+		}
+			
+		//next()	
+        if (alwaysFail) {
+	        try {
+	        	i3.next();
+	        	fail();
+	        } catch (JDOUserException e) {
+	        	assertTrue(e.getMessage(), e.getMessage().contains("closed"));
+	//        	assertTrue(e.getMessage(), e.getMessage().contains("not active"));
+	        }
+		} else {
+	        try {
+	        	i3.next();
+	        	fail();
+	        } catch (NoSuchElementException e) {
+	        	//good
+	        }
+		}
+			
+			
+
+        try {
+        	pm.newQuery(TestClass.class);
+        	fail();
+        } catch (JDOUserException e) {
+        	assertTrue(e.getMessage(), e.getMessage().contains("not active"));
+        }
+       
+       	//execution should work now:
+        pm.currentTransaction().setNontransactionalRead(true);
+    	q1.execute();
+    	q2.execute();
+    	c3 = (List<T>) q3.execute();
+    	i3 = c3.iterator();
+    	i3.next();
+
+    	//Now, try everything with closed session
+    	pm.close();
+    	
+        try {
+        	q1.execute();
+        	fail();
+        } catch (JDOUserException e) {
+        	assertTrue(e.getMessage(), e.getMessage().contains("closed"));
+        }
+
+        try {
+        	q2.execute();
+        	fail();
+        } catch (JDOUserException e) {
+        	assertTrue(e.getMessage(), e.getMessage().contains("closed"));
+        }
+    	
+        try {
+        	//TODO see outcome of https://issues.apache.org/jira/browse/JDO-735
+        	System.err.println("FIXME: Test_070_Query.testQueryOnClosedPM_Issue91();");
+        	c3.iterator();
+        	fail();
+        } catch (JDOUserException e) {
+        	assertTrue(e.getMessage(), e.getMessage().contains("closed"));
+        }
+
+    	//TODO !!!!
+    	//TODO !!!!
+    	//TODO !!!!
+
+        //TODO see outcome of https://issues.apache.org/jira/browse/JDO-735
+        System.err.println("FIXME: Test_070_Query.testQueryOnClosedPM_Issue91();");
+        if (alwaysFail) {
+        	try {
+              	i3.hasNext();
+              	fail();
+        	} catch (JDOUserException e) {
+        		//good
+            	assertTrue(e.getMessage(), e.getMessage().contains("closed"));
+        	}
+        } else {
+          	assertFalse(i3.hasNext());
+        }
+      	
+        if (alwaysFail) {
+        	try {
+        		//TODO see outcome of https://issues.apache.org/jira/browse/JDO-735
+        		System.err.println("FIXME: Test_070_Query.testQueryOnClosedPM_Issue91();");
+        		i3.next();
+        		fail();
+        	} catch (JDOUserException e) {
+        		assertTrue(e.getMessage(), e.getMessage().contains("closed"));
+        	}
+        } else {
+        	try {
+        		//TODO see outcome of https://issues.apache.org/jira/browse/JDO-735
+        		System.err.println("FIXME: Test_070_Query.testQueryOnClosedPM_Issue91();");
+        		i3.next();
+        		fail();
+        	} catch (NoSuchElementException e) {
+        		//good
+        	}
+        }
+
+      	TestTools.closePM(pm);
+	}
+
+
 	@After
 	public void afterTest() {
 		TestTools.closePM();

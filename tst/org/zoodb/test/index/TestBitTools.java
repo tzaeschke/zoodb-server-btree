@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -31,32 +31,42 @@ import org.zoodb.internal.server.index.BitTools;
 public class TestBitTools {
 
 	@Test
-	public void testMinMax() {
+	public void testMinMaxBug() {
 		String s0 = "";
 		String s1 = "1";
-		String s2 = "djfls7582943(*&*(a";
+		String s2 = "A";
+		String s3 = "" + (char)142;  // A-Umlaut, negative char-value!
+		String s4 = "djfls7582943(*&*(a";
 		
-		testMinMaxSubEq(s0);
-		testMinMaxSub(s1);
-		testMinMaxSub(s2);
+		testMinMaxSubEq(s0, "xyz");
+		testMinMaxSub(s1, "1234567890");
+		testMinMaxSub(s2, "Alice");
+		testMinMaxSub(s3, s3 + "xxx");
+		testMinMaxSub(s4, s4 + "xxx");
 	} 
 	
-	private void testMinMaxSubEq(String s) {
-		long l0 = BitTools.toSortableLongMinHash(s);
-		long l1 = BitTools.toSortableLong(s);
-		long l2 = BitTools.toSortableLongMaxHash(s);
-		assertTrue("" + l0 + " < " + l1, l0 <= l1 );
-		assertTrue("" + l2 + " > " + l1, l2 >= l1 );
+	private void testMinMaxSubEq(String pre, String str) {
+		long l0 = BitTools.toSortableLongPrefixMinHash(pre);
+		long l1 = BitTools.toSortableLong(pre);
+		long l2 = BitTools.toSortableLong(str);
+		long l3 = BitTools.toSortableLongPrefixMaxHash(pre);
+		assertTrue("" + l0 + " > " + l1, l0 <= l1 );
+		assertTrue("" + l1 + " > " + l2, l1 <= l2 );
+		assertTrue("" + l2 + " > " + l3, l2 <= l3 );
 	}
 	
-	private void testMinMaxSub(String s) {
-		long l0 = BitTools.toSortableLongMinHash(s);
-		long l1 = BitTools.toSortableLong(s);
-		long l2 = BitTools.toSortableLongMaxHash(s);
-		assertTrue("" + l0 + " < " + l1, l0 < l1 );
-		assertTrue("" + l2 + " > " + l1, l2 > l1 );
+	private void testMinMaxSub(String pre, String str) {
+		long l0 = BitTools.toSortableLongPrefixMinHash(pre);
+		long l1 = BitTools.toSortableLong(pre);
+		long l2 = BitTools.toSortableLong(str);
+		long l3 = BitTools.toSortableLongPrefixMaxHash(pre);
+		assertTrue("" + l0 + " > " + l1, l0 < l1 );
+		assertTrue("" + l0 + " > " + l2, l0 < l2 );
+		//This does not need to be true
+		//assertTrue("" + l1 + " > " + l2, l1 < l2 );
+		assertTrue("" + l1 + " > " + l3, l1 < l3 );
+		assertTrue("" + l2 + " > " + l3, l2 < l3 );
 	}
-	
 	
 	@Test
 	public void testSorting() {
@@ -70,13 +80,7 @@ public class TestBitTools {
 
 	@Test
 	public void testSortingDouble() {
-		//special case: -0.0 == 0.0
-		long l0x = BitTools.toSortableLong(-0.0);
-		long l1x = BitTools.toSortableLong(0.0);
-		assertTrue(l0x == l1x );
-		
-		
-		double[] sa = { -231.3, -12., -1.1, -0.0232, -0.0001, 0., 0.0001, 0.002, 1, 12, 1231 };
+		double[] sa = { -231.3, -12., -1.1, -0.0232, -0.0001, -0.0, 0., 0.0001, 0.002, 1, 12, 1231 };
 		for (int i = 1; i < sa.length; i++) {
 			long l0 = BitTools.toSortableLong(sa[i-1]);
 			long l1 = BitTools.toSortableLong(sa[i]);
@@ -89,7 +93,7 @@ public class TestBitTools {
 	 */
 	@Test
 	public void testSortingDoubleMantissa() {
-		double[] sa = { -2.31121, -2.3112, -2.3111, 0.0001, 0.0002, 0.00021, 1231.1, 1231.11 };
+		double[] sa = { -2.31121, -2.3112, -2.3111, -0.0, 0.0, 0.0001, 0.0002, 0.00021, 1231.1, 1231.11 };
 		for (int i = 1; i < sa.length; i++) {
 			long l0 = BitTools.toSortableLong(sa[i-1]);
 			long l1 = BitTools.toSortableLong(sa[i]);
@@ -99,7 +103,7 @@ public class TestBitTools {
 	
 	@Test
 	public void testSymmetryDouble() {
-		double[] sa = { -231.3, -12., -1.1, -0.0232, -0.0001, 0., 0.0001, 0.002, 1, 12, 1231 };
+		double[] sa = { -231.3, -12., -1.1, -0.0232, -0.0001, -0.0, 0., 0.0001, 0.002, 1, 12, 1231 };
 		for (double d0: sa) {
 			checkSymmetry(d0);
 		}
@@ -125,13 +129,7 @@ public class TestBitTools {
 	
 	@Test
 	public void testSortingFloat() {
-		//special case: -0.0 == 0.0
-		long l0x = BitTools.toSortableLong(-0.0);
-		long l1x = BitTools.toSortableLong(0.0);
-		assertTrue(l0x == l1x );
-		
-		
-		float[] sa = { -231.3f, -12f, -1.1f, -0.0232f, -0.0001f, 0f, 0.0001f, 0.002f, 1, 12, 1231 };
+		float[] sa = { -231.3f, -12f, -1.1f, -0.0232f, -0.0001f, -0.0f, 0f, 0.0001f, 0.002f, 1, 12, 1231 };
 		for (int i = 1; i < sa.length; i++) {
 			long l0 = BitTools.toSortableLong(sa[i-1]);
 			long l1 = BitTools.toSortableLong(sa[i]);

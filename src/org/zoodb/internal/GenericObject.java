@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -26,9 +26,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 
+import javax.jdo.ObjectState;
+
 import org.zoodb.api.impl.ZooPC;
 import org.zoodb.internal.client.AbstractCache;
-import org.zoodb.internal.client.PCContext;
+import org.zoodb.internal.client.SchemaOperation;
+import org.zoodb.internal.client.SchemaOperation.SchemaFieldDefine;
+import org.zoodb.internal.client.SchemaOperation.SchemaFieldDelete;
 import org.zoodb.internal.server.ObjectReader;
 import org.zoodb.internal.server.index.BitTools;
 import org.zoodb.internal.util.DBLogger;
@@ -36,7 +40,7 @@ import org.zoodb.internal.util.Util;
 import org.zoodb.tools.internal.ObjectCache.GOProxy;
 
 /**
- * Instances of this class represent persistent instances that can not be de-serialised into
+ * Instances of this class represent persistent instances that cannot be de-serialised into
  * Java classes, because according Java classes do not exist. This can for example occur during
  * schema evolution. 
  * 
@@ -50,7 +54,7 @@ import org.zoodb.tools.internal.ObjectCache.GOProxy;
  * 
  * Uses:
  * - One aim is to return a bitstream with the correct schema (transport to client)
- * - Store locally with updated schema -> requires updated bit-stream
+ * - Store locally with updated schema. This requires updated bit-stream
  * - Alternatively, allow reading as if the schema was modified (through transparent mapping)???
  * 
  * What should the output be:
@@ -76,7 +80,7 @@ import org.zoodb.tools.internal.ObjectCache.GOProxy;
  *   - FCOs (hollowToObject()) returns a Long instead of an PCImpl
  *   - SCOs return a byte[] instead of Object.
  *   
- * --> CHECK Looks like we could integrate thus into the existing deserializer... 
+ * TODO CHECK: Looks like we could integrate thus into the existing deserializer... 
  *  
  * This is clear:
  * - Input: Bit-Stream, SchemaDefinition, SchemaMapping
@@ -89,41 +93,37 @@ import org.zoodb.tools.internal.ObjectCache.GOProxy;
  * 
  * @author Tilmann Zaschke
  */
-public class GenericObject {
+public class GenericObject extends ZooPC {
 
-    private ZooClassDef def;
+    private ZooClassDef defCurrent;
     private ZooClassDef defOriginal;
-	private long oid;
-	//TODO keep in single ba[]?!?!?
+
+    //TODO keep in single ba[]?!?!?
 	private Object[] fixedValues;
 	private Object[] variableValues;
-	//the context contains the original ClassDef.
-	private final PCContext context;
 	
 	private boolean isDbCollection = false; //== instanceof DBCollection
 	private Object dbCollectionData;
 	
-	private boolean isDirty = false;
-	private boolean isDeleted = false;
-	private boolean isNew = false;
-	private boolean isHollow = false;
 	private ZooHandleImpl handle = null;
-	private long[] prevValues = null; //backup to remove old field-index entries
 	
-	private GenericObject(ZooClassDef def, long oid, boolean isNew, AbstractCache cache) {
-		this.def = def;
+	private GenericObject(ObjectState state, ZooClassDef def, long oid, boolean isNew, 
+			AbstractCache cache) {
+		jdoZooInit(state, def.getProvidedContext(), oid);
+		this.defCurrent = def;
 		this.defOriginal = def;
-		this.oid = oid;
-		this.context = def.getProvidedContext();
 		fixedValues = new Object[def.getAllFields().length];
 		variableValues = new Object[def.getAllFields().length];
 		cache.addGeneric(this);
+		if (isNew) {
+			jdoZooSetTimestamp(def.getProvidedContext().getSession().getTransactionId());
+		}
 	}
 
 	public static GenericObject newInstance(ZooClassDef def, long oid, boolean isNewAndDirty,
 			AbstractCache cache) {
-		GenericObject go = new GenericObject(def, oid, isNewAndDirty, cache);
-		go.isHollow = true;
+		GenericObject go = new GenericObject(ObjectState.HOLLOW_PERSISTENT_NONTRANSACTIONAL,
+				def, oid, isNewAndDirty, cache);
 		return go;
 	}
 	
@@ -139,8 +139,7 @@ public class GenericObject {
 	
 	static GenericObject newEmptyInstance(long oid, ZooClassDef def, AbstractCache cache) {
 		def.getProvidedContext().getNode().getOidBuffer().ensureValidity(oid);
-		GenericObject go = new GenericObject(def, oid, true, cache);
-		go.setNew(true);
+		GenericObject go = new GenericObject(ObjectState.PERSISTENT_NEW, def, oid, true, cache);
 	
 		//initialise
 		//We do not use default values here, because we are not evolving objects (is that a 
@@ -193,9 +192,12 @@ public class GenericObject {
 		case ARRAY:
 		case BIG_DEC:
 		case BIG_INT:
-		case DATE:
 		case NUMBER:
 			throw new UnsupportedOperationException();
+		case DATE:
+			fixedValues[i] = ((Date)val).getTime();
+			variableValues[i] = val;
+			break;
 		case PRIMITIVE:
 			try {
 				//this ensures the correct type
@@ -247,7 +249,7 @@ public class GenericObject {
 	 * 
 	 * Returns OIDs for references.
 	 * 
-	 * @param fieldDef
+	 * @param fieldDef Field definition
 	 * @return The value of that field.
 	 */
 	public Object getField(ZooFieldDef fieldDef) {
@@ -275,10 +277,10 @@ public class GenericObject {
 	}
 
 	public ZooClassDef ensureLatestVersion() {
-	    while (def.getNextVersion() != null) {
-	        def = evolve();
+	    while (defCurrent.getNextVersion() != null) {
+	        evolve();
 	    }
-	    return def;
+	    return defCurrent;
 	}
 	
 	private ZooClassDef evolve() {
@@ -287,7 +289,7 @@ public class GenericObject {
 		ArrayList<Object> vV = new ArrayList<Object>(Arrays.asList(variableValues));
 		
 		//TODO resize only once to correct size
-		for (PersistentSchemaOperation op: def.getNextVersion().getEvolutionOps()) {
+		for (PersistentSchemaOperation op: jdoZooGetClassDef().getNextVersion().getEvolutionOps()) {
 			if (op.isAddOp()) {
 				fV.add(op.getFieldId(), op.getInitialValue());
 				vV.add(op.getFieldId(), null);
@@ -298,8 +300,38 @@ public class GenericObject {
 		}
 		fixedValues = fV.toArray(fixedValues);
 		variableValues = vV.toArray(variableValues);
-		def = def.getNextVersion();
-		return def;
+		defCurrent = defCurrent.getNextVersion();
+		//We call this just to set the context/ZooClassDef. The state can be ignored since
+		//it is only a temporary object and not in the cache
+		jdoZooInit(ObjectState.PERSISTENT_DIRTY, defCurrent.getProvidedContext(), 
+				jdoZooGetOid());
+		return defCurrent;
+	}
+
+	/**
+	 * Schema evolution of in-memory objects, operation by operation.
+	 * @param op Schema operation object
+	 */
+	public void evolve(SchemaOperation op) {
+		//TODO this is horrible!!!
+		ArrayList<Object> fV = new ArrayList<Object>(Arrays.asList(fixedValues));
+		ArrayList<Object> vV = new ArrayList<Object>(Arrays.asList(variableValues));
+		
+		//TODO resize only once to correct size
+		if (op instanceof SchemaOperation.SchemaFieldDefine) {
+			SchemaOperation.SchemaFieldDefine op2 = (SchemaFieldDefine) op;
+			int fieldId = op2.getField().getFieldPos();
+			fV.add(fieldId, PersistentSchemaOperation.getDefaultValue(op2.getField()));
+			vV.add(fieldId, null);
+		}
+		if (op instanceof SchemaOperation.SchemaFieldDelete) {
+			SchemaOperation.SchemaFieldDelete op2 = (SchemaFieldDelete) op;
+			int fieldId = op2.getField().getFieldPos();
+			fV.remove(fieldId);
+			vV.remove(fieldId);
+		}
+		fixedValues = fV.toArray(fixedValues);
+		variableValues = vV.toArray(variableValues);
 	}
 
 	public ObjectReader toStream() {
@@ -309,12 +341,13 @@ public class GenericObject {
 	    ByteBuffer ba = null;
 	    while (ba == null) {
 		    try {
-		    	GenericObjectWriter gow = new GenericObjectWriter(size, def.getOid());
+		    	GenericObjectWriter gow = new GenericObjectWriter(size, 
+		    			jdoZooGetClassDef().getOid(), jdoZooGetTimestamp());
 				gow.newPage();
 				DataSerializer ds = new DataSerializer(gow, 
-				        context.getSession().internalGetCache(), 
-				        context.getNode());
-				ds.writeObject(this, def);
+				        jdoZooGetContext().getSession().internalGetCache(), 
+				        jdoZooGetNode());
+				ds.writeObject(this, jdoZooGetClassDef());
 				ba = gow.toByteArray();
 		    } catch (BufferOverflowException e) {
 		    	//ignore, hehe...
@@ -327,29 +360,15 @@ public class GenericObject {
 	}
 
 	public long getOid() {
-		return oid;
+		return jdoZooGetOid();
 	}
 
     public void setOid(long oid) {
-        this.oid = oid;
+        jdoZooSetOid(oid);
     }
 
-    public void setDirty(boolean b) {
-        if (!isDirty) {
-            isDirty = true;
-            context.getSession().internalGetCache().addGeneric(this);
-            if (!isNew) {
-            	getPrevValues();
-            }
-        }
-    }
-    
-    public boolean isDirty() {
-        return isDirty;
-    }
-
-    public ZooClassDef getClassDef() {
-        return def;
+    public ZooClassDef getClassDefCurrent() {
+        return defCurrent;
     }
 
     public ZooClassDef getClassDefOriginal() {
@@ -360,39 +379,13 @@ public class GenericObject {
 		this.defOriginal = defOriginal;
 	}
 
-	public void setDeleted(boolean b) {
-		this.isDeleted = b;
-		if (b) {
-			setDirty(true);
-		}
-	}
-
-	public boolean isDeleted() {
-		return isDeleted;
-	}
-
-	public boolean isNew() {
-		return isNew ;
-	}
-
-	public boolean isHollow() {
-		return isHollow ;
-	}
-
-	private void setNew(boolean b) {
-		isNew = b;
-		if (b) {
-			setDirty(true);
-		}
-	}
-
 	public boolean isDbCollection() {
 		return isDbCollection;
 	}
 
 	/**
 	 * This is used to represent DBCollection objects as GenericObjects.
-	 * @param collection
+	 * @param collection collection object
 	 */
 	public void setDbCollection(Object collection) {
 		if (collection != null) {
@@ -420,32 +413,20 @@ public class GenericObject {
 	
 	public ZooHandleImpl getOrCreateHandle() {
 		if (handle == null) {
-			handle = new ZooHandleImpl(this, def.getVersionProxy());
+			handle = new ZooHandleImpl(this, defOriginal.getVersionProxy());
 		}
 		return handle;
 	}
 
-	public void setClean() {
-		isHollow = false;
-		isDirty = false;
-		isDeleted = false;
-		prevValues = null;
-	}
-	
 	public void activateRead() {
-		if (isHollow) {
-			GenericObject go = context.getNode().readGenericObject(def, oid);
+		//TODO use ZooDB method??
+		if (jdoZooIsStateHollow()) {
+			GenericObject go = jdoZooGetNode().readGenericObject(
+					jdoZooGetClassDef(), jdoZooGetOid());
 			if (go != this) {
-				throw DBLogger.newFatal("Arrgh!");
+				throw DBLogger.newFatalInternal("Arrgh!");
 			}
 		}
-	}
-
-	public void setHollow() {
-		isHollow = true;
-		isDirty = false;
-		isNew = false;
-		prevValues = null;
 	}
 
 	/**
@@ -457,38 +438,37 @@ public class GenericObject {
 	void verifyPcNotDirty() {
 		if (handle == null || handle.internalGetPCI() == null || 
 				!handle.internalGetPCI().jdoZooIsDirty()) {
-			ZooPC pc = context.getSession().internalGetCache().findCoByOID(oid);
+			ZooPC pc = jdoZooGetContext().getSession().internalGetCache().findCoByOID(
+					jdoZooGetOid());
 			if (pc == null || !pc.jdoZooIsDirty()) {
 				return;
 			}
 		}
 		throw DBLogger.newUser("This object has been modified via its Java class as well as via" +
-				" the schema API. This is not allowed. Objectid: " + Util.oidToString(oid));
+				" the schema API. This is not allowed. Objectid: " + 
+				Util.oidToString(jdoZooGetOid()));
 	}
 	
-	private final void getPrevValues() {
-		if (prevValues != null) {
-			throw new IllegalStateException();
-		}
-		prevValues = context.getIndexer().getBackup(this, fixedValues);
-	}
-	
-	public long[] jdoZooGetBackup() {
-		return prevValues;
-	}
-
 	/**
-	 * 
 	 * @return True if there is an associated PC that is deleted.
 	 */
 	public boolean checkPcDeleted() {
 		if (handle == null || handle.internalGetPCI() == null || 
 				!handle.internalGetPCI().jdoZooIsDeleted()) {
-			ZooPC pc = context.getSession().internalGetCache().findCoByOID(oid);
+			ZooPC pc = jdoZooGetContext().getSession().internalGetCache().findCoByOID(
+					jdoZooGetOid());
 			if (pc == null || !pc.jdoZooIsDeleted()) {
 				return false;
 			}
 		}
 		return true;
+	}
+
+	public Object[] getRawFields() {
+		return fixedValues;
+	}
+
+	public void invalidate() {
+		handle.invalidate();
 	}
 }

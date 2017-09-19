@@ -4,6 +4,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Observable;
 
+import org.zoodb.internal.server.IOResourceProvider;
+import org.zoodb.internal.server.StorageChannelOutput;
+
 public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	private Map<Integer, PagedBTreeNode> map;
 	private int pageId;
@@ -18,7 +21,7 @@ public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	}
 
 	@Override
-	public int write(PagedBTreeNode node) {
+	public int write(PagedBTreeNode node, StorageChannelOutput out) {
 		pageId++;
 		map.put(pageId, node);
 		return pageId;
@@ -42,9 +45,15 @@ public class BTreeMemoryBufferManager implements BTreeBufferManager {
 		pageId = 0;
 		map.clear();
 	}
+	
 	@Override
 	public void update(Observable o, Object arg) {
 		return;
+	}
+	
+	@Override
+	public IOResourceProvider getIO() {
+		return null;
 	}
 
 }

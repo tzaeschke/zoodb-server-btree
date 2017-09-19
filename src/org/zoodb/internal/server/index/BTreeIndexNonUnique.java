@@ -1,9 +1,8 @@
 package org.zoodb.internal.server.index;
 
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
-import org.zoodb.internal.server.index.btree.PagedBTreeNode;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTreeNode;
 
@@ -11,14 +10,14 @@ public class BTreeIndexNonUnique extends BTreeIndex<NonUniquePagedBTree, NonUniq
 
     private NonUniquePagedBTree tree;
 
-    public BTreeIndexNonUnique(DATA_TYPE dataType, StorageChannel file) {
+    public BTreeIndexNonUnique(PAGE_TYPE dataType, IOResourceProvider file) {
         super(dataType, file, true, false);
 
         tree = new NonUniquePagedBTree(bufferManager.getInnerNodeOrder(), 
         						bufferManager.getLeafOrder(), bufferManager);
     }
     
-    public BTreeIndexNonUnique(DATA_TYPE dataType, StorageChannel file, int rootPageId) {
+    public BTreeIndexNonUnique(PAGE_TYPE dataType, IOResourceProvider file, int rootPageId) {
         super(dataType, file, true, false);
         
         NonUniquePagedBTreeNode root = (NonUniquePagedBTreeNode)bufferManager.read(rootPageId);

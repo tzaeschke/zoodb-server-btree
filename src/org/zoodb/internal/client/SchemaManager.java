@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -26,11 +26,13 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.zoodb.api.impl.ZooPC;
+import org.zoodb.internal.GenericObject;
 import org.zoodb.internal.Node;
 import org.zoodb.internal.ZooClassDef;
 import org.zoodb.internal.ZooClassProxy;
 import org.zoodb.internal.ZooFieldDef;
 import org.zoodb.internal.client.session.ClientSessionCache;
+import org.zoodb.internal.server.index.SchemaIndex;
 import org.zoodb.internal.util.DBLogger;
 import org.zoodb.schema.ZooClass;
 
@@ -53,6 +55,9 @@ public class SchemaManager {
 	}
 	
 	public boolean isSchemaDefined(Class<?> cls, Node node) {
+		if (cls == GenericObject.class) {
+			throw DBLogger.newFatalInternal("This class cannot be persisted: " + cls.getName());
+		}
 		ZooClassDef def = cache.getSchema(cls, node);
 		if (def == null || def.jdoZooIsDeleted()) {
 			return false;
@@ -99,6 +104,19 @@ public class SchemaManager {
 
 	public void refreshSchema(ZooClassDef def) {
 		def.jdoZooGetNode().refreshSchema(def);
+		def.getProvidedContext().getIndexer().refreshWithSchema(def);
+	} 
+	
+	/**
+	 * This is only intended to read updates wrt attr-indexes. This can't refresh the schema
+	 * properly (remove remotely deleted schemas, ...). I.e. the cache is NOT updated.  
+	 */
+	public void refreshSchemaAll() {
+		//TODO we don't have a database lock here!
+		for (ZooClassDef def: cache.getSchemata()) {
+			def.jdoZooGetNode().refreshSchema(def);
+			def.getProvidedContext().getIndexer().refreshWithSchema(def);
+		}
 	} 
 	
 	public ZooClassProxy locateSchema(String className) {
@@ -193,6 +211,11 @@ public class SchemaManager {
 				pci.jdoZooMarkDeleted();
 			}
 		}
+		for (GenericObject go: cache.getAllGenericObjects()) {
+			if (go.jdoZooGetClassDef().getSchemaId() == proxy.getSchemaId()) {
+				go.jdoZooMarkDeleted();
+			}
+		}
 		// Delete whole version tree
 		ops.add(new SchemaOperation.SchemaDelete(proxy));
 		for (ZooClassDef def: proxy.getAllVersions()) {
@@ -204,6 +227,8 @@ public class SchemaManager {
 		if (f.isIndexed()) {
 			throw DBLogger.newUser("Field is already indexed: " + f.getName());
 		}
+		//Is type indexable?
+		SchemaIndex.FTYPE.fromType(f);
 		ops.add(new SchemaOperation.IndexCreate(f, isUnique));
 	}
 
@@ -228,30 +253,33 @@ public class SchemaManager {
 	
 	public void commit() {
 		//If nothing changed, there is no need to verify anything!
-		if (!ops.isEmpty()) {
-			Set<String> missingSchemas = new HashSet<String>();
-			//loop until all schemas are auto-defined (if in auto-mode)
-			do {
-				missingSchemas.clear();
-				Collection<ZooClassDef> schemata = cache.getSchemata();
-				for (ZooClassDef cs: schemata) {
-					if (cs.jdoZooIsDeleted()) continue;
-					//check ALL classes, e.g. to find references to removed classes
-					checkSchemaFields(cs, schemata, missingSchemas);
-				}
-				addMissingSchemas(missingSchemas);
-			} while (!missingSchemas.isEmpty());
+		if (ops.isEmpty()) {
+			return;
 		}
+		
+		Set<String> missingSchemas = new HashSet<String>();
+		//loop until all schemas are auto-defined (if in auto-mode)
+		do {
+			missingSchemas.clear();
+			Collection<ZooClassDef> schemata = cache.getSchemata();
+			for (ZooClassDef cs: schemata) {
+				if (cs.jdoZooIsDeleted()) continue;
+				//check ALL classes, e.g. to find references to removed classes
+				checkSchemaFields(cs, schemata, missingSchemas);
+			}
+			addMissingSchemas(missingSchemas);
+		} while (!missingSchemas.isEmpty());
 
 		// perform pending operations
 		for (SchemaOperation op: ops) {
 			op.commit();
 		}
-			
-		//clear ops
-		ops.clear();
 	}
 
+	public void postCommit() {
+		ops.clear();
+	}
+	
 	/**
 	 * This method add all schemata that were found missing when checking all known
 	 * schemata.
@@ -352,7 +380,7 @@ public class SchemaManager {
 		def = def.getModifiableVersion(cache, ops);
 		long fieldOid = def.jdoZooGetNode().getOidBuffer().allocateOid();
 		ZooFieldDef field = ZooFieldDef.create(def, fieldName, type, fieldOid);
-		ops.add(new SchemaOperation.SchemaFieldDefine(def, field));
+		applyOp(new SchemaOperation.SchemaFieldDefine(def, field), def);
 		return field;
 	}
 
@@ -360,7 +388,7 @@ public class SchemaManager {
 			int arrayDim) {
 		def = def.getModifiableVersion(cache, ops);
 		ZooFieldDef field = ZooFieldDef.create(def, fieldName, typeDef, arrayDim);
-		ops.add(new SchemaOperation.SchemaFieldDefine(def, field));
+		applyOp(new SchemaOperation.SchemaFieldDefine(def, field), def);
 		return field;
 	}
 
@@ -368,8 +396,22 @@ public class SchemaManager {
 		ZooClassDef def = field.getDeclaringType().getModifiableVersion(cache, ops);
 		//new version -- new field
 		field = def.getField(field.getName()); 
-		ops.add(new SchemaOperation.SchemaFieldDelete(def, field));
+		applyOp(new SchemaOperation.SchemaFieldDelete(def, field), def);
 		return def;
+	}
+	
+	/**
+	 * Apply an operation to all objects in the cache. 
+	 * @param op
+	 * @param def
+	 */
+	private void applyOp(SchemaOperation op, ZooClassDef def) {
+		ops.add(op);
+		for (GenericObject o: cache.getAllGenericObjects()) {
+			if (o.jdoZooGetClassDef() == def) {
+				o.evolve(op);
+			}
+		}
 	}
 
 	public void renameField(ZooFieldDef field, String fieldName) {
@@ -381,5 +423,9 @@ public class SchemaManager {
 
 	public boolean getAutoCreateSchema() {
 		return isSchemaAutoCreateMode;
+	}
+
+	public boolean hasChanges() {
+		return !ops.isEmpty();
 	}
 }

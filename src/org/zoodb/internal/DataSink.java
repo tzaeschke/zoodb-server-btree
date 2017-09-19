@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -29,7 +29,7 @@ import org.zoodb.api.impl.ZooPC;
  * Each sink handles objects of one class only. Therefore sinks can be associated with 
  * ZooClassDefs and PCContext instances.
  * 
- * @author ztilmann
+ * @author Tilmann Zaeschke
  */
 public interface DataSink {
 
