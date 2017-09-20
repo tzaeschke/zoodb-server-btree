@@ -20,10 +20,13 @@
  */
 package org.zoodb.test.jdo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import javax.jdo.JDOUserException;
@@ -291,9 +294,8 @@ public class Test_062_ExtentIteration {
      */
 	@Test
     public void testExtentBug1() {
-		//TODO
-		System.err.println("TODO Ensure that we have no index defined here!");
-        int N = 100000;
+        TestTools.removeIndex(TestClass.class, "_int");
+        int N = 10000;
         int nPost = testExtentBug(N);
 		assertTrue("N="+ N + " nPost="+ nPost, N*1.1 > nPost);
 		assertTrue("N="+ N + " nPost="+ nPost, N*0.9 < nPost);
@@ -302,7 +304,7 @@ public class Test_062_ExtentIteration {
 	@Test
     public void testExtentBug2() {
         TestTools.defineIndex(TestClass.class, "_int", true);
-        int N = 100000;
+        int N = 10000;
         int nPost = testExtentBug(N);
 		assertEquals(N, nPost);
 	}
@@ -331,7 +333,7 @@ public class Test_062_ExtentIteration {
 		while (!isFinished) {
 			Query qP = pm.newQuery(TestClass.class, "_int > " + currentPostId + 
 					" &&  _int <= " + (currentPostId+20000));
-			Collection<TestClass> cP = (Collection<TestClass>)qP.execute();
+			List<TestClass> cP = (List<TestClass>)qP.execute();
 			if (cP.isEmpty()) {
 				isFinished = true;
 				break;
