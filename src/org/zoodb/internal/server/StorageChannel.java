@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -22,8 +22,6 @@ package org.zoodb.internal.server;
 
 import java.nio.ByteBuffer;
 
-import org.zoodb.internal.server.index.FreeSpaceManager;
-
 
 /**
  * A StorageChannel manages a database file and provides read- and 
@@ -34,34 +32,16 @@ import org.zoodb.internal.server.index.FreeSpaceManager;
  */
 public interface StorageChannel {
 
-	StorageChannelInput getReader(boolean autoPaging);
-
-	StorageChannelOutput getWriter(boolean autoPaging);
-
-	void reportFreePage(int pageId);
-
 	int getPageSize();
 
 	void close();
-
-	void flush();
 
 	void write(ByteBuffer buf, long currentPage);
 
 	void readPage(ByteBuffer buf, long pageId);
 
-	int statsGetReadCount();
-
-	int statsGetWriteCount();
-
-	int statsGetReadCountUnique();
-
-	void newTransaction(long txId);
-
 	long getTxId();
 
-	int statsGetPageCount();
-	
-	FreeSpaceManager getFsm();
+	int getNextPage(int prevPage);
 
 }
