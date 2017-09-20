@@ -39,8 +39,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.BTreeIndexNonUnique;
 import org.zoodb.internal.server.index.LongLongIndex;
@@ -73,18 +73,17 @@ public class TestLongLongNonUniqueIndex {
     	ZooConfig.setFilePageSize(PAGE_SIZE);
     }
     
-    private StorageChannel createPageAccessFile() {
-    	StorageChannel paf = new StorageRootInMemory(ZooConfig.getFilePageSize());
-    	return paf;
+    private IOResourceProvider createPageAccessFile() {
+    	return new StorageRootInMemory(ZooConfig.getFilePageSize()).createChannel();
     }
     
     private LongLongIndex createIndex() {
-        StorageChannel paf = createPageAccessFile();
+    	IOResourceProvider paf = createPageAccessFile();
         return createIndex(paf); 
     }
     
-    private LongLongIndex createIndex(StorageChannel paf) {
-    	LongLongIndex ind = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX, paf);
+    private LongLongIndex createIndex(IOResourceProvider paf) {
+    	LongLongIndex ind = new BTreeIndexNonUnique(PAGE_TYPE.GENERIC_INDEX, paf);
     	return ind; 
     }
     
@@ -391,7 +390,7 @@ public class TestLongLongNonUniqueIndex {
     public void testDirtyPagesWithMock() {
         //When increasing this number, also increase the assertion limit!
         final int MAX = 1000000;
-        StorageChannel paf = createPageAccessFile();
+        IOResourceProvider paf = createPageAccessFile();
         LongLongIndex ind = createIndex(paf);
         
         //Fill index
@@ -400,16 +399,16 @@ public class TestLongLongNonUniqueIndex {
         }
 
         //		int nW0 = paf.statsGetWriteCount();
-        ind.write();
+        paf.writeIndex(ind::write);
         int nW1 = paf.statsGetWriteCount();
         ind.insertLong(MAX * 2, 32);
-        ind.write();
+        paf.writeIndex(ind::write);
         int nW2 = paf.statsGetWriteCount();
         assertTrue("nW1="+nW1 + " / nW2="+nW2, nW2-nW1 <= MAX_DEPTH);
 
 
         ind.removeLong(MAX * 2, 32);
-        ind.write();
+        paf.writeIndex(ind::write);
         int nW3 = paf.statsGetWriteCount();
         assertTrue("nW2="+nW2 + " / nW3="+nW3, nW3-nW2 <= MAX_DEPTH);
 
@@ -556,7 +555,7 @@ public class TestLongLongNonUniqueIndex {
 
     @Test
     public void testTransactionContext() {
-        StorageChannel paf = createPageAccessFile();
+    	IOResourceProvider paf = createPageAccessFile();
         LongLongIndex ind = createIndex(paf);
         for (int i = 1000; i < 2000; i++) {
             ind.insertLong(i, 32);
@@ -564,7 +563,7 @@ public class TestLongLongNonUniqueIndex {
 
         //Iterate while deleting
         Iterator<LLEntry> iter = ind.iterator();
-        paf.newTransaction(22);
+        paf.startWriting(22);
          try {
         	iter.hasNext();
         	fail();
@@ -580,7 +579,7 @@ public class TestLongLongNonUniqueIndex {
 
         //try with updates  (updates existing entry)
         iter = ind.iterator();
-        paf.newTransaction(33);
+        paf.startWriting(33);
         try {
         	iter.hasNext();
         	fail();
@@ -596,7 +595,7 @@ public class TestLongLongNonUniqueIndex {
 
         //try with new entries
         iter = ind.iterator();
-        paf.newTransaction(44);
+        paf.startWriting(44);
         try {
         	iter.hasNext();
         	fail();
@@ -613,7 +612,7 @@ public class TestLongLongNonUniqueIndex {
 
     @Test
     public void testTransactionContextDescending() {
-        StorageChannel paf = createPageAccessFile();
+        IOResourceProvider paf = createPageAccessFile();
         LongLongIndex ind = createIndex(paf);
         for (int i = 1000; i < 2000; i++) {
             ind.insertLong(i, 32);
@@ -621,7 +620,7 @@ public class TestLongLongNonUniqueIndex {
 
         //Iterate while deleting
         Iterator<LLEntry> iter = ind.descendingIterator();
-        paf.newTransaction(22);
+        paf.startWriting(22);
          try {
         	iter.hasNext();
         	fail();
@@ -637,7 +636,7 @@ public class TestLongLongNonUniqueIndex {
 
         //try with updates  (updates existing entry)
         iter = ind.descendingIterator();
-        paf.newTransaction(33);
+        paf.startWriting(33);
         try {
         	iter.hasNext();
         	fail();
@@ -653,7 +652,7 @@ public class TestLongLongNonUniqueIndex {
 
         //try with new entries
         iter = ind.descendingIterator();
-        paf.newTransaction(44);
+        paf.startWriting(44);
         try {
         	iter.hasNext();
         	fail();

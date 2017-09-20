@@ -90,6 +90,7 @@ public class TestNonUnique {
             assertEquals(count, entry.getValue());
         }
         assertEquals(0, count);
+        it.close();
 
         for (int i = 0; i < numElements / 2; i++) {
             tree.delete(1, i);
@@ -104,6 +105,7 @@ public class TestNonUnique {
             assertEquals(count, entry.getValue());
         }
         assertEquals(numElements / 2, count);
+        it.close();
     }
 
     @Test
@@ -189,7 +191,7 @@ public class TestNonUnique {
         boolean unique = false;
 
         BTreeBufferManager bufferManager =
-                new BTreeStorageBufferManager(new StorageRootInMemory(pageSize), false);
+                new BTreeStorageBufferManager(new StorageRootInMemory(pageSize).createChannel(), false);
         return new BTreeFactory(bufferManager, unique);
     }
 }

@@ -20,19 +20,29 @@
  */
 package org.zoodb.test.index2.btree;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
 import org.junit.Test;
-import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex;
-import org.zoodb.internal.server.index.btree.*;
+import org.zoodb.internal.server.index.btree.BTree;
+import org.zoodb.internal.server.index.btree.BTreeBufferManager;
+import org.zoodb.internal.server.index.btree.BTreeIterator;
+import org.zoodb.internal.server.index.btree.BTreeNode;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.prefix.BitOperationsHelper;
 import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
-
-import java.util.*;
-
-import static org.junit.Assert.*;
 
 public class TestPrefixSharing {
 
@@ -279,7 +289,7 @@ public class TestPrefixSharing {
     }
 
     private BTree createEmptyBTree(int pageSize, boolean unique) {
-        StorageChannel storage = new StorageRootInMemory(pageSize);
+        IOResourceProvider storage = new StorageRootInMemory(pageSize).createChannel();
         BTreeBufferManager bufferManager = new BTreeStorageBufferManager(storage, unique);
         if (unique) {
             return new UniquePagedBTree(pageSize, bufferManager);

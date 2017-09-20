@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -130,6 +130,7 @@ public class DataDeSerializer {
     /**
      * Create a new DataDeserializer.
      * @param in Stream to read the data from.
+     * @param cache The object cache
      * persistent.
      */
     public DataDeSerializer(XmlReader in, ObjectCache cache) {
@@ -707,7 +708,7 @@ public class DataDeSerializer {
                 }
                 c = cls.getDeclaredConstructor((Class[])null);
                 c.setAccessible(true);
-                DEFAULT_CONSTRUCTORS.put(cls, c);
+                DEFAULT_CONSTRUCTORS.putIfAbsent(cls, c);
             }
             //use the constructor
             return c.newInstance();

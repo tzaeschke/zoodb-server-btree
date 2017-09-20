@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -32,10 +32,12 @@ public class TestClassSmallA extends TestClassSmall {
 	private TestClassSmallB b;
 	
 	public TestClassSmallB getB() {
+		zooActivateRead();
 		return b;
 	}
 
 	public void setB(TestClassSmallB b) {
+		zooActivateWrite();
 		this.b = b;
 	}
 

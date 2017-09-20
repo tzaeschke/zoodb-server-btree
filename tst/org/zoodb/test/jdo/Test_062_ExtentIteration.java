@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -24,6 +24,7 @@ import static org.junit.Assert.*;
 
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import javax.jdo.JDOUserException;
 import javax.jdo.PersistenceManager;
@@ -115,8 +116,9 @@ public class Test_062_ExtentIteration {
         pm.currentTransaction().begin();
 
         try {
-        	it.hasNext();
-        	fail();
+        	assertFalse(it.hasNext());
+			//no failure here. Depending on the configuration,
+			//we either get 'false' or a JDOSuerException. Both is correct.
         } catch (JDOUserException e) {
         	//good
         }
@@ -124,7 +126,7 @@ public class Test_062_ExtentIteration {
         try {
         	it.next();
         	fail();
-        } catch (JDOUserException e) {
+        } catch (JDOUserException | NoSuchElementException e) {
         	//good
         }
         
@@ -178,8 +180,9 @@ public class Test_062_ExtentIteration {
         pm.currentTransaction().begin();
 
         try {
-        	it.hasNext();
-        	fail();
+        	assertFalse(it.hasNext());
+			//no failure here. Depending on the configuration,
+			//we either get 'false' or a JDOSuerException. Both is correct.
         } catch (JDOUserException e) {
         	//good
         }
@@ -187,7 +190,7 @@ public class Test_062_ExtentIteration {
         try {
         	it.next();
         	fail();
-        } catch (JDOUserException e) {
+        } catch (JDOUserException | NoSuchElementException e) {
         	//good
         }
         
@@ -246,8 +249,9 @@ public class Test_062_ExtentIteration {
         }
  
         try {
-        	it.hasNext();
-        	fail();
+        	assertFalse(it.hasNext());
+			//no failure here. Depending on the configuration,
+			//we either get 'false' or a JDOSuerException. Both is correct.
         } catch (JDOUserException e) {
         	//good
         }
@@ -255,7 +259,7 @@ public class Test_062_ExtentIteration {
         try {
         	it.next();
         	fail();
-        } catch (JDOUserException e) {
+        } catch (JDOUserException | NoSuchElementException e) {
         	//good
         }
         

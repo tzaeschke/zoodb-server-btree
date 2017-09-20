@@ -25,7 +25,7 @@ import static org.junit.Assert.assertNotNull;
 import java.util.Arrays;
 
 import org.junit.Test;
-import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.PagedBTree;
@@ -36,7 +36,7 @@ public class BTreeFactoryTest {
 
 	@Test
 	public void testFactory() {
-		StorageChannel storage = new StorageRootInMemory(ZooConfig.getFilePageSize());
+		IOResourceProvider storage = new StorageRootInMemory(ZooConfig.getFilePageSize()).createChannel();
 		boolean isUnique = true;
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(storage, isUnique);
 		
@@ -48,7 +48,7 @@ public class BTreeFactoryTest {
 	}
 	
 	public static PagedBTree getTestTree() {
-		StorageChannel storage = new StorageRootInMemory(ZooConfig.getFilePageSize());
+		IOResourceProvider storage = new StorageRootInMemory(ZooConfig.getFilePageSize()).createChannel();
 		boolean isUnique = true;
 		BTreeStorageBufferManager bufferManager = new BTreeStorageBufferManager(storage, isUnique);
 		

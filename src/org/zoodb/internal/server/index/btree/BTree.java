@@ -20,10 +20,11 @@
  */
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
-import org.zoodb.internal.util.DBLogger;
-
 import java.util.NoSuchElementException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.zoodb.internal.server.index.btree.prefix.PrefixSharingHelper;
 
 /**
  * Shared behaviour of unique and non-unique B+ tree.
@@ -33,6 +34,8 @@ import java.util.NoSuchElementException;
  */
 public abstract class BTree {
 
+	private static final Logger LOGGER = LoggerFactory.getLogger(BTree.class);
+	
     protected BTreeNode root;
     protected BTreeNodeFactory nodeFactory;
     protected int pageSize;
@@ -387,7 +390,7 @@ public abstract class BTree {
      * WARNING: SLOW! has to iterate over whole tree
      */
     public int size() {
-    	DBLogger.warning("WARNING: BTree.size() is SLOW! has to iterate over whole tree.");
+    	LOGGER.warn("WARNING: BTree.size() is SLOW! has to iterate over whole tree.");
     	//TODO Shouldn't this return the number of entries instead?
         BTreeIterator it = new BTreeIterator(this);
         int counter = 0;

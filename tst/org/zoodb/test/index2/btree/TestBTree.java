@@ -20,9 +20,20 @@
  */
 package org.zoodb.test.index2.btree;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+
 import org.junit.Test;
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.PagedLongLong;
@@ -35,10 +46,6 @@ import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.util.Pair;
 import org.zoodb.tools.ZooConfig;
-
-import java.util.*;
-
-import static org.junit.Assert.*;
 
 public class TestBTree {
 
@@ -286,15 +293,15 @@ public class TestBTree {
 	@Test
 	public void testInsertLongIfNotSet_OLD_INDEX() {
 		int pageSize = 128;
-    	StorageChannel paf = new StorageRootInMemory(pageSize);
-        PagedUniqueLongLong uniqueTree = new PagedUniqueLongLong(DATA_TYPE.GENERIC_INDEX,paf);
+		IOResourceProvider paf = new StorageRootInMemory(pageSize).createChannel();
+        PagedUniqueLongLong uniqueTree = new PagedUniqueLongLong(PAGE_TYPE.GENERIC_INDEX,paf);
         assertTrue(uniqueTree.insertLongIfNotSet(1, 1));
         assertFalse(uniqueTree.insertLongIfNotSet(1, 1));
         assertFalse(uniqueTree.insertLongIfNotSet(1, 2));
         assertTrue(uniqueTree.insertLongIfNotSet(2, 2));
         assertFalse(uniqueTree.insertLongIfNotSet(1, 1));
         
-        PagedLongLong nonUniqueTree = new PagedLongLong(DATA_TYPE.GENERIC_INDEX,paf);
+        PagedLongLong nonUniqueTree = new PagedLongLong(PAGE_TYPE.GENERIC_INDEX,paf);
         assertTrue(nonUniqueTree.insertLongIfNotSet(1, 1));
         assertFalse(nonUniqueTree.insertLongIfNotSet(1, 1));
         assertTrue(nonUniqueTree.insertLongIfNotSet(1, 2));
@@ -337,7 +344,7 @@ public class TestBTree {
     }
     
     public static BTreeBufferManager newBufferManager(int pageSize) { 
-    	StorageChannel storage = new StorageRootInMemory(pageSize);
+    	IOResourceProvider storage = new StorageRootInMemory(pageSize).createChannel();
     	boolean isUnique = true;
 		return new BTreeStorageBufferManager(storage, isUnique);
     }

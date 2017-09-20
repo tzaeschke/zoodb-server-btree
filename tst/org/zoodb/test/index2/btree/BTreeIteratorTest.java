@@ -53,6 +53,7 @@ public class BTreeIteratorTest {
 		}
 
 		it.next();
+		it.close();
 	}
 
 	@Test
@@ -79,6 +80,7 @@ public class BTreeIteratorTest {
 			assertEquals(entries.get(i).getValue(), returned.getValue());
 			i++;
 		}
+		iterator.close();
 	}
 
 	@Test
@@ -106,7 +108,7 @@ public class BTreeIteratorTest {
 			assertEquals(entries.get(i).getValue(), returned.getValue());
 			i--;
 		}
-
+		iterator.close();
 	}
 
 	@Test

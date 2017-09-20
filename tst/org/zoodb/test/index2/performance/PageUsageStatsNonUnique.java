@@ -25,8 +25,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.BTreeIndexNonUnique;
 import org.zoodb.internal.server.index.LongLongIndex;
@@ -51,9 +51,9 @@ public class PageUsageStatsNonUnique {
     private static final Random R = new Random(0);
     
     private PagedLongLong oldIndex;
-    private StorageChannel oldStorage;
+    private IOResourceProvider oldStorage;
     private BTreeIndexNonUnique newIndex;
-    private StorageChannel newStorage;
+    private IOResourceProvider newStorage;
 
 	public static void main(String[] args) {
 		new PageUsageStatsNonUnique().run();
@@ -76,21 +76,21 @@ public class PageUsageStatsNonUnique {
     		oldStorage.close();
     	}
         if (MEMORY) {
-            oldStorage = new StorageRootInMemory(PAGE_SIZE);
+            oldStorage = new StorageRootInMemory(PAGE_SIZE).createChannel();
         } else {
             oldStorage = TestIndex.newDiskStorage("old_storage.db");
         }
-        oldIndex = new PagedLongLong(DATA_TYPE.GENERIC_INDEX, oldStorage);
+        oldIndex = new PagedLongLong(PAGE_TYPE.GENERIC_INDEX, oldStorage);
 
     	if (newStorage != null) {
     		newStorage.close();
     	}
         if (MEMORY) {
-            newStorage = new StorageRootInMemory(PAGE_SIZE);
+            newStorage = new StorageRootInMemory(PAGE_SIZE).createChannel();
         } else {
             newStorage = TestIndex.newDiskStorage("new_storage.db");
         }
-        newIndex = new BTreeIndexNonUnique(DATA_TYPE.GENERIC_INDEX, newStorage);
+        newIndex = new BTreeIndexNonUnique(PAGE_TYPE.GENERIC_INDEX, newStorage);
     }
 
     public void insertAndDelete() {
@@ -114,8 +114,8 @@ public class PageUsageStatsNonUnique {
         System.gc();
         if (NEW) System.out.println("mseconds new: " + PerformanceTest.insertList(newIndex, entries));
         System.out.println("Write");
-        if (OLD) System.out.println("mseconds old: " + write(oldIndex));
-        if (NEW) System.out.println("mseconds new: " + write(newIndex));
+        if (OLD) System.out.println("mseconds old: " + write(oldIndex, oldStorage));
+        if (NEW) System.out.println("mseconds new: " + write(newIndex, newStorage));
 
         BTreeIterator it = new BTreeIterator(newIndex.getTree());
         int height = 1;
@@ -162,8 +162,8 @@ public class PageUsageStatsNonUnique {
         System.gc();
         if (NEW) System.out.println("mseconds new: " + PerformanceTest.removeList(newIndex, deleteEntries));
         System.out.println("Write");
-        if (OLD) System.out.println("mseconds old: " + write(oldIndex));
-        if (NEW) System.out.println("mseconds new: " + write(newIndex));
+        if (OLD) System.out.println("mseconds old: " + write(oldIndex, oldStorage));
+        if (NEW) System.out.println("mseconds new: " + write(newIndex, newStorage));
 
         printStats();
     }
@@ -171,9 +171,9 @@ public class PageUsageStatsNonUnique {
     /**
      * writes and returns the time it took
      */
-    public long write(LongLongIndex index) {
+    public long write(LongLongIndex index, IOResourceProvider io) {
         long startTime = System.nanoTime();
-        index.write();
+        io.writeIndex(index::write);
         return (System.nanoTime() - startTime) / 1000000;
     }
 
@@ -215,17 +215,17 @@ public class PageUsageStatsNonUnique {
             ArrayList<LLEntry> entries = PerformanceTest
                     .randomEntriesNonUnique(numElements / numDuplicates, numDuplicates, R);
             if (OLD) PerformanceTest.insertList(oldIndex, entries);
-            if (OLD) oldIndex.write();
+            if (OLD) oldStorage.writeIndex(oldIndex::write);
             if (NEW) PerformanceTest.insertList(newIndex, entries);
-            if (NEW) newIndex.write();
+            if (NEW) newStorage.writeIndex(newIndex::write);
 
             Collections.shuffle(entries, R);
             List<LLEntry> deleteEntries = entries.subList(0, numDeleteEntries);
 
             if (OLD) PerformanceTest.removeList(oldIndex, deleteEntries);
-            if (OLD) oldIndex.write();
+            if (OLD) oldStorage.writeIndex(oldIndex::write);
             if (NEW) PerformanceTest.removeList(newIndex, deleteEntries);
-            if (NEW) newIndex.write();
+            if (NEW) newStorage.writeIndex(newIndex::write);
         }
         printStats();
     }
@@ -239,7 +239,7 @@ public class PageUsageStatsNonUnique {
         );
         System.out.println("Page writes "
                 + "(Old Index, "
-                + String.valueOf(oldIndex.getStorageChannel().statsGetWriteCount())
+                + String.valueOf(oldIndex.getIO().statsGetWriteCount())
                 + "), (New Index, "
                 + String.valueOf(newIndex.getBufferManager().getStorageFile().statsGetWriteCount()
                 + ")"));

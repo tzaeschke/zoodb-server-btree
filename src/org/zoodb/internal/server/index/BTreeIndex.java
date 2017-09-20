@@ -20,12 +20,16 @@
  */
 package org.zoodb.internal.server.index;
 
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
-import org.zoodb.internal.server.index.LongLongIndex.LLEntryIterator;
-import org.zoodb.internal.server.index.btree.*;
-
 import java.util.List;
+
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
+import org.zoodb.internal.server.IOResourceProvider;
+import org.zoodb.internal.server.StorageChannelOutput;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntryIterator;
+import org.zoodb.internal.server.index.btree.AscendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
+import org.zoodb.internal.server.index.btree.DescendingBTreeLeafEntryIterator;
+import org.zoodb.internal.server.index.btree.PagedBTree;
 
 
 /**
@@ -37,9 +41,9 @@ import java.util.List;
 public abstract class BTreeIndex extends AbstractIndex {
 
     protected BTreeStorageBufferManager bufferManager;
-    protected DATA_TYPE dataType;
+    protected PAGE_TYPE dataType;
 
-	public BTreeIndex(DATA_TYPE dataType, StorageChannel file, boolean isNew, boolean isUnique) {
+	public BTreeIndex(PAGE_TYPE dataType, IOResourceProvider file, boolean isNew, boolean isUnique) {
 		super(file, isNew, isUnique);
         this.dataType = dataType;
         bufferManager = new BTreeStorageBufferManager(file, isUnique, dataType);
@@ -90,15 +94,15 @@ public abstract class BTreeIndex extends AbstractIndex {
 		return getTree().getMaxKey();
 	}
 
-	public int write() {
-		return bufferManager.write(getTree().getRoot());
+	public int write(StorageChannelOutput out) {
+		return bufferManager.write(getTree().getRoot(), out);
 	}
 
 	public long size() {
 		return getTree().size();
 	}
 
-	public DATA_TYPE getDataType() {
+	public PAGE_TYPE getDataType() {
 		return dataType;
 	}
 

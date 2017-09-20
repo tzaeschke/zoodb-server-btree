@@ -20,6 +20,8 @@
  */
 package org.zoodb.internal.server.index.btree;
 
+import org.zoodb.internal.server.StorageChannelOutput;
+
 /**
  * Variant of the B+ tree that is aware of the {@link BTreeBufferManager}
  *
@@ -45,8 +47,8 @@ public abstract class PagedBTree extends BTree {
         return bufferManager;
     }
     
-    public void write() {
-    	bufferManager.write(getRoot());
+    public void write(StorageChannelOutput out) {
+    	bufferManager.write(getRoot(), out);
     }
     
     public PagedBTreeNode getRoot() {

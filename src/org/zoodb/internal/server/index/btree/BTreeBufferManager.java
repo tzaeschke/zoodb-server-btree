@@ -20,6 +20,8 @@
  */
 package org.zoodb.internal.server.index.btree;
 
+import org.zoodb.internal.server.StorageChannelOutput;
+
 /**
  * 
  * @author bvancea, jonasnick
@@ -44,7 +46,7 @@ public interface BTreeBufferManager {
     /**
 	 * writes the node to the storage channel
 	 */
-	public int write(PagedBTreeNode node);
+	public int write(PagedBTreeNode node, StorageChannelOutput out);
 	
 	/**
 	 * Update clean/dirty status of a node in the buffer manager. 

@@ -29,8 +29,8 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 import org.junit.Test;
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.IndexFactory;
 import org.zoodb.internal.server.index.LongLongIndex;
@@ -48,8 +48,8 @@ public class TestBTree_ParentId {
     
     @Test
     public void testIndex() {
-		StorageChannel paf = new StorageRootInMemory(ZooConfig.getFilePageSize());
-        LongLongIndex idx = IndexFactory.createIndex(DATA_TYPE.FIELD_INDEX, paf);
+		IOResourceProvider paf = new StorageRootInMemory(ZooConfig.getFilePageSize()).createChannel();
+        LongLongIndex idx = IndexFactory.createIndex(PAGE_TYPE.FIELD_INDEX, paf);
        
         long[] keys = loadData();
         long[] vals = new long[keys.length];
@@ -61,8 +61,8 @@ public class TestBTree_ParentId {
         	idx.insertLong(keys[i], vals[i]);
         }
 
-        int pageId = idx.write();
-        idx = IndexFactory.loadIndex(DATA_TYPE.FIELD_INDEX, paf, pageId);
+        int pageId = paf.writeIndex(idx::write);
+        idx = IndexFactory.loadIndex(PAGE_TYPE.FIELD_INDEX, paf, pageId);
         
         for (int i = 0; i < vals.length; i++) {
         	LLEntryIterator it = idx.iterator(keys[i], keys[i]);

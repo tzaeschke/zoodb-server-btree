@@ -35,7 +35,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.index.AbstractPagedIndex;
 import org.zoodb.internal.server.index.BTreeIndex;
 import org.zoodb.internal.server.index.BTreeIndexNonUnique;
@@ -57,7 +58,7 @@ public class PerformanceTest {
 	// number of repetitions of a particular operation
 	private static String fileName = "./tst/org/zoodb/test/index2/performance/performanceTest.csv";
 	private final OutputStreamWriter STDOUT = new OutputStreamWriter(System.out);
-	private final DATA_TYPE dataType = DATA_TYPE.GENERIC_INDEX;
+	private final PAGE_TYPE dataType = PAGE_TYPE.GENERIC_INDEX;
 	private BufferedWriter fileWriter;
 
 	public static void main(String[] args) {
@@ -138,18 +139,19 @@ public class PerformanceTest {
 	}
 
 	private void insertPerformance(LongLongIndex index) {
+		IOResourceProvider io = index.getIO();
 		ArrayList<Integer> numElementsArray = new ArrayList<Integer>(
 
 		Arrays.asList(100000, 500000, 1000000));
 		for (int numElements : numElementsArray) {
-			insertPerformanceHelper(index, randomEntriesUnique(numElements), "random");
+			insertPerformanceHelper(index, randomEntriesUnique(numElements), "random", io);
 		}
 
 		numElementsArray = new ArrayList<Integer>(Arrays.asList(500000,
 				1000000, 2000000));
 		for (int numElements : numElementsArray) {
 			insertPerformanceHelper(index,
-					increasingEntriesUnique(numElements), "increasing");
+					increasingEntriesUnique(numElements), "increasing", io);
 		}
 
 		if (!isUnique(index)) {
@@ -160,19 +162,19 @@ public class PerformanceTest {
 				insertPerformanceHelper(
 						index,
 						randomEntriesNonUnique(numElements / numDuplicates,
-								numDuplicates), "random_nonUnique");
+								numDuplicates), "random_nonUnique", io);
 			}
 		}
 	}
 
 	private void insertPerformanceHelper(LongLongIndex index,
-			ArrayList<LLEntry> entries, String entriesName) {
+			ArrayList<LLEntry> entries, String entriesName, IOResourceProvider io) {
 		for (int i = 0; i < this.numExperiments; i++) {
 			index.clear();
 			long duration = insertList(index, entries);
 			printLine(index, "insert", entriesName, entries.size(), i, duration);
 			printLine(index, "insert_write", entriesName, entries.size(), i,
-					timeWrite(index));
+					timeWrite(index, io));
 		}
 	}
 
@@ -314,6 +316,7 @@ public class PerformanceTest {
 		// ensure that entries with equal keys can not exists in the set
 		Set<LLEntry> randomEntryList = new TreeSet<LLEntry>(
 				new Comparator<LLEntry>() {
+					@Override
 					public int compare(LLEntry e1, LLEntry e2) {
 						return Long.compare(e1.getKey(), e2.getKey());
 					}
@@ -381,9 +384,9 @@ public class PerformanceTest {
 		}
 	}
 
-	public long timeWrite(LongLongIndex index) {
+	public long timeWrite(LongLongIndex index, IOResourceProvider out) {
 		long startTime = System.nanoTime();
-		index.write();
+		out.writeIndex(index::write);
 		return (System.nanoTime() - startTime) / 1000000;
 	}
 }

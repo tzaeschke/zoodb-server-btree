@@ -25,7 +25,7 @@ import static org.junit.Assert.assertArrayEquals;
 import java.util.Arrays;
 
 import org.junit.Test;
-import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.btree.BTreeNode;
 import org.zoodb.internal.server.index.btree.BTreeNodeFactory;
@@ -37,8 +37,8 @@ public class TestNode {
 
     private static final int NO_VALUE = -1;
 
-	StorageChannel storage = new StorageRootInMemory(
-			ZooConfig.getFilePageSize());
+	IOResourceProvider storage = new StorageRootInMemory(
+			ZooConfig.getFilePageSize()).createChannel();
 	private BTreeNodeFactory nodeFactory = new PagedBTreeNodeFactory(
 			new BTreeStorageBufferManager(storage, true));
 

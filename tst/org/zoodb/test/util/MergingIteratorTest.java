@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -23,6 +23,7 @@ package org.zoodb.test.util;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -64,7 +65,7 @@ public final class MergingIteratorTest {
 		list3.add(32);
 		list3.add(33);
 		list3.add(34);
-		it = new MergingIterator<Integer>();
+		it = new MergingIterator<Integer>(true);
 		it.add(toCI(list1.iterator()));
 		it.add(toCI(list2.iterator()));
 		it.add(toCI(list3.iterator()));
@@ -130,10 +131,21 @@ public final class MergingIteratorTest {
 	 */
 	@Test
 	public void testRemove() {
+//		for (int i = 0; i < 9; i++) {
+//			it.next();
+//			it.remove();
+//		}
+//		assertFalse("Check size", it.hasNext());
 		for (int i = 0; i < 9; i++) {
 			it.next();
-			it.remove();
+			try { 
+				it.remove();
+				fail();
+			} catch (UnsupportedOperationException e) {
+				//good
+			}
 		}
 		assertFalse("Check size", it.hasNext());
+
 	}
 }

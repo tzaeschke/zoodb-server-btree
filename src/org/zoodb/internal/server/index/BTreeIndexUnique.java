@@ -21,7 +21,7 @@
 package org.zoodb.internal.server.index;
 
 import org.zoodb.internal.server.DiskIO;
-import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.index.LongLongIndex.LongLongUIndex;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTree;
 import org.zoodb.internal.server.index.btree.unique.UniquePagedBTreeNode;
@@ -38,24 +38,24 @@ public class BTreeIndexUnique extends BTreeIndex implements LongLongUIndex  {
 
     private UniquePagedBTree tree;
     
-    public BTreeIndexUnique(DiskIO.DATA_TYPE dataType, StorageChannel file) {
+    public BTreeIndexUnique(DiskIO.PAGE_TYPE dataType, IOResourceProvider file) {
     	super(dataType, file, true, true);
     	initTree();
     }
     
-    public BTreeIndexUnique(DiskIO.DATA_TYPE dataType, int nodeValueSizeInByte, StorageChannel file) {
+    public BTreeIndexUnique(DiskIO.PAGE_TYPE dataType, int nodeValueSizeInByte, IOResourceProvider file) {
     	super(dataType, file, true, true);
     	bufferManager.setNodeValueElementSize(nodeValueSizeInByte);
     	initTree();
     }
     
-	public BTreeIndexUnique(DiskIO.DATA_TYPE dataType, StorageChannel file, int rootPageId) {
+	public BTreeIndexUnique(DiskIO.PAGE_TYPE dataType, IOResourceProvider file, int rootPageId) {
     	super(dataType, file, true, true);
     	loadTree(rootPageId);
 
     }
 	
-	public BTreeIndexUnique(DiskIO.DATA_TYPE dataType, int nodeValueSizeInByte, StorageChannel file, int rootPageId) {
+	public BTreeIndexUnique(DiskIO.PAGE_TYPE dataType, int nodeValueSizeInByte, IOResourceProvider file, int rootPageId) {
     	super(dataType, file, true, true);
     	bufferManager.setNodeValueElementSize(nodeValueSizeInByte);
     	loadTree(rootPageId);

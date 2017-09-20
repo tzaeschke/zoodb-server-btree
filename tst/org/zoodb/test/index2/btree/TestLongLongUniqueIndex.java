@@ -39,8 +39,8 @@ import javax.jdo.JDOUserException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.zoodb.internal.server.DiskIO.DATA_TYPE;
-import org.zoodb.internal.server.StorageChannel;
+import org.zoodb.internal.server.DiskIO.PAGE_TYPE;
+import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.BTreeIndexUnique;
 import org.zoodb.internal.server.index.IndexFactory;
@@ -68,18 +68,17 @@ public class TestLongLongUniqueIndex {
     	ZooConfig.setFilePageSize(ZooConfig.FILE_PAGE_SIZE_DEFAULT);
     }
 
-    private StorageChannel createPageAccessFile() {
-    	StorageChannel paf = new StorageRootInMemory(ZooConfig.getFilePageSize());
-    	return paf;
+    private IOResourceProvider createPageAccessFile() {
+    	return new StorageRootInMemory(ZooConfig.getFilePageSize()).createChannel();
     }
     
     private LongLongIndex.LongLongUIndex createIndex() {
-        StorageChannel paf = createPageAccessFile();
+    	IOResourceProvider paf = createPageAccessFile();
         return createIndex(paf); 
     }
     
-    private LongLongIndex.LongLongUIndex createIndex(StorageChannel paf) {
-    	LongLongIndex.LongLongUIndex ind = new BTreeIndexUnique(DATA_TYPE.GENERIC_INDEX, paf);
+    private LongLongIndex.LongLongUIndex createIndex(IOResourceProvider paf) {
+    	LongLongIndex.LongLongUIndex ind = new BTreeIndexUnique(PAGE_TYPE.GENERIC_INDEX, paf);
     	return ind; 
     }
     
@@ -336,7 +335,7 @@ public class TestLongLongUniqueIndex {
     public void testDirtyPages() {
         //When increasing this number, also increase the assertion limit!
         final int MAX = 1000000;
-        StorageChannel paf = createPageAccessFile();
+        IOResourceProvider paf = createPageAccessFile();
         LongLongIndex ind = createIndex(paf);
         //Fill index
         for (int i = 1000; i < 1000+MAX; i++) {
@@ -344,16 +343,16 @@ public class TestLongLongUniqueIndex {
         }
 
         //		int nW0 = paf.statsGetWriteCount();
-        ind.write();
+        paf.writeIndex(ind::write);
         int nW1 = paf.statsGetWriteCount();
         ind.insertLong(MAX * 2, 32);
-        ind.write();
+        paf.writeIndex(ind::write);
         int nW2 = paf.statsGetWriteCount();
         assertTrue("nW1="+nW1 + " / nW2="+nW2, nW2-nW1 <= MAX_DEPTH);
 
 
         ind.removeLong(MAX * 2, -1);
-        ind.write();
+        paf.writeIndex(ind::write);
         int nW3 = paf.statsGetWriteCount();
         assertTrue("nW2="+nW2 + " / nW3="+nW3, nW3-nW2 <= MAX_DEPTH);
 
@@ -499,7 +498,7 @@ public class TestLongLongUniqueIndex {
 
     @Test
     public void testTransactionContext() {
-        StorageChannel paf = createPageAccessFile();
+    	IOResourceProvider paf = createPageAccessFile();
         LongLongIndex ind = createIndex(paf);
         for (int i = 1000; i < 2000; i++) {
             ind.insertLong(i, 32);
@@ -507,7 +506,7 @@ public class TestLongLongUniqueIndex {
 
         //Iterate while deleting
         Iterator<LLEntry> iter = ind.iterator();
-        paf.newTransaction(22);
+        paf.startWriting(22);
          try {
         	iter.hasNext();
         	fail();
@@ -523,7 +522,7 @@ public class TestLongLongUniqueIndex {
 
         //try with updates  (updates existing entry)
         iter = ind.iterator();
-        paf.newTransaction(33);
+        paf.startWriting(33);
         try {
         	iter.hasNext();
         	fail();
@@ -539,7 +538,7 @@ public class TestLongLongUniqueIndex {
 
         //try with new entries
         iter = ind.iterator();
-        paf.newTransaction(44);
+        paf.startWriting(44);
         try {
         	iter.hasNext();
         	fail();
@@ -556,7 +555,7 @@ public class TestLongLongUniqueIndex {
 
     @Test
     public void testTransactionContextDescending() {
-        StorageChannel paf = createPageAccessFile();
+    	IOResourceProvider paf = createPageAccessFile();
         LongLongIndex ind = createIndex(paf);
         for (int i = 1000; i < 2000; i++) {
             ind.insertLong(i, 32);
@@ -564,7 +563,7 @@ public class TestLongLongUniqueIndex {
 
         //Iterate while deleting
         Iterator<LLEntry> iter = ind.descendingIterator();
-        paf.newTransaction(22);
+        paf.startWriting(22);
          try {
         	iter.hasNext();
         	fail();
@@ -580,7 +579,7 @@ public class TestLongLongUniqueIndex {
 
         //try with updates  (updates existing entry)
         iter = ind.descendingIterator();
-        paf.newTransaction(33);
+        paf.startWriting(33);
         try {
         	iter.hasNext();
         	fail();
@@ -596,7 +595,7 @@ public class TestLongLongUniqueIndex {
 
         //try with new entries
         iter = ind.descendingIterator();
-        paf.newTransaction(44);
+        paf.startWriting(44);
         try {
         	iter.hasNext();
         	fail();
@@ -653,17 +652,17 @@ public class TestLongLongUniqueIndex {
     @Test
     public void testLoadedPagesNotDirty() {
         final int MAX = 1000000;
-        StorageChannel paf = createPageAccessFile();
-        LongLongUIndex ind = IndexFactory.createUniqueIndex(DATA_TYPE.GENERIC_INDEX, paf);
+        IOResourceProvider paf = createPageAccessFile();
+        LongLongUIndex ind = IndexFactory.createUniqueIndex(PAGE_TYPE.GENERIC_INDEX, paf);
         for (int i = 1000; i < 1000+MAX; i++) {
             ind.insertLong(i, 32+i);
         }
-        int root = ind.write();
+        int root = paf.writeIndex(ind::write);
 //        int w0 = ind.statsGetWrittenPagesN();
 //        System.out.println("w0=" + w0);
 
         //now read it
-        LongLongUIndex ind2 = IndexFactory.loadUniqueIndex(DATA_TYPE.GENERIC_INDEX, paf, root);
+        LongLongUIndex ind2 = IndexFactory.loadUniqueIndex(PAGE_TYPE.GENERIC_INDEX, paf, root);
         int w1 = ind2.statsGetWrittenPagesN();
         Iterator<LongLongIndex.LLEntry> i = ind2.iterator(Long.MIN_VALUE, Long.MAX_VALUE);
         int n = 0;
@@ -671,7 +670,7 @@ public class TestLongLongUniqueIndex {
         	n++;
         	i.next();
         }
-        ind2.write();
+        paf.writeIndex(ind2::write);
         int w2 = ind2.statsGetWrittenPagesN();
         //no pages written on freshly read root
         assertEquals("w1=" + w1, 0, w1);
@@ -686,7 +685,7 @@ public class TestLongLongUniqueIndex {
 //        LLEntry e = ind2.findValue(1100);
 //        assertNotNull(e);
 //        assertEquals(1100, e.getValue());
-        ind2.write();
+        paf.writeIndex(ind2::write);
         int wn = ind2.statsGetWrittenPagesN();
 //        System.out.println("w2=" + w2);
 //        System.out.println("wn=" + wn);
@@ -700,15 +699,15 @@ public class TestLongLongUniqueIndex {
     @Test
     public void testWriting() {
         final int MAX = 1000000;
-        StorageChannel paf = createPageAccessFile();
-        LongLongUIndex ind = IndexFactory.createUniqueIndex(DATA_TYPE.GENERIC_INDEX, paf);
+        IOResourceProvider paf = createPageAccessFile();
+        LongLongUIndex ind = IndexFactory.createUniqueIndex(PAGE_TYPE.GENERIC_INDEX, paf);
         for (int i = 1000; i < 1000+MAX; i++) {
             ind.insertLong(i, 32+i);
         }
-        int root = ind.write();
+        int root = paf.writeIndex(ind::write);
 
         //now read it
-        LongLongUIndex ind2 = IndexFactory.loadUniqueIndex(DATA_TYPE.GENERIC_INDEX, paf, root);
+        LongLongUIndex ind2 = IndexFactory.loadUniqueIndex(PAGE_TYPE.GENERIC_INDEX, paf, root);
         Iterator<LongLongIndex.LLEntry> i = ind2.iterator(Long.MIN_VALUE, Long.MAX_VALUE);
         int n = 0;
         while (i.hasNext()) {

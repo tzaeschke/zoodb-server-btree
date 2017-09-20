@@ -20,7 +20,8 @@
  */
 package org.zoodb.internal.server.index.btree;
 
-import org.zoodb.internal.util.PrimLongMapLI;
+import org.zoodb.internal.server.StorageChannelOutput;
+import org.zoodb.internal.util.PrimLongMapZ;
 
 /**
  * BufferManager without using a proper storage for testing purposes.
@@ -29,7 +30,7 @@ import org.zoodb.internal.util.PrimLongMapLI;
  * @author Bogdan Vancea
  */
 public class BTreeMemoryBufferManager implements BTreeBufferManager {
-	private PrimLongMapLI<PagedBTreeNode> map;
+	private PrimLongMapZ<PagedBTreeNode> map;
 	private int pageId;
 	private int pageSize;
 
@@ -38,7 +39,7 @@ public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	}
 	
 	public BTreeMemoryBufferManager(int pageSize) {
-		this.map = new PrimLongMapLI<PagedBTreeNode>();
+		this.map = new PrimLongMapZ<PagedBTreeNode>();
 		this.pageId = 0;
 		this.pageSize = pageSize;
 	}
@@ -49,7 +50,7 @@ public class BTreeMemoryBufferManager implements BTreeBufferManager {
 	}
 
 	@Override
-	public int write(PagedBTreeNode node) {
+	public int write(PagedBTreeNode node, StorageChannelOutput out) {
 		pageId++;
 		map.put(pageId, node);
 		return pageId;

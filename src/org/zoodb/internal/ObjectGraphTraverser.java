@@ -1,5 +1,5 @@
 /*
- * Copyright 2009-2014 Tilmann Zaeschke. All rights reserved.
+ * Copyright 2009-2016 Tilmann Zaeschke. All rights reserved.
  * 
  * This file is part of ZooDB.
  * 
@@ -69,9 +69,9 @@ public class ObjectGraphTraverser {
 
     private final Session session;
     private final ClientSessionCache cache;
+    private boolean traversalRequired = true;
 
-    //TODO use ZooClassDef from cached object instead? AVoids 'static' modifier!
-    private static final IdentityHashMap<Class<? extends Object>, Field[]> SEEN_CLASSES = 
+    private final IdentityHashMap<Class<? extends Object>, Field[]> SEEN_CLASSES = 
         new IdentityHashMap<Class<? extends Object>, Field[]>();
 
     private final ObjectIdentitySet<Object> seenObjects;
@@ -137,11 +137,11 @@ public class ObjectGraphTraverser {
     /**
      * This class is only public so it can be accessed by the test harness. 
      * Please do not use.
-     * @param session the Zoo Session 
+     * @param cache the client cache 
      */
-    public ObjectGraphTraverser(Session session, ClientSessionCache cache) {
-        this.session = session;
+    public ObjectGraphTraverser(ClientSessionCache cache) {
         this.cache = cache;
+        this.session = cache.getSession();
         
         //We need to copy the cache to a local list, because the cache we might make additional
         //objects persistent while iterating. We need to ensure that these new objects are covered
@@ -153,26 +153,45 @@ public class ObjectGraphTraverser {
         toBecomePersistent = new ArrayList<ZooPC>(); 
     }
 
-    /**
+	/**
+	 * Tell the OGT that the object graph has changed and that a new traversal is required.
+	 */
+	public void flagTraversalRequired() {
+        traversalRequired = true;
+	}
+
+	/**
      * This class is only public so it can be accessed by the test harness. 
      * Please do not use.
      */
     public final void traverse() {
+    	//We have to check for && because 'traversalRequired' is not triggered by new objects,
+    	//but new objects may have new objects referenced that are not marked as persistent.
+    	//See issue #57.
+    	if (!traversalRequired && !cache.hasDirtyPojos()) {
+    		//shortcut
+    		return;
+    	}
         //Intention is to find the NEW objects that will become persistent
         //through reachability.
         //For this, we have to check objects that are DIRTY or NEW (by 
         //makePersistent()). 
-    	DBLogger.debugPrintln(1, "Starting OGT: " + workList.size());
-        long t1 = System.currentTimeMillis();
-        long nObjects = 0;
-
-        nObjects += traverseCache();
-        nObjects += traverseWorkList();
-                
-        long t2 = System.currentTimeMillis();
-        DBLogger.debugPrintln(1, "Finished OGT: " + nObjects + " (seen="
-                + seenObjects.size() + " ) / " + (t2-t1)/1000.0
-                + " MP=" + mpCount);    
+//    	DBLogger.debugPrintln(1, "Starting OGT: " + workList.size());
+//        long t1 = System.currentTimeMillis();
+//        long nObjects = 0;
+//
+//        nObjects += traverseCache();
+//        nObjects += traverseWorkList();
+//                
+//        long t2 = System.currentTimeMillis();
+//        DBLogger.debugPrintln(1, "Finished OGT: " + nObjects + " (seen="
+//                + seenObjects.size() + " ) / " + (t2-t1)/1000.0
+//                + " MP=" + mpCount);
+    	traverseCache();
+        traverseWorkList();
+        //We have to clear the seenObjects here, see also issue #58.
+        seenObjects.clear();
+        traversalRequired = false;
     }
     
     private int traverseCache() {
@@ -366,7 +385,7 @@ public class ObjectGraphTraverser {
      * @param c Class object
      * @return Returns list of interesting fields
      */
-    private static final Field[] getFields (Class<? extends Object> cls) {
+    private final Field[] getFields (Class<? extends Object> cls) {
     	Field[] ret = SEEN_CLASSES.get(cls);
         if (ret != null) {
             return ret;
