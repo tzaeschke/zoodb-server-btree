@@ -44,8 +44,8 @@ import org.zoodb.internal.server.IOResourceProvider;
 import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.StorageRootInMemory;
 import org.zoodb.internal.server.index.LongLongIndex;
-import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.server.index.PagedLongLong;
+import org.zoodb.internal.server.index.LongLongIndex.LLEntry;
 import org.zoodb.internal.util.CloseableIterator;
 import org.zoodb.tools.ZooConfig;
 
@@ -97,7 +97,6 @@ public class TestLongLongNonUniqueIndex {
     public void testAddWithMockStrongCheck() {
         final int MAX = 5000;
         LongLongIndex ind = createIndex();
-        //BTreeIndex ind = new BTreeIndex(createPageAccessFile(), true, false);
         for (int i = 1000; i < 1000+MAX; i++) {
             ind.insertLong(i, 32+i);
             //Now check every entry!!!

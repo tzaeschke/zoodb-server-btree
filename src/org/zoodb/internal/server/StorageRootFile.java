@@ -90,7 +90,7 @@ public final class StorageRootFile implements StorageRoot {
 		}
 		this.indexChannel = new StorageChannelImpl(this);
 	}
-	
+
 	@Override
 	public int getNextPage(int prevPage) {
 		return fsm.getNextPage(prevPage);

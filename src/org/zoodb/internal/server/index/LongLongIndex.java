@@ -50,7 +50,7 @@ public interface LongLongIndex {
 		public long getValue() {
 			return value;
 		}
-    }
+	}
 
 	//Interface for index iterators that can be deregisterd.
 	//TODO remove if we remove registerable iterators.

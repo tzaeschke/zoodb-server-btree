@@ -34,7 +34,7 @@ public class PagedLongLong extends AbstractPagedIndex implements LongLongIndex {
 	private transient LLIndexPage root;
 	
 	/**
-	 * Constructor for creating new index. 
+	 * Constructor for creating new index.
 	 * @param dataType Page type 
 	 * @param file The file
 	 */
