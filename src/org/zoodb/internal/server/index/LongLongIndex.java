@@ -50,26 +50,6 @@ public interface LongLongIndex {
 		public long getValue() {
 			return value;
 		}
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof LLEntry)) return false;
-
-            LLEntry llEntry = (LLEntry) o;
-
-            if (key != llEntry.key) return false;
-            if (value != llEntry.value) return false;
-
-            return true;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = (int) (key ^ (key >>> 32));
-            result = 31 * result + (int) (value ^ (value >>> 32));
-            return result;
-        }
     }
 
 	//Interface for index iterators that can be deregisterd.
