@@ -22,7 +22,6 @@ package org.zoodb.internal.server.index;
 
 import org.zoodb.internal.server.DiskIO;
 import org.zoodb.internal.server.IOResourceProvider;
-import org.zoodb.internal.server.StorageChannel;
 import org.zoodb.internal.server.index.btree.BTreeStorageBufferManager;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTree;
 import org.zoodb.internal.server.index.btree.nonunique.NonUniquePagedBTreeNode;
@@ -63,11 +62,13 @@ public class BTreeIndexNonUnique extends BTreeIndex implements LongLongIndex {
 		tree = new NonUniquePagedBTree(tree.getPageSize(), bufferManager);
     }
 
+	@Override
 	public NonUniquePagedBTree getTree() {
 		return tree;
 	}
 
-    public BTreeStorageBufferManager getBufferManager() {
+    @Override
+	public BTreeStorageBufferManager getBufferManager() {
 		return bufferManager;
     }
 

@@ -84,7 +84,7 @@ public class TestBTree_ParentId {
 	private long[] loadData() {
 		//return I;
 		
-		InputStream is = TestOidIndex_007_NoSuchElement.class.getResourceAsStream("parentId.txt");
+		InputStream is = TestBTree_ParentId.class.getResourceAsStream("parentId.txt");
 		if (is==null) {
 			throw new NullPointerException();
 		}
