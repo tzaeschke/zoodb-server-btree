@@ -1,6 +1,6 @@
 
-ZooDB
-=====
+ZooDB Server B-Tree
+===================
 
 <a href="http://www.zoodb.org">
 <img src="https://github.com/tzaeschke/zoodb/blob/master/doc/images/logo_510412_web.png" alt="ZooDB logo" align="right" />
@@ -18,16 +18,12 @@ Copyright Jonas Nick, Bogdan Vancea and Tilmann Zäschke.
 
 Dependencies
 ============
-* JDO 3.1 (Java Data Objects): 
-  - URL: https://db.apache.org/jdo/
-  - JAR: jdo2-api-3.1.jar
-* JTA (Java Transaction API):
-  - URL: http://java.sun.com/products/jta/
-  - JAR: jta.jar
-* JUnit (currently use 4.8.1, but should work with newer and older versions as well):
-  - URL: http://www.junit.org/
-  - JAR: junit-4.8.1.jar
-* Java 8
+* ZooDB 0.5.1
+* [JDO 3.1](https://db.apache.org/jdo/) (Java Data Objects): 
+* [JTA](http://java.sun.com/products/jta/) (Java Transaction API):
+* [JUnit](http://www.junit.org/) (currently use 4.12, but should work with newer and older versions as well):
+* [Java 8](https://java.com/de/download/)
+* [SLF4J](https://www.slf4j.org/) (Logging API)
 
 
 Contact
